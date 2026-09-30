@@ -14,6 +14,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         port: 3000,
         contract_ids: vec![Uuid::now_v7()],
         expectations: Vec::new(),
+        observation: Default::default(),
         created_at: Utc::now(),
     };
     let run = ScenarioRun {
@@ -29,6 +30,8 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         scenario_id: scenario.id,
         completed_at: Utc::now(),
         passed: false,
+        observation: Default::default(),
+        observation_elapsed_ms: 0,
         recording_id: None,
         replayed_interaction_ids: Vec::new(),
         checks: vec![ScenarioCheckOutcome {
