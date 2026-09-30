@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, fs};
 
 use ortyo::{
     approval::{
-        ApprovalDecision, ApprovalError, ApprovalState, ApprovalStore, request_digest,
-        request_summary,
+        ApprovalDecision, ApprovalError, ApprovalNotificationEvent, ApprovalState, ApprovalStore,
+        request_digest, request_summary,
     },
     execution::{HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
 };
@@ -83,6 +83,19 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     let store = ApprovalStore::open(&path).unwrap();
     let created = store.create(workspace_id, requester_id, &request).unwrap();
     assert_eq!(created.state, ApprovalState::Pending);
+    let notifications = store.list_undelivered_notifications(workspace_id).unwrap();
+    assert_eq!(notifications.len(), 1);
+    assert_eq!(notifications[0].workspace_id, workspace_id);
+    assert_eq!(notifications[0].approval_id, created.approval_id);
+    assert_eq!(
+        notifications[0].event,
+        ApprovalNotificationEvent::ApprovalRequested
+    );
+    assert_eq!(
+        notifications[0].created_at_unix_ms,
+        created.requested_at_unix_ms
+    );
+    assert_eq!(notifications[0].delivered_at_unix_ms, None);
     drop(store);
 
     let bytes = fs::read(&path).unwrap();
@@ -164,6 +177,139 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
             .unwrap()
             .state,
         ApprovalState::Consumed
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
+    let path = std::env::temp_dir().join(format!("ortyo-approval-outbox-{}.db", Uuid::now_v7()));
+    let workspace_id = Uuid::now_v7();
+    let other_workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+
+    let store = ApprovalStore::open(&path).unwrap();
+    let approval = store
+        .create(workspace_id, Uuid::now_v7(), &request)
+        .unwrap();
+    let notification = store
+        .list_undelivered_notifications(workspace_id)
+        .unwrap()
+        .into_iter()
+        .next()
+        .unwrap();
+    assert_eq!(notification.approval_id, approval.approval_id);
+    assert!(
+        store
+            .list_undelivered_notifications(other_workspace_id)
+            .unwrap()
+            .is_empty()
+    );
+    drop(store);
+
+    let reopened = ApprovalStore::open(&path).unwrap();
+    let pending = reopened
+        .list_undelivered_notifications(workspace_id)
+        .unwrap();
+    assert_eq!(pending, vec![notification.clone()]);
+
+    let delivered = reopened
+        .mark_notification_delivered(workspace_id, notification.notification_id)
+        .unwrap();
+    let delivered_at = delivered.delivered_at_unix_ms.unwrap();
+    assert!(
+        reopened
+            .list_undelivered_notifications(workspace_id)
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        reopened
+            .mark_notification_delivered(workspace_id, notification.notification_id)
+            .unwrap()
+            .delivered_at_unix_ms,
+        Some(delivered_at)
+    );
+    assert_eq!(
+        reopened.mark_notification_delivered(other_workspace_id, notification.notification_id),
+        Err(ApprovalError::NotFound)
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn approval_and_notification_intent_share_one_sqlite_transaction() {
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-outbox-rollback-{}.db",
+        Uuid::now_v7()
+    ));
+    let workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+
+    drop(ApprovalStore::open(&path).unwrap());
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute_batch(
+            "CREATE TRIGGER reject_approval_notification
+             BEFORE INSERT ON hosted_approval_notification_outbox
+             BEGIN
+                 SELECT RAISE(ABORT, 'forced outbox failure');
+             END;",
+        )
+        .unwrap();
+    drop(connection);
+
+    let store = ApprovalStore::open(&path).unwrap();
+    assert!(matches!(
+        store.create(workspace_id, Uuid::now_v7(), &request),
+        Err(ApprovalError::Storage(_))
+    ));
+    assert!(store.list_pending(workspace_id).unwrap().is_empty());
+    assert!(
+        store
+            .list_undelivered_notifications(workspace_id)
+            .unwrap()
+            .is_empty()
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn pending_approval_without_notification_is_backfilled_on_reopen() {
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-outbox-backfill-{}.db",
+        Uuid::now_v7()
+    ));
+    let workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+
+    let store = ApprovalStore::open(&path).unwrap();
+    let approval = store
+        .create(workspace_id, Uuid::now_v7(), &request)
+        .unwrap();
+    drop(store);
+
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "DELETE FROM hosted_approval_notification_outbox WHERE approval_id=?1",
+            [approval.approval_id.to_string()],
+        )
+        .unwrap();
+    drop(connection);
+
+    let reopened = ApprovalStore::open(&path).unwrap();
+    let notifications = reopened
+        .list_undelivered_notifications(workspace_id)
+        .unwrap();
+    assert_eq!(notifications.len(), 1);
+    assert_eq!(notifications[0].approval_id, approval.approval_id);
+    assert_eq!(
+        notifications[0].created_at_unix_ms,
+        approval.requested_at_unix_ms
     );
 
     let _ = fs::remove_file(path);
