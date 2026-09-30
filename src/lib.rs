@@ -10,3 +10,4 @@ pub mod relay_auth;
 pub mod relay_ingress;
 pub mod relay_transport;
 pub mod store;
+pub mod websocket_transport;
