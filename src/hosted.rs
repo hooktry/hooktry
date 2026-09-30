@@ -404,12 +404,14 @@ async fn execute_approved(
     Json(request): Json<HttpExecutionRequest>,
 ) -> Result<Json<ApprovedExecution>, HostedApiError> {
     let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let execution_id = Uuid::now_v7();
     let approval = state
         .approvals
         .consume_async(
             authorization.workspace_id,
             approval_id,
             authorization.credential_id,
+            execution_id,
             request.clone(),
         )
         .await
@@ -417,7 +419,7 @@ async fn execute_approved(
 
     let execution = state
         .executor
-        .execute_recorded(authorization.workspace_id, request)
+        .execute_recorded_with_id(authorization.workspace_id, request, execution_id)
         .await;
 
     Ok(Json(ApprovedExecution {
