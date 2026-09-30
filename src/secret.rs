@@ -171,11 +171,11 @@ impl SecretStore {
                     .expect("secret store poisoned")
                     .execute(
                         "INSERT INTO hosted_secrets
-                        (secret_id, workspace_id, name, envelope, key_version)
-                     VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT(workspace_id, name) DO UPDATE SET
-                        secret_id=excluded.secret_id, envelope=excluded.envelope,
-                        key_version=excluded.key_version",
+                            (secret_id, workspace_id, name, envelope, key_version)
+                         VALUES (?1, ?2, ?3, ?4, ?5)
+                         ON CONFLICT(workspace_id, name) DO UPDATE SET
+                            secret_id=excluded.secret_id, envelope=excluded.envelope,
+                            key_version=excluded.key_version",
                         params![
                             secret.reference.id.to_string(),
                             secret.reference.workspace_id.to_string(),
@@ -195,11 +195,11 @@ impl SecretStore {
                     .expect("secret store poisoned")
                     .execute(
                         "INSERT INTO hosted_secrets
-                        (secret_id, workspace_id, name, envelope, key_version)
-                     VALUES ($1,$2,$3,$4,$5)
-                     ON CONFLICT(workspace_id, name) DO UPDATE SET
-                        secret_id=EXCLUDED.secret_id, envelope=EXCLUDED.envelope,
-                        key_version=EXCLUDED.key_version",
+                            (secret_id, workspace_id, name, envelope, key_version)
+                         VALUES ($1,$2,$3,$4,$5)
+                         ON CONFLICT(workspace_id, name) DO UPDATE SET
+                            secret_id=EXCLUDED.secret_id, envelope=EXCLUDED.envelope,
+                            key_version=EXCLUDED.key_version",
                         &[
                             &id,
                             &workspace,
@@ -227,7 +227,7 @@ impl SecretStore {
                     .expect("secret store poisoned")
                     .query_row(
                         "SELECT secret_id,envelope,key_version FROM hosted_secrets
-                     WHERE workspace_id=?1 AND name=?2",
+                         WHERE workspace_id=?1 AND name=?2",
                         params![workspace_id.to_string(), name],
                         |row| {
                             Ok((
@@ -261,7 +261,7 @@ impl SecretStore {
                     .expect("secret store poisoned")
                     .query_opt(
                         "SELECT secret_id,envelope,key_version FROM hosted_secrets
-                     WHERE workspace_id=$1 AND name=$2",
+                         WHERE workspace_id=$1 AND name=$2",
                         &[&workspace, &name],
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
