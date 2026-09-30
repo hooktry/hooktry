@@ -138,6 +138,7 @@ struct DogfoodApprovalEvent {
     event: &'static str,
     approval_id: Uuid,
     execution_id: Uuid,
+    revision: String,
 }
 
 pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String> {
@@ -534,17 +535,23 @@ async fn run_dogfood_approval_gate(
     if proof.approval.execution_id != Some(proof.execution.execution_id) {
         return Err("dogfood approval and execution identities differ".to_owned());
     }
-    match &proof.execution.outcome {
+    let expected_revision = render_revision();
+    let verified_revision = match &proof.execution.outcome {
         ExecutionOutcome::Succeeded { evidence }
             if evidence.status == 200
-                && evidence.body["ok"] == true
-                && evidence.body["service"] == "hosted_relay" => {}
+                && health_body_matches(&evidence.body, expected_revision.as_deref()) =>
+        {
+            evidence.body["revision"]
+                .as_str()
+                .unwrap_or("unknown")
+                .to_owned()
+        }
         outcome => {
             return Err(format!(
                 "dogfood approved health execution did not succeed: {outcome:?}"
             ));
         }
-    }
+    };
 
     let replay = execute_dogfood_control_request(
         state,
@@ -568,6 +575,7 @@ async fn run_dogfood_approval_gate(
             event: "dogfood_control_plane_ready",
             approval_id: approval.approval_id,
             execution_id: proof.execution.execution_id,
+            revision: verified_revision,
         })
         .expect("dogfood approval event is serializable")
     );
@@ -830,6 +838,7 @@ async fn attach_dogfood_runtime(
 async fn verify_dogfood_data_plane(exposure: &HostedExposureRecord) -> Result<(), String> {
     const ATTEMPTS: usize = 60;
     let url = format!("{}/healthz", exposure.public_url);
+    let expected_revision = render_revision();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3))
         .build()
@@ -839,8 +848,7 @@ async fn verify_dogfood_data_plane(exposure: &HostedExposureRecord) -> Result<()
         if let Ok(response) = client.get(&url).send().await
             && response.status().is_success()
             && let Ok(body) = response.json::<serde_json::Value>().await
-            && body["ok"] == true
-            && body["service"] == "hosted_relay"
+            && health_body_matches(&body, expected_revision.as_deref())
         {
             return Ok(());
         }
@@ -850,6 +858,18 @@ async fn verify_dogfood_data_plane(exposure: &HostedExposureRecord) -> Result<()
     }
 
     Err("dogfood data-plane verification failed".to_owned())
+}
+
+fn render_revision() -> Option<String> {
+    std::env::var("RENDER_GIT_COMMIT")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn health_body_matches(body: &serde_json::Value, expected_revision: Option<&str>) -> bool {
+    body["ok"] == true
+        && body["service"] == "hosted_relay"
+        && expected_revision.is_none_or(|revision| body["revision"].as_str() == Some(revision))
 }
 
 fn log_dogfood_exposure(exposure: &HostedExposureRecord, created: bool, event: &'static str) {
@@ -890,7 +910,8 @@ mod tests {
 
     use super::{
         DogfoodExposureConfig, HostedServerConfig, dogfood_exposure_config,
-        ensure_operator_bootstrap_async, open_hosted_stores, reusable_dogfood_exposure,
+        ensure_operator_bootstrap_async, health_body_matches, open_hosted_stores,
+        reusable_dogfood_exposure,
     };
     use crate::{
         hosted::HostedRelayState,
@@ -901,6 +922,19 @@ mod tests {
         secret::SecretStore,
     };
     use uuid::Uuid;
+
+    #[test]
+    fn dogfood_health_requires_render_revision_when_present() {
+        let body = serde_json::json!({
+            "ok": true,
+            "service": "hosted_relay",
+            "revision": "abc123"
+        });
+
+        assert!(health_body_matches(&body, None));
+        assert!(health_body_matches(&body, Some("abc123")));
+        assert!(!health_body_matches(&body, Some("different")));
+    }
 
     #[tokio::test]
     async fn operator_bootstrap_captures_token_and_is_idempotent() {
