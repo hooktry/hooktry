@@ -18,9 +18,7 @@ use crate::{
         ExecutionError, ExecutionEvidence, ExecutionProviderKind, ExecutionRecord,
         HttpExecutionProvider, HttpExecutionRequest,
     },
-    execution_store::{
-        DurableExecutionRecord, ExecutionStore, ExecutionStoreError,
-    },
+    execution_store::{DurableExecutionRecord, ExecutionStore, ExecutionStoreError},
     hosted_identity::{
         ApiAuthorization, ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential,
         Workspace,
