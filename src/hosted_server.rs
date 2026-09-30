@@ -253,17 +253,17 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
                 return;
             }
 
-            if approval_webhook {
-                if let Err(error) = run_dogfood_approval_webhook(&dogfood_state, workspace_id).await
-                {
-                    eprintln!(
-                        "{}",
-                        json!({
-                            "event": "dogfood_approval_webhook_failed",
-                            "error": error
-                        })
-                    );
-                }
+            if approval_webhook
+                && let Err(error) =
+                    run_dogfood_approval_webhook(&dogfood_state, workspace_id).await
+            {
+                eprintln!(
+                    "{}",
+                    json!({
+                        "event": "dogfood_approval_webhook_failed",
+                        "error": error
+                    })
+                );
             }
 
             if let Err(error) = run_dogfood_approval_gate(&dogfood_state, workspace_id).await {
