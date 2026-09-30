@@ -170,10 +170,7 @@ fn tool(name: &str, description: &str, properties: Value) -> Value {
         Value::Object(items) => items
             .keys()
             .filter(|key| {
-                *key == "name"
-                    || *key == "port"
-                    || *key == "contracts"
-                    || key.ends_with("_id")
+                *key == "name" || *key == "port" || *key == "contracts" || key.ends_with("_id")
             })
             .cloned()
             .map(Value::String)
