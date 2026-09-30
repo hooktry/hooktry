@@ -49,9 +49,7 @@ async fn spawn_hosted() -> String {
 }
 
 async fn assert_discovery_surfaces(base_url: &str) {
-    let llms = reqwest::get(format!("{base_url}/llms.txt"))
-        .await
-        .unwrap();
+    let llms = reqwest::get(format!("{base_url}/llms.txt")).await.unwrap();
     assert!(llms.status().is_success());
     assert_eq!(
         llms.headers()
@@ -81,7 +79,8 @@ async fn assert_discovery_surfaces(base_url: &str) {
         .unwrap();
     assert!(skill.status().is_success());
     assert_eq!(
-        skill.headers()
+        skill
+            .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .unwrap()
             .to_str()
