@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
@@ -140,16 +140,13 @@ impl SecretStore {
     }
 
     pub fn resolve(&self, workspace_id: Uuid, name: &str) -> Result<String, SecretError> {
-        let secret = self.find(workspace_id, name)?.ok_or(SecretError::NotFound)?;
+        let secret = self
+            .find(workspace_id, name)?
+            .ok_or(SecretError::NotFound)?;
         if secret.key_version != KEY_VERSION {
             return Err(SecretError::InvalidKey);
         }
-        let bytes = decrypt(
-            self.key.as_ref(),
-            workspace_id,
-            name,
-            &secret.envelope,
-        )?;
+        let bytes = decrypt(self.key.as_ref(), workspace_id, name, &secret.envelope)?;
         String::from_utf8(bytes).map_err(|_| SecretError::Crypto)
     }
 
@@ -174,20 +171,20 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .execute(
-                    "INSERT INTO hosted_secrets
+                        "INSERT INTO hosted_secrets
                         (secret_id, workspace_id, name, envelope, key_version)
                      VALUES (?1, ?2, ?3, ?4, ?5)
                      ON CONFLICT(workspace_id, name) DO UPDATE SET
                         secret_id=excluded.secret_id, envelope=excluded.envelope,
                         key_version=excluded.key_version",
-                    params![
-                        secret.reference.id.to_string(),
-                        secret.reference.workspace_id.to_string(),
-                        &secret.reference.name,
-                        &secret.envelope,
-                        secret.key_version
-                    ],
-                )
+                        params![
+                            secret.reference.id.to_string(),
+                            secret.reference.workspace_id.to_string(),
+                            &secret.reference.name,
+                            &secret.envelope,
+                            secret.key_version
+                        ],
+                    )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 Ok(())
             }
@@ -204,14 +201,14 @@ impl SecretStore {
                      ON CONFLICT(workspace_id, name) DO UPDATE SET
                         secret_id=EXCLUDED.secret_id, envelope=EXCLUDED.envelope,
                         key_version=EXCLUDED.key_version",
-                    &[
-                        &id,
-                        &workspace,
-                        &secret.reference.name,
-                        &secret.envelope,
-                        &secret.key_version,
-                    ],
-                )
+                        &[
+                            &id,
+                            &workspace,
+                            &secret.reference.name,
+                            &secret.envelope,
+                            &secret.key_version,
+                        ],
+                    )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 Ok(())
             }
@@ -230,30 +227,30 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .query_row(
-                    "SELECT secret_id,envelope,key_version FROM hosted_secrets
+                        "SELECT secret_id,envelope,key_version FROM hosted_secrets
                      WHERE workspace_id=?1 AND name=?2",
-                    params![workspace_id.to_string(), name],
-                    |row| {
-                        Ok((
-                            row.get::<_, String>(0)?,
-                            row.get::<_, String>(1)?,
-                            row.get::<_, i32>(2)?,
-                        ))
-                    },
-                )
+                        params![workspace_id.to_string(), name],
+                        |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, i32>(2)?,
+                            ))
+                        },
+                    )
                     .optional()
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 row.map(|(id, envelope, key_version)| {
                     Ok(StoredSecret {
-                    reference: SecretRef {
+                        reference: SecretRef {
                         id: id.parse().map_err(|error| {
                             SecretError::Storage(format!("invalid secret id: {error}"))
                         })?,
                         workspace_id,
                         name: name.to_owned(),
-                    },
-                    envelope,
-                    key_version,
+                        },
+                        envelope,
+                        key_version,
                     })
                 })
                 .transpose()
@@ -264,22 +261,22 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .query_opt(
-                    "SELECT secret_id,envelope,key_version FROM hosted_secrets
+                        "SELECT secret_id,envelope,key_version FROM hosted_secrets
                      WHERE workspace_id=$1 AND name=$2",
-                    &[&workspace, &name],
-                )
+                        &[&workspace, &name],
+                    )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 row.map(|row| {
                     Ok(StoredSecret {
-                    reference: SecretRef {
-                        id: row.get::<_, String>(0).parse().map_err(|error| {
-                            SecretError::Storage(format!("invalid secret id: {error}"))
-                        })?,
-                        workspace_id,
-                        name: name.to_owned(),
-                    },
-                    envelope: row.get(1),
-                    key_version: row.get(2),
+                        reference: SecretRef {
+                            id: row.get::<_, String>(0).parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid secret id: {error}"))
+                            })?,
+                            workspace_id,
+                            name: name.to_owned(),
+                        },
+                        envelope: row.get(1),
+                        key_version: row.get(2),
                     })
                 })
                 .transpose()
@@ -328,7 +325,8 @@ fn decrypt(
     let (nonce_bytes, ciphertext) = envelope.split_at(12);
     let nonce_bytes: [u8; 12] = nonce_bytes.try_into().map_err(|_| SecretError::Crypto)?;
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
-    let key = LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
+    let key =
+        LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
     let aad_text = format!("{workspace_id}:{name}:{KEY_VERSION}");
     let mut in_out = ciphertext.to_vec();
     let plaintext = key
