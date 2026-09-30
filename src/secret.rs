@@ -7,7 +7,7 @@ use std::{
 use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use uuid::Uuid;
 
@@ -331,8 +331,9 @@ fn encrypt(
     name: &str,
     plaintext: &[u8],
 ) -> Result<String, SecretError> {
-    let key =
-        LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
+    let key = LessSafeKey::new(
+        UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?,
+    );
     let mut nonce_bytes = [0u8; 12];
     rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
