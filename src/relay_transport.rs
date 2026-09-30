@@ -66,60 +66,56 @@ pub async fn serve_connection(
     )
     .await?;
 
-    let work_writer = writer.clone();
-    let work_task = tokio::spawn(async move {
-        while let Some(work) = runtime.recv().await {
-            write_frame(
-                &mut *work_writer.lock().await,
-                &RelayFrame::Request {
-                    request: work.request.clone(),
-                },
-            )
-            .await?;
-            // ACCESS3 deliberately handles one in-flight work item per runtime connection.
-            // Multiplexing the wire is encoded by request id and will be made concurrent in ACCESS4.
-            let response = wait_for_response(&mut reader, &writer, work.request.id).await?;
-            work.complete(response)
-                .map_err(|error| TransportError::Protocol(format!("{error:?}")))?;
+    let pending = Arc::new(Mutex::new(
+        std::collections::HashMap::<Uuid, tokio::sync::oneshot::Sender<RelayResponse>>::new(),
+    ));
+    let read_pending = pending.clone();
+    let read_writer = writer.clone();
+
+    let reader_task = tokio::spawn(async move {
+        while let Some(frame) = read_frame::<RelayFrame, _>(&mut reader).await? {
+            match frame {
+                RelayFrame::Response { response } => {
+                    if let Some(tx) = read_pending.lock().await.remove(&response.request_id) {
+                        let _ = tx.send(response);
+                    }
+                }
+                RelayFrame::Ping { nonce } => {
+                    write_frame(&mut *read_writer.lock().await, &RelayFrame::Pong { nonce }).await?;
+                }
+                _ => {}
+            }
         }
         Ok::<(), TransportError>(())
     });
 
-    work_task
-        .await
-        .map_err(|error| TransportError::Protocol(error.to_string()))?
-}
+    while let Some(work) = runtime.recv().await {
+        let request_id = work.request.id;
+        let (response_tx, response_rx) = tokio::sync::oneshot::channel();
+        pending.lock().await.insert(request_id, response_tx);
+        write_frame(
+            &mut *writer.lock().await,
+            &RelayFrame::Request {
+                request: work.request.clone(),
+            },
+        )
+        .await?;
 
-async fn wait_for_response<R>(
-    reader: &mut R,
-    writer: &Arc<Mutex<tokio::net::tcp::OwnedWriteHalf>>,
-    request_id: Uuid,
-) -> Result<RelayResponse, TransportError>
-where
-    R: tokio::io::AsyncBufRead + Unpin,
-{
-    loop {
-        match read_frame::<RelayFrame, _>(reader).await? {
-            Some(RelayFrame::Response { response }) if response.request_id == request_id => {
-                return Ok(response);
+        let pending = pending.clone();
+        tokio::spawn(async move {
+            match response_rx.await {
+                Ok(response) => {
+                    let _ = work.complete(response);
+                }
+                Err(_) => {
+                    pending.lock().await.remove(&request_id);
+                }
             }
-            Some(RelayFrame::Ping { nonce }) => {
-                write_frame(&mut *writer.lock().await, &RelayFrame::Pong { nonce }).await?;
-            }
-            Some(RelayFrame::Response { response }) => {
-                return Err(TransportError::Protocol(format!(
-                    "unexpected response {}, waiting for {request_id}",
-                    response.request_id
-                )));
-            }
-            Some(_) => {}
-            None => {
-                return Err(TransportError::Protocol(
-                    "runtime disconnected before response".to_owned(),
-                ));
-            }
-        }
+        });
     }
+
+    reader_task.abort();
+    Ok(())
 }
 
 pub async fn run_runtime_connection(
