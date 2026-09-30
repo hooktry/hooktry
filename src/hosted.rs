@@ -90,6 +90,7 @@ impl HostedRelayState {
             capabilities,
             exposures,
             HostedIdentityStore::default(),
+            SecretStore::default(),
             public_base_url,
             control_token,
         )
@@ -100,6 +101,7 @@ impl HostedRelayState {
         capabilities: CapabilityStore,
         exposures: HostedExposureStore,
         identities: HostedIdentityStore,
+        secrets: SecretStore,
         public_base_url: impl Into<String>,
         control_token: &str,
     ) -> Self {
@@ -114,7 +116,7 @@ impl HostedRelayState {
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
             exposures,
-            executor: HttpExecutionProvider::new(SecretStore::default()),
+            executor: HttpExecutionProvider::new(secrets),
             control_token_digest: token_digest(control_token),
         }
     }
