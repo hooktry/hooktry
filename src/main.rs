@@ -14,5 +14,7 @@ async fn main() {
     };
 
     println!("ORTYO HTTP boundary: http://127.0.0.1:7777");
-    axum::serve(listener, app(state)).await.expect("serve ORTYO");
+    axum::serve(listener, app(state))
+        .await
+        .expect("serve ORTYO");
 }
