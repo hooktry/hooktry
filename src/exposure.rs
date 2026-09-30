@@ -253,7 +253,6 @@ impl ExposureService {
     }
 }
 
-
 fn exposure_from_request(
     session_id: Uuid,
     id: Uuid,
