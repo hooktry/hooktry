@@ -56,3 +56,10 @@ fn rejects_invalid_assertion_ids() {
 
     assert_eq!(error, "assert requires a valid contract UUID");
 }
+
+#[test]
+fn parses_mcp_stdio_command() {
+    let cli = Cli::parse(["ortyo".to_owned(), "mcp".to_owned()]).unwrap();
+
+    assert_eq!(cli.command, Command::Mcp);
+}

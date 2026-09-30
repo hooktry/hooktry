@@ -17,6 +17,7 @@ async fn main() {
     let result = match cli.command {
         Command::Serve => serve().await,
         Command::Interactions => get_json(&format!("{}/_ortyo/interactions", cli.base_url)).await,
+        Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await,
         Command::Assert {
             contract_id,
             interaction_id,
