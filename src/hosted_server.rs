@@ -404,7 +404,8 @@ async fn provision_dogfood_exposure(
                     .map_err(|_| "dogfood response has invalid exposure_id".to_owned())?;
                 let public_url = evidence.body["public_url"]
                     .as_str()
-                    .ok_or_else(|| "dogfood response missing public_url".to_owned())?;
+                    .ok_or_else(|| "dogfood response missing public_url".to_owned())?
+                    .to_owned();
                 let captured = evidence.captured_secrets.iter().any(|secret| {
                     secret.secret_ref == format!("ortyo://secrets/{RUNTIME_CAPABILITY_SECRET}")
                 });
