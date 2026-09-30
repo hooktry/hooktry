@@ -35,6 +35,8 @@ pub enum ApiScope {
     ExposuresRevoke,
     #[serde(rename = "requests:execute")]
     RequestsExecute,
+    #[serde(rename = "requests:approve")]
+    RequestsApprove,
 }
 
 impl ApiScope {
@@ -44,6 +46,7 @@ impl ApiScope {
             Self::ExposuresRead => "exposures:read",
             Self::ExposuresRevoke => "exposures:revoke",
             Self::RequestsExecute => "requests:execute",
+            Self::RequestsApprove => "requests:approve",
         }
     }
 
@@ -53,6 +56,7 @@ impl ApiScope {
             "exposures:read" => Some(Self::ExposuresRead),
             "exposures:revoke" => Some(Self::ExposuresRevoke),
             "requests:execute" => Some(Self::RequestsExecute),
+            "requests:approve" => Some(Self::RequestsApprove),
             _ => None,
         }
     }
@@ -215,6 +219,7 @@ impl HostedIdentityStore {
                 ApiScope::ExposuresRead,
                 ApiScope::ExposuresRevoke,
                 ApiScope::RequestsExecute,
+                ApiScope::RequestsApprove,
             ],
             revoked: false,
         };
@@ -539,6 +544,57 @@ impl HostedIdentityStore {
         })
     }
 
+    pub fn ensure_scope(&self, token: &str, scope: ApiScope) -> Result<(), IdentityError> {
+        let token_digest = token_digest(token);
+        let credential = self
+            .find_credential(token_digest)?
+            .ok_or(IdentityError::InvalidCredential)?;
+        if credential.revoked {
+            return Err(IdentityError::RevokedCredential);
+        }
+        self.require_active_workspace(credential.workspace_id)?;
+        if credential.scopes.contains(&scope) {
+            return Ok(());
+        }
+
+        let mut scopes = credential.scopes;
+        scopes.push(scope);
+        let scopes = canonical_scopes(&scopes);
+        let encoded = encode_scopes(&scopes);
+
+        match &self.backend {
+            IdentityBackend::Memory(inner) => {
+                let mut inner = inner.write().expect("identity store poisoned");
+                let credential = inner
+                    .credentials
+                    .get_mut(&token_digest)
+                    .ok_or(IdentityError::InvalidCredential)?;
+                credential.scopes = scopes;
+            }
+            IdentityBackend::Sqlite(connection) => {
+                connection
+                    .lock()
+                    .expect("identity store poisoned")
+                    .execute(
+                        "UPDATE hosted_api_credentials SET scopes=?1 WHERE token_digest=?2",
+                        params![encoded, token_digest.as_slice()],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+            }
+            IdentityBackend::Postgres(client) => {
+                client
+                    .lock()
+                    .expect("identity store poisoned")
+                    .execute(
+                        "UPDATE hosted_api_credentials SET scopes=$1 WHERE token_digest=$2",
+                        &[&encoded, &token_digest.as_slice()],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn authorize(
         &self,
         token: &str,
@@ -700,6 +756,7 @@ fn canonical_scopes(scopes: &[ApiScope]) -> Vec<ApiScope> {
         ApiScope::ExposuresRead,
         ApiScope::ExposuresRevoke,
         ApiScope::RequestsExecute,
+        ApiScope::RequestsApprove,
     ]
     .into_iter()
     .filter(|scope| scopes.contains(scope))

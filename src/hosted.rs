@@ -12,8 +12,12 @@ use uuid::Uuid;
 
 use crate::{
     agent_surface,
+    approval::{ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
-    execution::{ExecutionError, ExecutionEvidence, HttpExecutionProvider, HttpExecutionRequest},
+    execution::{
+        ExecutionError, ExecutionEvidence, ExecutionRecord, HttpExecutionProvider,
+        HttpExecutionRequest,
+    },
     hosted_identity::{
         ApiAuthorization, ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential,
         Workspace,
@@ -37,6 +41,7 @@ pub struct HostedRelayState {
     pub capability_ttl: Duration,
     pub exposures: HostedExposureStore,
     pub executor: HttpExecutionProvider,
+    pub approvals: ApprovalStore,
     control_token_digest: [u8; 32],
 }
 
@@ -60,6 +65,7 @@ impl HostedRelayState {
             capability_ttl: Duration::from_secs(15 * 60),
             exposures: HostedExposureStore::default(),
             executor: HttpExecutionProvider::new(SecretStore::default()),
+            approvals: ApprovalStore::default(),
             control_token_digest: token_digest(control_token),
         }
     }
@@ -118,8 +124,14 @@ impl HostedRelayState {
             capability_ttl: Duration::from_secs(15 * 60),
             exposures,
             executor: HttpExecutionProvider::new(secrets),
+            approvals: ApprovalStore::default(),
             control_token_digest: token_digest(control_token),
         }
+    }
+
+    pub fn with_approval_store(mut self, approvals: ApprovalStore) -> Self {
+        self.approvals = approvals;
+        self
     }
 }
 
@@ -145,6 +157,17 @@ struct BootstrapRequest {
 struct BootstrapResponse {
     workspace: Workspace,
     credential: IssuedApiCredential,
+}
+
+#[derive(Debug, Deserialize)]
+struct ApprovalDecisionRequest {
+    decision: ApprovalDecision,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ApprovedExecution {
+    pub approval: ApprovalRecord,
+    pub execution: ExecutionRecord,
 }
 
 fn default_bootstrap_credential_name() -> String {
@@ -231,6 +254,16 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             post(issue_credential),
         )
         .route("/_ortyo/hosted/execute", post(execute_http))
+        .route("/_ortyo/hosted/approvals", post(create_approval))
+        .route("/_ortyo/hosted/approvals/{approval_id}", get(get_approval))
+        .route(
+            "/_ortyo/hosted/approvals/{approval_id}/decision",
+            post(decide_approval),
+        )
+        .route(
+            "/_ortyo/hosted/approvals/{approval_id}/execute",
+            post(execute_approved),
+        )
         .route(
             "/_ortyo/hosted/exposures",
             get(list_hosted_exposures).post(provision_exposure),
@@ -306,6 +339,95 @@ async fn issue_credential(
     Ok((StatusCode::CREATED, Json(credential)))
 }
 
+async fn create_approval(
+    State(state): State<HostedRelayState>,
+    headers: HeaderMap,
+    Json(request): Json<HttpExecutionRequest>,
+) -> Result<(StatusCode, Json<ApprovalRecord>), HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let approval = state
+        .approvals
+        .create_async(
+            authorization.workspace_id,
+            authorization.credential_id,
+            request,
+        )
+        .await
+        .map_err(approval_error)?;
+    Ok((StatusCode::CREATED, Json(approval)))
+}
+
+async fn get_approval(
+    State(state): State<HostedRelayState>,
+    Path(approval_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<Json<ApprovalRecord>, HostedApiError> {
+    let authorization = authorize_api_any(
+        &state,
+        &headers,
+        &[ApiScope::RequestsExecute, ApiScope::RequestsApprove],
+    )
+    .await?;
+    let approval = state
+        .approvals
+        .get_async(authorization.workspace_id, approval_id)
+        .await
+        .map_err(approval_error)?
+        .ok_or_else(HostedApiError::not_found)?;
+    Ok(Json(approval))
+}
+
+async fn decide_approval(
+    State(state): State<HostedRelayState>,
+    Path(approval_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(request): Json<ApprovalDecisionRequest>,
+) -> Result<Json<ApprovalRecord>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsApprove).await?;
+    let approval = state
+        .approvals
+        .decide_async(
+            authorization.workspace_id,
+            approval_id,
+            authorization.credential_id,
+            request.decision,
+        )
+        .await
+        .map_err(approval_error)?;
+    Ok(Json(approval))
+}
+
+async fn execute_approved(
+    State(state): State<HostedRelayState>,
+    Path(approval_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(request): Json<HttpExecutionRequest>,
+) -> Result<Json<ApprovedExecution>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let execution_id = Uuid::now_v7();
+    let approval = state
+        .approvals
+        .consume_async(
+            authorization.workspace_id,
+            approval_id,
+            authorization.credential_id,
+            execution_id,
+            request.clone(),
+        )
+        .await
+        .map_err(approval_error)?;
+
+    let execution = state
+        .executor
+        .execute_recorded_with_id(authorization.workspace_id, request, execution_id)
+        .await;
+
+    Ok(Json(ApprovedExecution {
+        approval,
+        execution,
+    }))
+}
+
 async fn execute_http(
     State(state): State<HostedRelayState>,
     headers: HeaderMap,
@@ -343,6 +465,25 @@ fn execution_error(error: ExecutionError) -> HostedApiError {
         ExecutionError::RequestFailed => {
             HostedApiError::new(StatusCode::BAD_GATEWAY, "request_failed")
         }
+    }
+}
+
+fn approval_error(error: ApprovalError) -> HostedApiError {
+    match error {
+        ApprovalError::InvalidRequest => {
+            HostedApiError::new(StatusCode::BAD_REQUEST, "invalid_approval_request")
+        }
+        ApprovalError::NotFound => HostedApiError::not_found(),
+        ApprovalError::NotPending => {
+            HostedApiError::new(StatusCode::CONFLICT, "approval_already_decided")
+        }
+        ApprovalError::Pending => HostedApiError::new(StatusCode::CONFLICT, "approval_pending"),
+        ApprovalError::Denied => HostedApiError::new(StatusCode::FORBIDDEN, "approval_denied"),
+        ApprovalError::Consumed => HostedApiError::new(StatusCode::CONFLICT, "approval_consumed"),
+        ApprovalError::RequestMismatch => {
+            HostedApiError::new(StatusCode::CONFLICT, "approval_request_mismatch")
+        }
+        ApprovalError::Storage(_) => HostedApiError::internal(),
     }
 }
 
@@ -478,6 +619,28 @@ async fn authorize_api(
         .authorize_async(token, required_scope)
         .await
         .map_err(identity_authorization_error)
+}
+
+async fn authorize_api_any(
+    state: &HostedRelayState,
+    headers: &HeaderMap,
+    required_scopes: &[ApiScope],
+) -> Result<ApiAuthorization, HostedApiError> {
+    let token = bearer_token(headers)
+        .ok_or_else(HostedApiError::unauthorized)?
+        .to_owned();
+    for scope in required_scopes {
+        match state
+            .identities
+            .authorize_async(token.clone(), *scope)
+            .await
+        {
+            Ok(authorization) => return Ok(authorization),
+            Err(IdentityError::Forbidden) => continue,
+            Err(error) => return Err(identity_authorization_error(error)),
+        }
+    }
+    Err(HostedApiError::forbidden())
 }
 
 fn identity_authorization_error(error: IdentityError) -> HostedApiError {

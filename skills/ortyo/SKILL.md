@@ -77,6 +77,18 @@ For hosted outbound HTTP execution:
 
 Captured secret values must appear as `[REDACTED]` in Evidence. Raw values belong only in the encrypted secret store and at the authorized point of use.
 
+## Approval-gated execution
+
+When an action requires explicit approval:
+
+1. Create an approval with the exact `HttpExecutionRequest` using a `requests:execute` credential.
+2. Present or inspect the returned redacted summary. Do not reconstruct hidden query, body, header, or secret values from hashes.
+3. Decide with a distinct `requests:approve` credential.
+4. Execute by resubmitting the exact original request to the approval's execute endpoint.
+5. Treat the returned `ApprovedExecution` as the immediate proof tying the consumed approval to the EXEC4 lifecycle record.
+
+Never modify an approved request before execution. A digest mismatch is a failed-closed condition, not a reason to bypass the gate. Never reuse a consumed approval. Retries require a new approval.
+
 ## Execution lifecycle
 
 An ORTYO execution attempt may end as:
@@ -95,6 +107,7 @@ Use `execution_id` to correlate the attempted action with its Evidence and futur
 - Do not replace `observed_sequence` with UUIDv7 ordering for deterministic event order.
 - Do not bypass ORTYO by talking directly to a compute provider when the task is about an ORTYO Boundary.
 - Do not assume persistence/query APIs exist for ExecutionRecord merely because the lifecycle envelope exists.
+- Do not give an ordinary agent credential `requests:approve` merely to simplify automation; keep approve and execute separable unless the operator intentionally combines them.
 
 ## Discovery
 

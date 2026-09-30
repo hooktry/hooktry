@@ -10,6 +10,7 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
+    approval::ApprovalStore,
     domain::{ExposureAccess, ExposureMode},
     execution::{ExecutionError, HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
@@ -140,7 +141,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .port();
     let local_runtime_base_url = format!("ws://127.0.0.1:{local_port}");
 
-    let (capabilities, exposures, identities, secrets, storage) =
+    let (capabilities, exposures, identities, secrets, approvals, storage) =
         open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
@@ -162,7 +163,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         secrets,
         config.public_base_url.clone(),
         &config.control_token,
-    );
+    )
+    .with_approval_store(approvals);
 
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
@@ -208,6 +210,7 @@ async fn open_hosted_stores(
         HostedExposureStore,
         HostedIdentityStore,
         SecretStore,
+        ApprovalStore,
         &'static str,
     ),
     String,
@@ -224,7 +227,16 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
             let secrets = SecretStore::open_postgres(&database_url, secrets_key)
                 .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, secrets, "postgres"))
+            let approvals = ApprovalStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
+            Ok((
+                capabilities,
+                exposures,
+                identities,
+                secrets,
+                approvals,
+                "postgres",
+            ))
         })
         .await
         .map_err(|error| format!("join Postgres store initialization: {error}"))?
@@ -240,7 +252,16 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
             let secrets = SecretStore::open(&db_path, secrets_key)
                 .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, secrets, "sqlite"))
+            let approvals = ApprovalStore::open(&db_path)
+                .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
+            Ok((
+                capabilities,
+                exposures,
+                identities,
+                secrets,
+                approvals,
+                "sqlite",
+            ))
         })
         .await
         .map_err(|error| format!("join SQLite store initialization: {error}"))?
@@ -284,6 +305,14 @@ fn ensure_operator_bootstrap(
             secrets
                 .bind_origin(workspace.id, SECRET_NAME, allowed_origin)
                 .map_err(|error| format!("bind bootstrap credential origin: {error:?}"))?;
+            let token = secrets
+                .resolve(workspace.id, SECRET_NAME)
+                .map_err(|error| {
+                    format!("resolve bootstrap credential for scope upgrade: {error:?}")
+                })?;
+            identities
+                .ensure_scope(&token, crate::hosted_identity::ApiScope::RequestsApprove)
+                .map_err(|error| format!("upgrade bootstrap credential scopes: {error:?}"))?;
             return Ok(());
         }
         let credential = identities
@@ -295,6 +324,7 @@ fn ensure_operator_bootstrap(
                     crate::hosted_identity::ApiScope::ExposuresRead,
                     crate::hosted_identity::ApiScope::ExposuresRevoke,
                     crate::hosted_identity::ApiScope::RequestsExecute,
+                    crate::hosted_identity::ApiScope::RequestsApprove,
                 ],
             )
             .map_err(|error| format!("issue bootstrap recovery credential: {error:?}"))?;
@@ -659,6 +689,9 @@ mod tests {
         let token = secrets.resolve(workspace.id, "default-api-token").unwrap();
         identities
             .authorize(&token, ApiScope::RequestsExecute)
+            .unwrap();
+        identities
+            .authorize(&token, ApiScope::RequestsApprove)
             .unwrap();
 
         let first_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();

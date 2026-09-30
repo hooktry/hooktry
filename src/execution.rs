@@ -165,7 +165,32 @@ impl HttpExecutionProvider {
         request: HttpExecutionRequest,
         enforce_public_destination: bool,
     ) -> ExecutionRecord {
-        let execution_id = Uuid::now_v7();
+        self.execute_recorded_inner_with_id(
+            workspace_id,
+            request,
+            enforce_public_destination,
+            Uuid::now_v7(),
+        )
+        .await
+    }
+
+    pub(crate) async fn execute_recorded_with_id(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+        execution_id: Uuid,
+    ) -> ExecutionRecord {
+        self.execute_recorded_inner_with_id(workspace_id, request, true, execution_id)
+            .await
+    }
+
+    async fn execute_recorded_inner_with_id(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+        enforce_public_destination: bool,
+        execution_id: Uuid,
+    ) -> ExecutionRecord {
         let started_at_unix_ms = unix_time_ms();
         let outcome = match self
             .execute_inner(
