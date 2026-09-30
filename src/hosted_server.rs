@@ -9,7 +9,7 @@ use crate::{
     hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
-    secret::SecretStore,
+    secret::{SecretStore, decode_master_key},
 };
 
 #[derive(Clone, PartialEq, Eq)]
@@ -68,6 +68,13 @@ impl HostedServerConfig {
         {
             return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
         }
+        let secrets_key = lookup("ORTYO_SECRETS_KEY")
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| "ORTYO_SECRETS_KEY is required".to_owned())
+            .and_then(|value| {
+                decode_master_key(&value)
+                    .map_err(|_| "ORTYO_SECRETS_KEY must encode exactly 32 bytes".to_owned())
+            })?;
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -78,7 +85,7 @@ impl HostedServerConfig {
             control_token,
             database_url,
             db_path,
-            secrets_key: [0; 32],
+            secrets_key,
         })
     }
 }
