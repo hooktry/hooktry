@@ -31,10 +31,12 @@ ortyo interactions
 ortyo assert <contract-id> <interaction-id>
 ortyo --base-url http://127.0.0.1:7777 interactions
 
-# Hosted ask -> approve -> act -> prove
+# Hosted ask -> handoff -> approve -> act -> prove
 ORTYO_TOKEN='ortyo_...' \
   ortyo --base-url https://relay.example approval create request.json
-ORTYO_TOKEN='ortyo_...' \
+ORTYO_APPROVER_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example approval inbox
+ORTYO_APPROVER_TOKEN='ortyo_...' \
   ortyo --base-url https://relay.example approval get <approval-id>
 ORTYO_APPROVER_TOKEN='ortyo_...' \
   ortyo --base-url https://relay.example approval approve <approval-id>
