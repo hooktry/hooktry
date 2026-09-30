@@ -360,7 +360,7 @@ async fn provision_dogfood_exposure(
             url: format!("{}/_ortyo/hosted/exposures", state.public_base_url),
             headers: BTreeMap::new(),
             body: Some(json!({
-                "name": config.name,
+                "name": config.name.clone(),
                 "target_port": config.target_port
             })),
             secret_headers,
