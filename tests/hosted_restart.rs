@@ -38,6 +38,7 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
         .as_secs();
     let record = HostedExposureRecord {
         exposure_id,
+        workspace_id: None,
         name: "restart-proof".to_owned(),
         target_port: 1,
         public_url: format!("http://{first_addr}/e/{exposure_id}"),

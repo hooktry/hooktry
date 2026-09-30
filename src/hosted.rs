@@ -4,7 +4,7 @@ use axum::{
     Json, Router,
     extract::{Path, State, ws::WebSocketUpgrade},
     http::{HeaderMap, StatusCode, header::AUTHORIZATION},
-    response::Response,
+    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,10 @@ use uuid::Uuid;
 
 use crate::{
     domain::{ExposureAccess, ExposureMode},
+    hosted_identity::{
+        ApiAuthorization, ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential,
+        Workspace,
+    },
     hosted_state::{HostedExposureRecord, HostedExposureStore},
     relay::RelayBroker,
     relay_auth::{CapabilityStore, token_digest},
@@ -23,6 +27,7 @@ use crate::{
 pub struct HostedRelayState {
     pub broker: RelayBroker,
     pub capabilities: CapabilityStore,
+    pub identities: HostedIdentityStore,
     pub public_base_url: String,
     pub relay_addr: Option<String>,
     pub runtime_ws_base_url: String,
@@ -44,6 +49,7 @@ impl HostedRelayState {
         Self {
             broker,
             capabilities,
+            identities: HostedIdentityStore::default(),
             public_base_url,
             relay_addr: Some(relay_addr.into()),
             runtime_ws_base_url,
@@ -75,11 +81,30 @@ impl HostedRelayState {
         public_base_url: impl Into<String>,
         control_token: &str,
     ) -> Self {
+        Self::websocket_only_with_stores(
+            broker,
+            capabilities,
+            exposures,
+            HostedIdentityStore::default(),
+            public_base_url,
+            control_token,
+        )
+    }
+
+    pub fn websocket_only_with_stores(
+        broker: RelayBroker,
+        capabilities: CapabilityStore,
+        exposures: HostedExposureStore,
+        identities: HostedIdentityStore,
+        public_base_url: impl Into<String>,
+        control_token: &str,
+    ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let runtime_ws_base_url = websocket_base_url(&public_base_url);
         Self {
             broker,
             capabilities,
+            identities,
             public_base_url,
             relay_addr: None,
             runtime_ws_base_url,
@@ -96,9 +121,22 @@ pub struct ProvisionExposureRequest {
     pub target_port: u16,
 }
 
+#[derive(Debug, Deserialize)]
+struct CreateWorkspaceRequest {
+    slug: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct IssueCredentialRequest {
+    name: String,
+    scopes: Vec<ApiScope>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProvisionedExposure {
     pub exposure_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<Uuid>,
     pub name: String,
     pub public_url: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,12 +149,66 @@ pub struct ProvisionedExposure {
     pub access: ExposureAccess,
 }
 
+#[derive(Debug)]
+struct HostedApiError {
+    status: StatusCode,
+    code: &'static str,
+}
+
+impl HostedApiError {
+    fn new(status: StatusCode, code: &'static str) -> Self {
+        Self { status, code }
+    }
+
+    fn unauthorized() -> Self {
+        Self::new(StatusCode::UNAUTHORIZED, "unauthorized")
+    }
+
+    fn forbidden() -> Self {
+        Self::new(StatusCode::FORBIDDEN, "forbidden")
+    }
+
+    fn not_found() -> Self {
+        Self::new(StatusCode::NOT_FOUND, "not_found")
+    }
+
+    fn internal() -> Self {
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal_error")
+    }
+}
+
+impl IntoResponse for HostedApiError {
+    fn into_response(self) -> Response {
+        (
+            self.status,
+            Json(serde_json::json!({
+                "error": {
+                    "code": self.code
+                }
+            })),
+        )
+            .into_response()
+    }
+}
+
 pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     let ingress = relay_ingress_app(RelayIngressState::new(state.broker.clone()));
     Router::new()
         .route("/_ortyo/health", get(health))
         .route("/healthz", get(health))
-        .route("/_ortyo/hosted/exposures", post(provision_exposure))
+        .route("/_ortyo/admin/workspaces", post(create_workspace))
+        .route(
+            "/_ortyo/admin/workspaces/{workspace_id}/credentials",
+            post(issue_credential),
+        )
+        .route(
+            "/_ortyo/hosted/exposures",
+            get(list_hosted_exposures).post(provision_exposure),
+        )
+        .route(
+            "/_ortyo/hosted/exposures/{exposure_id}",
+            get(get_hosted_exposure).delete(revoke_hosted_exposure),
+        )
         .route(
             "/_ortyo/runtime/{exposure_id}",
             get(runtime_websocket).delete(revoke_runtime),
@@ -132,15 +224,47 @@ async fn health() -> Json<serde_json::Value> {
     }))
 }
 
+async fn create_workspace(
+    State(state): State<HostedRelayState>,
+    headers: HeaderMap,
+    Json(request): Json<CreateWorkspaceRequest>,
+) -> Result<(StatusCode, Json<Workspace>), HostedApiError> {
+    authorize_control(&state, &headers)?;
+    let workspace = state
+        .identities
+        .create_workspace_async(request.slug)
+        .await
+        .map_err(identity_admin_error)?;
+    Ok((StatusCode::CREATED, Json(workspace)))
+}
+
+async fn issue_credential(
+    State(state): State<HostedRelayState>,
+    Path(workspace_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(request): Json<IssueCredentialRequest>,
+) -> Result<(StatusCode, Json<IssuedApiCredential>), HostedApiError> {
+    authorize_control(&state, &headers)?;
+    let credential = state
+        .identities
+        .issue_credential_async(workspace_id, request.name, request.scopes)
+        .await
+        .map_err(identity_admin_error)?;
+    Ok((StatusCode::CREATED, Json(credential)))
+}
+
 async fn provision_exposure(
     State(state): State<HostedRelayState>,
     headers: HeaderMap,
     Json(request): Json<ProvisionExposureRequest>,
-) -> Result<(StatusCode, Json<ProvisionedExposure>), StatusCode> {
-    authorize_control(&state, &headers)?;
+) -> Result<(StatusCode, Json<ProvisionedExposure>), HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::ExposuresCreate).await?;
 
     if request.name.trim().is_empty() || request.target_port == 0 {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(HostedApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_exposure",
+        ));
     }
 
     let exposure_id = Uuid::now_v7();
@@ -148,11 +272,11 @@ async fn provision_exposure(
         .capabilities
         .issue_async(exposure_id, state.capability_ttl)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| HostedApiError::internal())?;
     let expires_at = capability
         .expires_at
         .duration_since(UNIX_EPOCH)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .map_err(|_| HostedApiError::internal())?
         .as_secs();
 
     let public_url = format!("{}/e/{exposure_id}", state.public_base_url);
@@ -162,6 +286,7 @@ async fn provision_exposure(
         .exposures
         .save_async(HostedExposureRecord {
             exposure_id,
+            workspace_id: Some(authorization.workspace_id),
             name: request.name.clone(),
             target_port: request.target_port,
             public_url: public_url.clone(),
@@ -173,13 +298,14 @@ async fn provision_exposure(
         .is_err()
     {
         let _ = state.capabilities.revoke_async(&capability.token).await;
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        return Err(HostedApiError::internal());
     }
 
     Ok((
         StatusCode::CREATED,
         Json(ProvisionedExposure {
             exposure_id,
+            workspace_id: Some(authorization.workspace_id),
             name: request.name,
             public_url,
             relay_addr: state.relay_addr,
@@ -193,12 +319,102 @@ async fn provision_exposure(
     ))
 }
 
-fn authorize_control(state: &HostedRelayState, headers: &HeaderMap) -> Result<(), StatusCode> {
-    let token = bearer_token(headers).ok_or(StatusCode::UNAUTHORIZED)?;
+async fn list_hosted_exposures(
+    State(state): State<HostedRelayState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<HostedExposureRecord>>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::ExposuresRead).await?;
+    let exposures = state
+        .exposures
+        .list_for_workspace_async(authorization.workspace_id)
+        .await
+        .map_err(|_| HostedApiError::internal())?;
+    Ok(Json(exposures))
+}
+
+async fn get_hosted_exposure(
+    State(state): State<HostedRelayState>,
+    Path(exposure_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<Json<HostedExposureRecord>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::ExposuresRead).await?;
+    let exposure = owned_exposure(&state, exposure_id, authorization.workspace_id).await?;
+    Ok(Json(exposure))
+}
+
+async fn revoke_hosted_exposure(
+    State(state): State<HostedRelayState>,
+    Path(exposure_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<StatusCode, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::ExposuresRevoke).await?;
+    owned_exposure(&state, exposure_id, authorization.workspace_id).await?;
+
+    state
+        .capabilities
+        .revoke_exposure_async(exposure_id)
+        .await
+        .map_err(|_| HostedApiError::internal())?;
+    state
+        .exposures
+        .revoke_async(exposure_id)
+        .await
+        .map_err(|_| HostedApiError::internal())?;
+    state.broker.disconnect(exposure_id).await;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+fn authorize_control(state: &HostedRelayState, headers: &HeaderMap) -> Result<(), HostedApiError> {
+    let token = bearer_token(headers).ok_or_else(HostedApiError::unauthorized)?;
     if token_digest(token) != state.control_token_digest {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(HostedApiError::unauthorized());
     }
     Ok(())
+}
+
+async fn authorize_api(
+    state: &HostedRelayState,
+    headers: &HeaderMap,
+    required_scope: ApiScope,
+) -> Result<ApiAuthorization, HostedApiError> {
+    let token = bearer_token(headers)
+        .ok_or_else(HostedApiError::unauthorized)?
+        .to_owned();
+    state
+        .identities
+        .authorize_async(token, required_scope)
+        .await
+        .map_err(identity_authorization_error)
+}
+
+fn identity_authorization_error(error: IdentityError) -> HostedApiError {
+    match error {
+        IdentityError::Forbidden => HostedApiError::forbidden(),
+        IdentityError::InvalidCredential
+        | IdentityError::RevokedCredential
+        | IdentityError::WorkspaceDisabled
+        | IdentityError::WorkspaceNotFound => HostedApiError::unauthorized(),
+        IdentityError::InvalidWorkspace
+        | IdentityError::DuplicateWorkspace
+        | IdentityError::Storage(_) => HostedApiError::internal(),
+    }
+}
+
+fn identity_admin_error(error: IdentityError) -> HostedApiError {
+    match error {
+        IdentityError::InvalidWorkspace | IdentityError::InvalidCredential => {
+            HostedApiError::new(StatusCode::BAD_REQUEST, "invalid_request")
+        }
+        IdentityError::DuplicateWorkspace => {
+            HostedApiError::new(StatusCode::CONFLICT, "workspace_exists")
+        }
+        IdentityError::WorkspaceNotFound => HostedApiError::not_found(),
+        IdentityError::WorkspaceDisabled => {
+            HostedApiError::new(StatusCode::CONFLICT, "workspace_disabled")
+        }
+        IdentityError::Forbidden | IdentityError::RevokedCredential => HostedApiError::forbidden(),
+        IdentityError::Storage(_) => HostedApiError::internal(),
+    }
 }
 
 fn bearer_token(headers: &HeaderMap) -> Option<&str> {
@@ -256,6 +472,23 @@ async fn runtime_websocket(
         .on_upgrade(move |socket| async move {
             let _ = serve_websocket(socket, broker, exposure_id).await;
         }))
+}
+
+async fn owned_exposure(
+    state: &HostedRelayState,
+    exposure_id: Uuid,
+    workspace_id: Uuid,
+) -> Result<HostedExposureRecord, HostedApiError> {
+    let exposure = state
+        .exposures
+        .get_async(exposure_id)
+        .await
+        .map_err(|_| HostedApiError::internal())?
+        .ok_or_else(HostedApiError::not_found)?;
+    if exposure.workspace_id != Some(workspace_id) {
+        return Err(HostedApiError::not_found());
+    }
+    Ok(exposure)
 }
 
 async fn active_hosted_exposure(

@@ -16,7 +16,7 @@ ortyo serve
 Then create a public exposure:
 
 ```sh
-ORTYO_CONTROL_TOKEN='<secret>' ortyo expose 3000 web --public
+ORTYO_TOKEN='ortyo_...' ortyo expose 3000 web --public
 ```
 
 The default hosted control plane is:
@@ -56,7 +56,7 @@ This keeps the command agent-friendly: stdout can be consumed as one JSON result
 
 ## Authority separation
 
-The control token is used only by the CLI to provision the hosted Exposure. It is never handed to the local daemon.
+The workspace-scoped `ORTYO_TOKEN` is used only by the CLI to provision the hosted Exposure. The master `ORTYO_CONTROL_TOKEN` is reserved for bootstrap/admin operations and is never part of the user workflow.
 
 The daemon receives only the short-lived capability scoped to the provisioned Exposure.
 
@@ -89,7 +89,6 @@ Runtime reconnection uses capped exponential backoff after a disconnect.
 
 ## Remaining production work
 
-- replace the shared control token with workspace/user identity and scoped API credentials
 - durable hosted provisioning state
 - daemon restart recovery
 - custom domains and stable aliases

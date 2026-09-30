@@ -120,6 +120,13 @@ impl CapabilityStore {
             .map_err(|error| CapabilityError::Storage(error.to_string()))?
     }
 
+    pub async fn revoke_exposure_async(&self, exposure_id: Uuid) -> Result<(), CapabilityError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.revoke_exposure(exposure_id))
+            .await
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?
+    }
+
     pub async fn revoke_async(&self, token: &str) -> Result<(), CapabilityError> {
         let store = self.clone();
         let token = token.to_owned();
@@ -203,6 +210,45 @@ impl CapabilityStore {
                 } else {
                     Ok(())
                 }
+            }
+        }
+    }
+
+    pub fn revoke_exposure(&self, exposure_id: Uuid) -> Result<(), CapabilityError> {
+        match &self.backend {
+            CapabilityBackend::Memory(inner) => {
+                for record in inner
+                    .write()
+                    .expect("capability store poisoned")
+                    .values_mut()
+                    .filter(|record| record.exposure_id == exposure_id)
+                {
+                    record.revoked = true;
+                }
+                Ok(())
+            }
+            CapabilityBackend::Sqlite(connection) => {
+                connection
+                    .lock()
+                    .expect("capability store poisoned")
+                    .execute(
+                        "UPDATE runtime_capabilities SET revoked = 1 WHERE exposure_id = ?1",
+                        [exposure_id.to_string()],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                Ok(())
+            }
+            CapabilityBackend::Postgres(client) => {
+                let exposure_id = exposure_id.to_string();
+                client
+                    .lock()
+                    .expect("capability store poisoned")
+                    .execute(
+                        "UPDATE runtime_capabilities SET revoked = TRUE WHERE exposure_id = $1",
+                        &[&exposure_id],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                Ok(())
             }
         }
     }
