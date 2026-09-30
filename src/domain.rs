@@ -225,9 +225,9 @@ pub enum ScenarioOrdering {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioOrderViolation {
     pub expected_before_contract_id: Uuid,
-    pub expected_before_interaction_id: Uuid,
+    pub expected_before_source_interaction_id: Uuid,
     pub expected_after_contract_id: Uuid,
-    pub expected_after_interaction_id: Uuid,
+    pub expected_after_source_interaction_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -235,7 +235,7 @@ pub struct ScenarioOrderOutcome {
     pub policy: ScenarioOrdering,
     pub passed: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub observed_interaction_ids: Vec<Uuid>,
+    pub observed_source_interaction_ids: Vec<Uuid>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub violations: Vec<ScenarioOrderViolation>,
 }
