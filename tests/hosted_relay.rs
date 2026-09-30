@@ -45,6 +45,7 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
         capabilities,
         format!("http://{hosted_addr}"),
         relay_addr.to_string(),
+        "test-control-token",
     );
     tokio::spawn(async move {
         axum::serve(hosted_listener, hosted_relay_app(hosted_state))
@@ -54,6 +55,7 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
 
     let provision: ProvisionedExposure = reqwest::Client::new()
         .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
+        .bearer_auth("test-control-token")
         .json(&serde_json::json!({
             "name": "github",
             "target_port": target_port

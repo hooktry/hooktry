@@ -9,10 +9,21 @@ use crate::{
     relay_auth::CapabilityStore,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct HostedServerConfig {
     pub bind: String,
     pub public_base_url: String,
+    pub control_token: String,
+}
+
+impl std::fmt::Debug for HostedServerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HostedServerConfig")
+            .field("bind", &self.bind)
+            .field("public_base_url", &self.public_base_url)
+            .field("control_token", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl HostedServerConfig {
@@ -35,9 +46,14 @@ impl HostedServerConfig {
             return Err("ORTYO_PUBLIC_BASE_URL must start with http:// or https://".to_owned());
         }
 
+        let control_token = lookup("ORTYO_CONTROL_TOKEN")
+            .filter(|token| !token.trim().is_empty())
+            .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required".to_owned())?;
+
         Ok(Self {
             bind,
             public_base_url: public_base_url.trim_end_matches('/').to_owned(),
+            control_token,
         })
     }
 }
@@ -59,6 +75,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         RelayBroker::default(),
         CapabilityStore::default(),
         config.public_base_url.clone(),
+        &config.control_token,
     );
 
     let startup = HostedStartup {

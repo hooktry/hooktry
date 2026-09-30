@@ -40,10 +40,11 @@ Run provisioning, public ingress, and the authenticated WebSocket runtime tunnel
 ```sh
 ORTYO_BIND=0.0.0.0:8080 \
 ORTYO_PUBLIC_BASE_URL=https://relay.example \
+ORTYO_CONTROL_TOKEN='<secret>' \
 ortyo hosted
 ```
 
-Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`.
+Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required and protects hosted Exposure provisioning; runtime registration uses a separate short-lived per-Exposure capability.
 
 ### MCP
 

@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     domain::{ExposureAccess, ExposureMode},
     relay::RelayBroker,
-    relay_auth::CapabilityStore,
+    relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
     websocket_transport::serve_websocket,
 };
@@ -26,6 +26,7 @@ pub struct HostedRelayState {
     pub relay_addr: Option<String>,
     pub runtime_ws_base_url: String,
     pub capability_ttl: Duration,
+    control_token_digest: [u8; 32],
 }
 
 impl HostedRelayState {
@@ -34,6 +35,7 @@ impl HostedRelayState {
         capabilities: CapabilityStore,
         public_base_url: impl Into<String>,
         relay_addr: impl Into<String>,
+        control_token: &str,
     ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let runtime_ws_base_url = websocket_base_url(&public_base_url);
@@ -44,6 +46,7 @@ impl HostedRelayState {
             relay_addr: Some(relay_addr.into()),
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
+            control_token_digest: token_digest(control_token),
         }
     }
 
@@ -51,6 +54,7 @@ impl HostedRelayState {
         broker: RelayBroker,
         capabilities: CapabilityStore,
         public_base_url: impl Into<String>,
+        control_token: &str,
     ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let runtime_ws_base_url = websocket_base_url(&public_base_url);
@@ -61,6 +65,7 @@ impl HostedRelayState {
             relay_addr: None,
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
+            control_token_digest: token_digest(control_token),
         }
     }
 }
@@ -106,8 +111,11 @@ async fn health() -> Json<serde_json::Value> {
 
 async fn provision_exposure(
     State(state): State<HostedRelayState>,
+    headers: HeaderMap,
     Json(request): Json<ProvisionExposureRequest>,
 ) -> Result<(StatusCode, Json<ProvisionedExposure>), StatusCode> {
+    authorize_control(&state, &headers)?;
+
     if request.name.trim().is_empty() || request.target_port == 0 {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -137,19 +145,29 @@ async fn provision_exposure(
     ))
 }
 
+fn authorize_control(state: &HostedRelayState, headers: &HeaderMap) -> Result<(), StatusCode> {
+    let token = bearer_token(headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    if token_digest(token) != state.control_token_digest {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    Ok(())
+}
+
+fn bearer_token(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .filter(|token| !token.is_empty())
+}
+
 async fn runtime_websocket(
     State(state): State<HostedRelayState>,
     Path(exposure_id): Path<Uuid>,
     headers: HeaderMap,
     ws: WebSocketUpgrade,
 ) -> Result<Response, StatusCode> {
-    let authorization = headers
-        .get(AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-    let capability = authorization
-        .strip_prefix("Bearer ")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
 
     state
         .capabilities
