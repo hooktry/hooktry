@@ -30,7 +30,7 @@ Successful command output is structured JSON, so the same surface is suitable fo
 
 ### MCP
 
-`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. The first tools are `interactions_list` and `contract_assert`, so agents consume the same canonical evidence and assertion semantics as the CLI.
+`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. The MCP toolset covers the evidence workflow: `interactions_list`, `recording_create`, `recording_replay`, `contract_create`, `contract_get`, `contract_assert`, and `assertion_get`. Agents consume the same canonical evidence, replay, and assertion semantics as the HTTP API.
 
 ## License
 
