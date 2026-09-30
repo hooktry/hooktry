@@ -97,12 +97,13 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let (capabilities, exposures, identities, storage) = open_hosted_stores(&config).await?;
+    let (capabilities, exposures, identities, secrets, storage) = open_hosted_stores(&config).await?;
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
         exposures,
         identities,
+        secrets,
         config.public_base_url.clone(),
         &config.control_token,
     );
@@ -138,6 +139,7 @@ async fn open_hosted_stores(
 > {
     if let Some(database_url) = &config.database_url {
         let database_url = database_url.clone();
+        let secrets_key = config.secrets_key;
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
@@ -145,12 +147,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, "postgres"))
+            let secrets = SecretStore::open_postgres(&database_url, secrets_key)
+                .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, secrets, "postgres"))
         })
         .await
         .map_err(|error| format!("join Postgres store initialization: {error}"))?
     } else {
         let db_path = config.db_path.clone();
+        let secrets_key = config.secrets_key;
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
@@ -158,7 +163,9 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, "sqlite"))
+            let secrets = SecretStore::open(&db_path, secrets_key)
+                .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, secrets, "sqlite"))
         })
         .await
         .map_err(|error| format!("join SQLite store initialization: {error}"))?
