@@ -51,7 +51,9 @@ async fn real_tcp_relay_round_trip_reaches_boundary_and_target() {
 
     let broker = RelayBroker::default();
     let capabilities = CapabilityStore::default();
-    let capability = capabilities.issue(exposure.id, Duration::from_secs(60));
+    let capability = capabilities
+        .issue(exposure.id, Duration::from_secs(60))
+        .unwrap();
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();
 
@@ -151,7 +153,9 @@ async fn one_tcp_runtime_connection_multiplexes_concurrent_requests() {
 
     let broker = RelayBroker::default();
     let capabilities = CapabilityStore::default();
-    let capability = capabilities.issue(exposure.id, Duration::from_secs(60));
+    let capability = capabilities
+        .issue(exposure.id, Duration::from_secs(60))
+        .unwrap();
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();
     let server_broker = broker.clone();

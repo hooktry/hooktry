@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     domain::{ExposureAccess, ExposureMode},
+    hosted_state::{HostedExposureRecord, HostedExposureStore},
     relay::RelayBroker,
     relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
@@ -26,6 +27,7 @@ pub struct HostedRelayState {
     pub relay_addr: Option<String>,
     pub runtime_ws_base_url: String,
     pub capability_ttl: Duration,
+    pub exposures: HostedExposureStore,
     control_token_digest: [u8; 32],
 }
 
@@ -46,6 +48,7 @@ impl HostedRelayState {
             relay_addr: Some(relay_addr.into()),
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
+            exposures: HostedExposureStore::default(),
             control_token_digest: token_digest(control_token),
         }
     }
@@ -53,6 +56,22 @@ impl HostedRelayState {
     pub fn websocket_only(
         broker: RelayBroker,
         capabilities: CapabilityStore,
+        public_base_url: impl Into<String>,
+        control_token: &str,
+    ) -> Self {
+        Self::websocket_only_with_store(
+            broker,
+            capabilities,
+            HostedExposureStore::default(),
+            public_base_url,
+            control_token,
+        )
+    }
+
+    pub fn websocket_only_with_store(
+        broker: RelayBroker,
+        capabilities: CapabilityStore,
+        exposures: HostedExposureStore,
         public_base_url: impl Into<String>,
         control_token: &str,
     ) -> Self {
@@ -65,6 +84,7 @@ impl HostedRelayState {
             relay_addr: None,
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
+            exposures,
             control_token_digest: token_digest(control_token),
         }
     }
@@ -124,21 +144,44 @@ async fn provision_exposure(
     }
 
     let exposure_id = Uuid::now_v7();
-    let capability = state.capabilities.issue(exposure_id, state.capability_ttl);
+    let capability = state
+        .capabilities
+        .issue(exposure_id, state.capability_ttl)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let expires_at = capability
         .expires_at
         .duration_since(UNIX_EPOCH)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .as_secs();
 
+    let public_url = format!("{}/e/{exposure_id}", state.public_base_url);
+    let runtime_url = format!("{}/_ortyo/runtime/{exposure_id}", state.runtime_ws_base_url);
+
+    if state
+        .exposures
+        .save(&HostedExposureRecord {
+            exposure_id,
+            name: request.name.clone(),
+            target_port: request.target_port,
+            public_url: public_url.clone(),
+            runtime_url: runtime_url.clone(),
+            capability_expires_at_unix_seconds: expires_at,
+            revoked: false,
+        })
+        .is_err()
+    {
+        let _ = state.capabilities.revoke(&capability.token);
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
     Ok((
         StatusCode::CREATED,
         Json(ProvisionedExposure {
             exposure_id,
             name: request.name,
-            public_url: format!("{}/e/{exposure_id}", state.public_base_url),
+            public_url,
             relay_addr: state.relay_addr,
-            runtime_url: format!("{}/_ortyo/runtime/{exposure_id}", state.runtime_ws_base_url),
+            runtime_url,
             runtime_capability: capability.token,
             capability_expires_at_unix_seconds: expires_at,
             target_port: request.target_port,
@@ -170,6 +213,7 @@ async fn revoke_runtime(
     headers: HeaderMap,
 ) -> Result<StatusCode, StatusCode> {
     let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    active_hosted_exposure(&state, exposure_id)?;
     state
         .capabilities
         .authorize(exposure_id, capability)
@@ -178,6 +222,10 @@ async fn revoke_runtime(
         .capabilities
         .revoke(capability)
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    state
+        .exposures
+        .revoke(exposure_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     state.broker.disconnect(exposure_id).await;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -189,6 +237,7 @@ async fn runtime_websocket(
     ws: WebSocketUpgrade,
 ) -> Result<Response, StatusCode> {
     let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    active_hosted_exposure(&state, exposure_id)?;
 
     state
         .capabilities
@@ -201,6 +250,21 @@ async fn runtime_websocket(
         .on_upgrade(move |socket| async move {
             let _ = serve_websocket(socket, broker, exposure_id).await;
         }))
+}
+
+fn active_hosted_exposure(
+    state: &HostedRelayState,
+    exposure_id: Uuid,
+) -> Result<HostedExposureRecord, StatusCode> {
+    let exposure = state
+        .exposures
+        .get(exposure_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    if exposure.revoked {
+        return Err(StatusCode::GONE);
+    }
+    Ok(exposure)
 }
 
 fn websocket_base_url(public_base_url: &str) -> String {

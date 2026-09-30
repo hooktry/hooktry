@@ -142,7 +142,9 @@ async fn websocket_runtime_rejects_invalid_bearer_capability() {
     let broker = RelayBroker::default();
     let capabilities = CapabilityStore::default();
     let exposure_id = uuid::Uuid::now_v7();
-    let valid = capabilities.issue(exposure_id, Duration::from_secs(60));
+    let valid = capabilities
+        .issue(exposure_id, Duration::from_secs(60))
+        .unwrap();
 
     let hosted_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let hosted_addr = hosted_listener.local_addr().unwrap();

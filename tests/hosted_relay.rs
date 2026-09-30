@@ -146,7 +146,9 @@ async fn socket_disconnect_removes_runtime_registration() {
     let broker = RelayBroker::default();
     let capabilities = CapabilityStore::default();
     let exposure_id = uuid::Uuid::now_v7();
-    let capability = capabilities.issue(exposure_id, Duration::from_secs(60));
+    let capability = capabilities
+        .issue(exposure_id, Duration::from_secs(60))
+        .unwrap();
 
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();

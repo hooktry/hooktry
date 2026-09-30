@@ -46,7 +46,9 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
 
     let broker = RelayBroker::default();
     let capabilities = CapabilityStore::default();
-    let capability = capabilities.issue(exposure.id, Duration::from_secs(60));
+    let capability = capabilities
+        .issue(exposure.id, Duration::from_secs(60))
+        .unwrap();
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();
     let server_broker = broker.clone();

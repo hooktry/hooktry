@@ -42,10 +42,11 @@ Run provisioning, public ingress, and the authenticated WebSocket runtime tunnel
 ORTYO_BIND=0.0.0.0:8080 \
 ORTYO_PUBLIC_BASE_URL=https://relay.example \
 ORTYO_CONTROL_TOKEN='<secret>' \
+ORTYO_HOSTED_DB_PATH=/var/lib/ortyo/hosted.db \
 ortyo hosted
 ```
 
-Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required and protects hosted Exposure provisioning; runtime registration uses a separate short-lived per-Exposure capability.
+Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required and protects hosted Exposure provisioning; runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests are persisted through `ORTYO_HOSTED_DB_PATH` so runtime authority can survive process restarts. The raw capability is never stored.
 
 ### MCP
 

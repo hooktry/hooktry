@@ -5,6 +5,7 @@ use tokio::net::TcpListener;
 
 use crate::{
     hosted::{HostedRelayState, hosted_relay_app},
+    hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
 };
@@ -14,6 +15,7 @@ pub struct HostedServerConfig {
     pub bind: String,
     pub public_base_url: String,
     pub control_token: String,
+    pub db_path: String,
 }
 
 impl std::fmt::Debug for HostedServerConfig {
@@ -22,6 +24,7 @@ impl std::fmt::Debug for HostedServerConfig {
             .field("bind", &self.bind)
             .field("public_base_url", &self.public_base_url)
             .field("control_token", &"[REDACTED]")
+            .field("db_path", &self.db_path)
             .finish()
     }
 }
@@ -49,11 +52,15 @@ impl HostedServerConfig {
         let control_token = lookup("ORTYO_CONTROL_TOKEN")
             .filter(|token| !token.trim().is_empty())
             .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required".to_owned())?;
+        let db_path = lookup("ORTYO_HOSTED_DB_PATH")
+            .filter(|path| !path.trim().is_empty())
+            .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
 
         Ok(Self {
             bind,
             public_base_url: public_base_url.trim_end_matches('/').to_owned(),
             control_token,
+            db_path,
         })
     }
 }
@@ -71,9 +78,14 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let state = HostedRelayState::websocket_only(
+    let capabilities = CapabilityStore::open(&config.db_path)
+        .map_err(|error| format!("open hosted capability store: {error:?}"))?;
+    let exposures = HostedExposureStore::open(&config.db_path)
+        .map_err(|error| format!("open hosted exposure store: {error:?}"))?;
+    let state = HostedRelayState::websocket_only_with_store(
         RelayBroker::default(),
-        CapabilityStore::default(),
+        capabilities,
+        exposures,
         config.public_base_url.clone(),
         &config.control_token,
     );
