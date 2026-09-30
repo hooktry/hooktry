@@ -443,9 +443,10 @@ fn build_response(proxied: ProxiedHttpResponse) -> Result<Response, StatusCode> 
 
 fn exposure_error_status(error: ExposureError) -> StatusCode {
     match error {
-        ExposureError::InvalidName | ExposureError::InvalidPort | ExposureError::DuplicateName => {
-            StatusCode::BAD_REQUEST
-        }
+        ExposureError::InvalidName
+        | ExposureError::InvalidPort
+        | ExposureError::DuplicateName
+        | ExposureError::DuplicateId => StatusCode::BAD_REQUEST,
         ExposureError::NotFound => StatusCode::NOT_FOUND,
         ExposureError::Inactive => StatusCode::GONE,
         ExposureError::Provider(_) => StatusCode::BAD_GATEWAY,

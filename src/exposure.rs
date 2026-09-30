@@ -12,6 +12,7 @@ pub enum ExposureError {
     InvalidName,
     InvalidPort,
     DuplicateName,
+    DuplicateId,
     NotFound,
     Inactive,
     Provider(String),
@@ -136,6 +137,15 @@ impl ExposureService {
         session_id: Uuid,
         request: CreateExposure,
     ) -> Result<Exposure, ExposureError> {
+        self.create_with_id(session_id, Uuid::now_v7(), request)
+    }
+
+    pub fn create_with_id(
+        &self,
+        session_id: Uuid,
+        id: Uuid,
+        request: CreateExposure,
+    ) -> Result<Exposure, ExposureError> {
         if request.name.trim().is_empty() {
             return Err(ExposureError::InvalidName);
         }
@@ -151,7 +161,10 @@ impl ExposureService {
             return Err(ExposureError::DuplicateName);
         }
 
-        let id = Uuid::now_v7();
+        if exposures.iter().any(|item| item.id == id) {
+            return Err(ExposureError::DuplicateId);
+        }
+
         let provider = match request.mode {
             ExposureMode::Forward => &self.forward_provider,
             ExposureMode::Relay => &self.relay_provider,

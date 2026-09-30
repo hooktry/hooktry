@@ -2,6 +2,7 @@ pub mod cli;
 pub mod contract;
 pub mod domain;
 pub mod exposure;
+pub mod hosted;
 pub mod http;
 pub mod mcp;
 pub mod relay;
