@@ -9,7 +9,8 @@ use uuid::Uuid;
 use crate::{
     contract::assert_interaction,
     domain::{
-        Contract, Interaction, InteractionCardinality, Origin, Scenario, ScenarioCheckOutcome,
+        Contract, CorrelationContext, Interaction, InteractionCardinality, Origin, Scenario,
+        ScenarioCheckOutcome,
         ScenarioExpectation, ScenarioObservation, ScenarioOutcome, ScenarioRun, ScenarioRunState,
     },
     exposure::{ExposureError, ExposureService},
@@ -23,6 +24,8 @@ pub struct ScenarioContractSpec {
     pub operation: String,
     pub request: Option<Value>,
     pub response: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<CorrelationContext>,
     #[serde(default)]
     pub count: Option<usize>,
     #[serde(default)]
@@ -125,6 +128,7 @@ pub fn create(
             operation: Some(json!(spec.operation)),
             request: spec.request,
             response: spec.response,
+            context: spec.context,
         };
         store.save_contract(&contract);
         contract_ids.push(contract.id);
