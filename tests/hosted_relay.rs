@@ -149,12 +149,10 @@ async fn socket_disconnect_removes_runtime_registration() {
 
     let stream = TcpStream::connect(relay_addr).await.unwrap();
     let state = AppState::default();
-    let task = tokio::spawn(run_runtime_connection(
-        stream,
-        exposure_id,
-        &capability.token,
-        state,
-    ));
+    let capability_token = capability.token.clone();
+    let task = tokio::spawn(async move {
+        run_runtime_connection(stream, exposure_id, &capability_token, state).await
+    });
 
     tokio::time::sleep(Duration::from_millis(25)).await;
     task.abort();
