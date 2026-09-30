@@ -85,3 +85,41 @@ bootstrap
 ```
 
 Neither the API token nor runtime capability is included in startup logs, execution evidence, or readiness logs.
+
+
+## DOGFOOD3 ask-approve-act-prove proof
+
+After the public relay data-plane proof succeeds, the hosted process proves CONTROL1 through its own public control boundary using only the encrypted `ortyo://secrets/default-api-token`.
+
+The proof uses a harmless exact action:
+
+```text
+GET <ORTYO_PUBLIC_BASE_URL>/healthz
+```
+
+The startup acceptance performs:
+
+1. ask - POST the exact health request to `/_ortyo/hosted/approvals`
+2. verify the returned pending ApprovalRecord exposes only the redacted action summary
+3. approve - POST `{"decision":"approve"}` through the separate `requests:approve` scope
+4. mutation proof - attempt to execute the approval with `/llms.txt` instead and require `approval_request_mismatch`
+5. act - resubmit the exact approved `/healthz` request
+6. prove - require a consumed ApprovalRecord and successful EXEC4 ExecutionRecord
+7. correlate - require `approval.execution_id == execution.execution_id`
+8. replay proof - reuse the consumed approval and require `approval_consumed`
+
+The ask step uses a bounded readiness retry because Render can start the new process before the public URL has switched to the new revision.
+
+The proof never resolves the API token into logs, generated evidence, or agent context. Every outer control request materializes the operator credential from its destination-bound SecretRef only inside `HttpExecutionProvider`.
+
+Successful completion emits only:
+
+```json
+{
+  "event": "dogfood_control_plane_ready",
+  "approval_id": "<uuid>",
+  "execution_id": "<uuid>"
+}
+```
+
+A failed proof emits `dogfood_control_plane_failed` with a non-secret diagnostic.
