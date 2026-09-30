@@ -190,10 +190,7 @@ async fn proxy_exposure(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Response, StatusCode> {
-    let exposure = state
-        .exposures
-        .active(id)
-        .map_err(exposure_error_status)?;
+    let exposure = state.exposures.active(id).map_err(exposure_error_status)?;
 
     let started = Instant::now();
     let started_at = Utc::now();
@@ -209,9 +206,13 @@ async fn proxy_exposure(
         ),
     };
 
-    let mut outgoing = state.client.request(method.clone(), &target_url).body(body.clone());
+    let mut outgoing = state
+        .client
+        .request(method.clone(), &target_url)
+        .body(body.clone());
     for (name, value) in &headers {
-        if name != HOST && name != CONTENT_LENGTH && name != CONNECTION && name != TRANSFER_ENCODING {
+        if name != HOST && name != CONTENT_LENGTH && name != CONNECTION && name != TRANSFER_ENCODING
+        {
             outgoing = outgoing.header(name, value);
         }
     }
@@ -263,9 +264,9 @@ async fn proxy_exposure(
 
 fn exposure_error_status(error: ExposureError) -> StatusCode {
     match error {
-        ExposureError::InvalidName
-        | ExposureError::InvalidPort
-        | ExposureError::DuplicateName => StatusCode::BAD_REQUEST,
+        ExposureError::InvalidName | ExposureError::InvalidPort | ExposureError::DuplicateName => {
+            StatusCode::BAD_REQUEST
+        }
         ExposureError::NotFound => StatusCode::NOT_FOUND,
         ExposureError::Inactive => StatusCode::GONE,
         ExposureError::Provider(_) => StatusCode::BAD_GATEWAY,
