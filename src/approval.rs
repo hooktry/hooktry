@@ -324,6 +324,19 @@ impl ApprovalStore {
             .map_err(|error| ApprovalError::Storage(error.to_string()))?
     }
 
+    pub async fn get_notification_for_approval_async(
+        &self,
+        workspace_id: Uuid,
+        approval_id: Uuid,
+    ) -> Result<Option<ApprovalNotificationOutboxRecord>, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.get_notification_for_approval(workspace_id, approval_id)
+        })
+        .await
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
     pub async fn list_undelivered_notifications_async(
         &self,
         workspace_id: Uuid,
@@ -625,6 +638,62 @@ impl ApprovalStore {
                     .collect()
             }
         }
+    }
+
+    pub fn get_notification_for_approval(
+        &self,
+        workspace_id: Uuid,
+        approval_id: Uuid,
+    ) -> Result<Option<ApprovalNotificationOutboxRecord>, ApprovalError> {
+        let workspace = workspace_id.to_string();
+        let approval = approval_id.to_string();
+
+        let row = match &self.backend {
+            ApprovalBackend::Sqlite(connection) => connection
+                .lock()
+                .expect("approval store poisoned")
+                .query_row(
+                    "SELECT notification_id, workspace_id, approval_id, event,
+                            created_at, delivered_at
+                     FROM hosted_approval_notification_outbox
+                     WHERE approval_id=?1 AND workspace_id=?2",
+                    params![approval, workspace],
+                    |row| {
+                        Ok(StoredApprovalNotificationRow {
+                            notification_id: row.get(0)?,
+                            workspace_id: row.get(1)?,
+                            approval_id: row.get(2)?,
+                            event: row.get(3)?,
+                            created_at: row.get(4)?,
+                            delivered_at: row.get(5)?,
+                        })
+                    },
+                )
+                .optional()
+                .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+            ApprovalBackend::Postgres(client) => client
+                .lock()
+                .expect("approval store poisoned")
+                .query_opt(
+                    "SELECT notification_id, workspace_id, approval_id, event,
+                            created_at, delivered_at
+                     FROM hosted_approval_notification_outbox
+                     WHERE approval_id=$1 AND workspace_id=$2",
+                    &[&approval, &workspace],
+                )
+                .map_err(|error| ApprovalError::Storage(error.to_string()))?
+                .map(|row| StoredApprovalNotificationRow {
+                    notification_id: row.get(0),
+                    workspace_id: row.get(1),
+                    approval_id: row.get(2),
+                    event: row.get(3),
+                    created_at: row.get(4),
+                    delivered_at: row.get(5),
+                }),
+        };
+
+        row.map(StoredApprovalNotificationRow::into_record)
+            .transpose()
     }
 
     pub fn list_undelivered_notifications(

@@ -105,12 +105,13 @@ The startup acceptance performs:
 4. mutation proof - attempt to execute the approval with `/llms.txt` instead and require `approval_request_mismatch`
 5. act - resubmit the exact approved `/healthz` request
 6. prove - require a consumed ApprovalRecord and successful EXEC4 ExecutionRecord
-7. inbox ask proof - require the new pending approval to appear in `GET /_ortyo/hosted/approvals`
-8. approve - decide the exact approval
-9. inbox decision proof - require that approval to disappear from the pending inbox
-10. correlate - require `approval.execution_id == execution.execution_id`
-11. durable query - fetch `/_ortyo/hosted/executions/{execution_id}` and require its terminal projection to equal the immediate execution proof
-12. replay proof - reuse the consumed approval and require `approval_consumed`
+7. outbox proof - require the matching durable `approval_requested` intent to exist for the new approval
+8. inbox ask proof - require the new pending approval to appear in `GET /_ortyo/hosted/approvals`
+9. approve - decide the exact approval
+10. inbox decision proof - require that approval to disappear from the pending inbox
+11. correlate - require `approval.execution_id == execution.execution_id`
+12. durable query - fetch `/_ortyo/hosted/executions/{execution_id}` and require its terminal projection to equal the immediate execution proof
+13. replay proof - reuse the consumed approval and require `approval_consumed`
 
 Before the control-plane proof begins, ORTYO waits until public `/healthz.revision` matches the current `RENDER_GIT_COMMIT`. The ask step still has a bounded readiness retry. Together these prevent a Render rolling cutover from accidentally proving an older revision.
 

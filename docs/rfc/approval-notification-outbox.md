@@ -80,6 +80,16 @@ The backfill:
 
 This lets a deployment introduce the outbox without silently losing already-pending human handoffs.
 
+## Production dogfood
+
+Hosted startup acceptance proves the transactional invariant against the production database. Immediately after `approval_create`, ORTYO loads the outbox intent by `workspace_id + approval_id` and requires:
+
+- `event = approval_requested`
+- matching Workspace and Approval identities
+- `created_at_unix_ms = ApprovalRecord.requested_at_unix_ms`
+
+The proof does not require the intent to remain undelivered, because an enabled provider may legitimately race and deliver it immediately.
+
 ## Relationship to CONTROL2
 
 CONTROL2 remains the durable human-facing source of truth:
