@@ -17,8 +17,8 @@ fn capability_is_scoped_expires_and_can_be_revoked() {
     let first = Uuid::now_v7();
     let second = Uuid::now_v7();
 
-    let capability = store.issue(first, Duration::from_secs(60));
-    let second_capability = store.issue(first, Duration::from_secs(60));
+    let capability = store.issue(first, Duration::from_secs(60)).unwrap();
+    let second_capability = store.issue(first, Duration::from_secs(60)).unwrap();
     assert!(capability.token.starts_with("ortyo_rt_"));
     assert_eq!(capability.token.len(), "ortyo_rt_".len() + 64);
     assert_ne!(capability.token, second_capability.token);
@@ -34,7 +34,7 @@ fn capability_is_scoped_expires_and_can_be_revoked() {
         Err(CapabilityError::Revoked)
     );
 
-    let expired = store.issue(first, Duration::ZERO);
+    let expired = store.issue(first, Duration::ZERO).unwrap();
     assert_eq!(
         store.authorize(first, &expired.token),
         Err(CapabilityError::Expired)
