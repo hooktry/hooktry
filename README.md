@@ -52,6 +52,29 @@ Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted proc
 
 `ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, and create/assert Contracts without bypassing ORTYO's HTTP boundary.
 
+### Approval-gated hosted execution
+
+Hosted ask -> approve/deny -> act -> prove is available through both CLI and MCP without exposing raw endpoint paths to agents.
+
+CLI uses the hosted origin from `ORTYO_HOSTED_URL` (default `https://ortyo.onrender.com`). Requester operations read only `ORTYO_TOKEN`; approval decisions read only `ORTYO_APPROVER_TOKEN`. Tokens are never accepted as command-line arguments.
+
+```sh
+ortyo approval create request.json
+ortyo approval get <approval-id>
+ortyo approval approve <approval-id>
+ortyo approval deny <approval-id>
+ortyo approval execute <approval-id> request.json
+ortyo execution get <execution-id>
+```
+
+`request.json` is the exact serialized `HttpExecutionRequest`. Reuse the same request for create and execute; ORTYO fails closed if the approved action is mutated. Typed `SecretRef` header bindings remain unresolved in CLI/MCP and are materialized only by the hosted executor.
+
+MCP exposes the equivalent tools:
+
+`approval_create`, `approval_get`, `approval_decide`, `approval_execute`, and `execution_get`.
+
+Call MCP `tools/list` for the authoritative input schemas. In particular, `approval_create` and `approval_execute` accept a typed `HttpExecutionRequest`, including destination-bound SecretRefs.
+
 ### Agent discovery
 
 Both local and hosted ORTYO HTTP services publish agent-readable discovery surfaces:
