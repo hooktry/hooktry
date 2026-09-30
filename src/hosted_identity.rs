@@ -232,7 +232,9 @@ impl HostedIdentityStore {
                     .transaction()
                     .map_err(|error| IdentityError::Storage(error.to_string()))?;
                 let count: i64 = transaction
-                    .query_row("SELECT COUNT(*) FROM hosted_workspaces", [], |row| row.get(0))
+                    .query_row("SELECT COUNT(*) FROM hosted_workspaces", [], |row| {
+                        row.get(0)
+                    })
                     .map_err(|error| IdentityError::Storage(error.to_string()))?;
                 if count != 0 {
                     return Err(IdentityError::BootstrapAlreadyCompleted);
