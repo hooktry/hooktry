@@ -268,6 +268,7 @@ async fn complete_scenario(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ScenarioOutcome>, StatusCode> {
     complete_scenario_run(&state.store, &state.exposures, state.session.id, id)
+        .await
         .map(Json)
         .map_err(scenario_error_status)
 }
@@ -506,7 +507,8 @@ fn scenario_error_status(error: ScenarioError) -> StatusCode {
         | ScenarioError::ContractRequired
         | ScenarioError::InvalidContractName
         | ScenarioError::InvalidOperation
-        | ScenarioError::InvalidCardinality => StatusCode::BAD_REQUEST,
+        | ScenarioError::InvalidCardinality
+        | ScenarioError::InvalidObservation => StatusCode::BAD_REQUEST,
         ScenarioError::ScenarioNotFound | ScenarioError::RunNotFound => StatusCode::NOT_FOUND,
         ScenarioError::ContractNotFound(_) => StatusCode::CONFLICT,
         ScenarioError::Exposure(error) => exposure_error_status(error),
