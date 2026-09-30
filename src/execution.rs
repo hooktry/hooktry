@@ -246,9 +246,18 @@ async fn resolve_secret_header(
 ) -> Result<String, ExecutionError> {
     match binding {
         SecretHeaderBinding::SecretName(name) => secrets
-            .resolve_async(workspace_id, name)
+            .resolve_legacy_for_origin_async(
+                workspace_id,
+                name,
+                destination_origin.to_owned(),
+            )
             .await
-            .map_err(|_| ExecutionError::SecretNotFound),
+            .map_err(|error| match error {
+                SecretError::DestinationDenied | SecretError::InvalidOrigin => {
+                    ExecutionError::SecretDestinationDenied
+                }
+                _ => ExecutionError::SecretNotFound,
+            }),
         SecretHeaderBinding::SecretRef {
             secret_ref,
             prefix,
