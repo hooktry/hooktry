@@ -33,6 +33,7 @@ pub enum RelayError {
     RuntimeDisconnected,
     ResponseDropped,
     Timeout,
+    Overloaded,
 }
 
 struct RelayDispatch {
@@ -42,16 +43,39 @@ struct RelayDispatch {
 
 #[derive(Clone, Default)]
 pub struct RelayBroker {
-    runtimes: Arc<Mutex<HashMap<Uuid, mpsc::Sender<RelayDispatch>>>>,
+    runtimes: Arc<Mutex<HashMap<Uuid, RuntimeRegistration>>>,
+}
+
+struct RuntimeRegistration {
+    id: Uuid,
+    sender: mpsc::Sender<RelayDispatch>,
 }
 
 impl RelayBroker {
     pub async fn register(&self, exposure_id: Uuid) -> RelayRuntime {
         let (tx, rx) = mpsc::channel(16);
-        self.runtimes.lock().await.insert(exposure_id, tx);
+        let registration_id = Uuid::now_v7();
+        self.runtimes.lock().await.insert(
+            exposure_id,
+            RuntimeRegistration {
+                id: registration_id,
+                sender: tx,
+            },
+        );
         RelayRuntime {
             exposure_id,
+            registration_id,
             receiver: rx,
+        }
+    }
+
+    pub async fn unregister(&self, exposure_id: Uuid, registration_id: Uuid) {
+        let mut runtimes = self.runtimes.lock().await;
+        if runtimes
+            .get(&exposure_id)
+            .is_some_and(|registration| registration.id == registration_id)
+        {
+            runtimes.remove(&exposure_id);
         }
     }
 
@@ -70,17 +94,19 @@ impl RelayBroker {
             .lock()
             .await
             .get(&request.exposure_id)
-            .cloned()
+            .map(|registration| registration.sender.clone())
             .ok_or(RelayError::RuntimeUnavailable)?;
 
         let (response_tx, response_rx) = oneshot::channel();
         runtime
-            .send(RelayDispatch {
+            .try_send(RelayDispatch {
                 request,
                 response_tx,
             })
-            .await
-            .map_err(|_| RelayError::RuntimeDisconnected)?;
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => RelayError::Overloaded,
+                mpsc::error::TrySendError::Closed(_) => RelayError::RuntimeDisconnected,
+            })?;
 
         timeout(deadline, response_rx)
             .await
@@ -91,12 +117,17 @@ impl RelayBroker {
 
 pub struct RelayRuntime {
     exposure_id: Uuid,
+    registration_id: Uuid,
     receiver: mpsc::Receiver<RelayDispatch>,
 }
 
 impl RelayRuntime {
     pub fn exposure_id(&self) -> Uuid {
         self.exposure_id
+    }
+
+    pub fn registration_id(&self) -> Uuid {
+        self.registration_id
     }
 
     pub async fn recv(&mut self) -> Option<RelayWork> {
