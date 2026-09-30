@@ -254,8 +254,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
             }
 
             if approval_webhook
-                && let Err(error) =
-                    run_dogfood_approval_webhook(&dogfood_state, workspace_id).await
+                && let Err(error) = run_dogfood_approval_webhook(&dogfood_state, workspace_id).await
             {
                 eprintln!(
                     "{}",
