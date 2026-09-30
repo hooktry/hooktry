@@ -10,7 +10,9 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
-    approval::{ApprovalRecord, ApprovalState, ApprovalStore},
+    approval::{
+        ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore,
+    },
     approval_webhook::{ensure_webhook_secret, run_worker, validate_webhook_url},
     domain::{ExposureAccess, ExposureMode},
     execution::{
@@ -527,6 +529,20 @@ async fn run_dogfood_approval_gate(
         return Err(
             "dogfood approval summary was not the expected redacted health action".to_owned(),
         );
+    }
+
+    let notification = state
+        .approvals
+        .get_notification_for_approval_async(workspace_id, approval.approval_id)
+        .await
+        .map_err(|error| format!("load dogfood approval outbox intent: {error:?}"))?
+        .ok_or_else(|| "dogfood approval was missing transactional outbox intent".to_owned())?;
+    if notification.workspace_id != workspace_id
+        || notification.approval_id != approval.approval_id
+        || notification.event != ApprovalNotificationEvent::ApprovalRequested
+        || notification.created_at_unix_ms != approval.requested_at_unix_ms
+    {
+        return Err("dogfood approval outbox intent did not match approval".to_owned());
     }
 
     let pending = dogfood_approval_inbox(state, workspace_id).await?;
