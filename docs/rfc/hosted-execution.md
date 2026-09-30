@@ -1,7 +1,7 @@
-# EXEC2 - Safe Hosted HTTP Execution with SecretRef Chaining
+# EXEC3 - Safe Hosted HTTP Execution with Destination-Bound SecretRefs
 
 Status: executable vertical slice  
-Tracking: #77, #87
+Tracking: #77, #87, #97
 
 ORTYO can actively initiate a bounded HTTP Interaction from its hosted boundary and return structured Evidence.
 
@@ -86,6 +86,26 @@ Request headers can reference a Workspace secret either by the legacy secret nam
 
 SecretRef resolution is always scoped to the authenticated Workspace. An `ortyo://secrets/...` reference from one Workspace cannot read the same-named secret from another Workspace. Invalid reference schemes fail closed.
 
+EXEC3 adds an exact HTTP-origin binding to the typed SecretRef path. The binding is non-secret policy metadata stored alongside the encrypted secret lifecycle. Before materializing a typed SecretRef into an outbound header, the executor canonicalizes the request origin and requires an exact match. A mismatch fails before the request is sent with the machine-readable `secret_destination_denied` error.
+
+HTTP capture automatically binds a newly captured SecretRef to the origin that issued the value. A token captured from `https://api.example.com/token` can therefore be reused for `https://api.example.com/...`, but not for `https://other.example.com/...`.
+
+The operator bootstrap credential is bound to `ORTYO_PUBLIC_BASE_URL`. Existing operator secrets are upgraded in place by attaching the origin policy; the token does not need to be rotated or exposed.
+
+The legacy string form in `secret_headers` remains available for backward compatibility:
+
+```json
+{
+  "secret_headers": {
+    "authorization": "legacy-secret-name"
+  }
+}
+```
+
+A genuinely legacy unbound secret may still use that form. Once a secret has an origin binding, the binding is enforced regardless of whether the caller uses typed SecretRef syntax or the legacy name syntax, so changing syntax cannot bypass policy. New agent-facing integrations should use typed SecretRefs. An unbound secret used through typed SecretRef syntax fails closed.
+
+Origin binding participates in the normal SECRET2 lifecycle: rotation preserves the current binding, explicit bound rotation can replace it, metadata exposes the non-secret binding, and deletion removes it so the policy cannot leak into a future secret that reuses the same name.
+
 Raw secret values are resolved only inside the executor and are never added to request Evidence. Durable hosted secrets are encrypted at rest with AES-256-GCM and an external `ORTYO_SECRETS_KEY`.
 
 ## Provider boundary
@@ -101,5 +121,7 @@ The intended first production proof is:
 1. execute ORTYO's public one-time bootstrap endpoint
 2. capture `/credential/token` as a SecretRef
 3. ensure Evidence contains only `[REDACTED]`
-4. use the captured SecretRef as Authorization for a hosted Exposure request
-5. return only non-secret Exposure evidence to the agent
+4. persist the capture with an allowed origin equal to the issuing ORTYO origin
+5. use the captured SecretRef as Authorization for a hosted Exposure request to that origin
+6. prove the same SecretRef is denied for a different origin before any request is sent
+7. return only non-secret Exposure evidence to the agent
