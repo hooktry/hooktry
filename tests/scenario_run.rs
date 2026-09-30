@@ -74,5 +74,6 @@ fn outcome(run: &ScenarioRun, passed: bool) -> ScenarioOutcome {
             passed,
             error: (!passed).then(|| "behavior mismatch".to_owned()),
         }],
+        order: None,
     }
 }
