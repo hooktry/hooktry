@@ -78,8 +78,8 @@ impl HostedServerConfig {
                     "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
                 })
             })?;
-        let bootstrap_workspace = lookup("ORTYO_BOOTSTRAP_WORKSPACE")
-            .filter(|value| !value.trim().is_empty());
+        let bootstrap_workspace =
+            lookup("ORTYO_BOOTSTRAP_WORKSPACE").filter(|value| !value.trim().is_empty());
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -273,20 +273,14 @@ mod tests {
             .find_workspace_by_slug("serhii")
             .unwrap()
             .unwrap();
-        let token = secrets
-            .resolve(workspace.id, "default-api-token")
-            .unwrap();
+        let token = secrets.resolve(workspace.id, "default-api-token").unwrap();
         identities
             .authorize(&token, ApiScope::RequestsExecute)
             .unwrap();
 
-        let first_ref = secrets
-            .get_ref(workspace.id, "default-api-token")
-            .unwrap();
+        let first_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
         ensure_operator_bootstrap(&identities, &secrets, "serhii").unwrap();
-        let second_ref = secrets
-            .get_ref(workspace.id, "default-api-token")
-            .unwrap();
+        let second_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
         assert_eq!(first_ref.id, second_ref.id);
 
         drop(secrets);
