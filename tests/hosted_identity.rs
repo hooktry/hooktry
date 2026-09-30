@@ -2,7 +2,9 @@ use std::fs;
 
 use ortyo::{
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
-    hosted_identity::{ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential, Workspace},
+    hosted_identity::{
+        ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential, Workspace,
+    },
     http::AppState,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
@@ -22,7 +24,9 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
         "test-control-token",
     );
     tokio::spawn(async move {
-        axum::serve(listener, hosted_relay_app(state)).await.unwrap();
+        axum::serve(listener, hosted_relay_app(state))
+            .await
+            .unwrap();
     });
 
     let client = reqwest::Client::new();
@@ -129,7 +133,10 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
         .send()
         .await
         .unwrap();
-    assert_eq!(cannot_revoke_from_b.status(), reqwest::StatusCode::NOT_FOUND);
+    assert_eq!(
+        cannot_revoke_from_b.status(),
+        reqwest::StatusCode::NOT_FOUND
+    );
 
     let list_a: Vec<serde_json::Value> = client
         .get(format!("http://{addr}/_ortyo/hosted/exposures"))
