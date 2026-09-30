@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use base64::{Engine, engine::general_purpose::STANDARD};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
@@ -125,7 +125,12 @@ impl SecretStore {
             workspace_id,
             name: name.clone(),
         };
-        let envelope = encrypt(self.key.as_ref(), workspace_id, &name, value.into().as_bytes())?;
+        let envelope = encrypt(
+            self.key.as_ref(),
+            workspace_id,
+            &name,
+            value.into().as_bytes(),
+        )?;
         self.save(StoredSecret {
             reference: reference.clone(),
             envelope,
@@ -139,7 +144,12 @@ impl SecretStore {
         if secret.key_version != KEY_VERSION {
             return Err(SecretError::InvalidKey);
         }
-        let bytes = decrypt(self.key.as_ref(), workspace_id, name, &secret.envelope)?;
+        let bytes = decrypt(
+            self.key.as_ref(),
+            workspace_id,
+            name,
+            &secret.envelope,
+        )?;
         String::from_utf8(bytes).map_err(|_| SecretError::Crypto)
     }
 
@@ -160,7 +170,10 @@ impl SecretStore {
                 Ok(())
             }
             SecretBackend::Sqlite(connection) => {
-                connection.lock().expect("secret store poisoned").execute(
+                connection
+                    .lock()
+                    .expect("secret store poisoned")
+                    .execute(
                     "INSERT INTO hosted_secrets
                         (secret_id, workspace_id, name, envelope, key_version)
                      VALUES (?1, ?2, ?3, ?4, ?5)
@@ -174,21 +187,32 @@ impl SecretStore {
                         &secret.envelope,
                         secret.key_version
                     ],
-                ).map_err(|error| SecretError::Storage(error.to_string()))?;
+                )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
                 Ok(())
             }
             SecretBackend::Postgres(client) => {
                 let id = secret.reference.id.to_string();
                 let workspace = secret.reference.workspace_id.to_string();
-                client.lock().expect("secret store poisoned").execute(
+                client
+                    .lock()
+                    .expect("secret store poisoned")
+                    .execute(
                     "INSERT INTO hosted_secrets
                         (secret_id, workspace_id, name, envelope, key_version)
                      VALUES ($1,$2,$3,$4,$5)
                      ON CONFLICT(workspace_id, name) DO UPDATE SET
                         secret_id=EXCLUDED.secret_id, envelope=EXCLUDED.envelope,
                         key_version=EXCLUDED.key_version",
-                    &[&id, &workspace, &secret.reference.name, &secret.envelope, &secret.key_version],
-                ).map_err(|error| SecretError::Storage(error.to_string()))?;
+                    &[
+                        &id,
+                        &workspace,
+                        &secret.reference.name,
+                        &secret.envelope,
+                        &secret.key_version,
+                    ],
+                )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
                 Ok(())
             }
         }
@@ -196,54 +220,89 @@ impl SecretStore {
 
     fn find(&self, workspace_id: Uuid, name: &str) -> Result<Option<StoredSecret>, SecretError> {
         match &self.backend {
-            SecretBackend::Memory(inner) => Ok(inner.read().expect("secret store poisoned")
-                .get(&(workspace_id, name.to_owned())).cloned()),
+            SecretBackend::Memory(inner) => Ok(inner
+                .read()
+                .expect("secret store poisoned")
+                .get(&(workspace_id, name.to_owned()))
+                .cloned()),
             SecretBackend::Sqlite(connection) => {
-                let row = connection.lock().expect("secret store poisoned").query_row(
+                let row = connection
+                    .lock()
+                    .expect("secret store poisoned")
+                    .query_row(
                     "SELECT secret_id,envelope,key_version FROM hosted_secrets
                      WHERE workspace_id=?1 AND name=?2",
                     params![workspace_id.to_string(), name],
-                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, i32>(2)?)),
-                ).optional().map_err(|error| SecretError::Storage(error.to_string()))?;
-                row.map(|(id,envelope,key_version)| Ok(StoredSecret {
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i32>(2)?,
+                        ))
+                    },
+                )
+                    .optional()
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                row.map(|(id, envelope, key_version)| {
+                    Ok(StoredSecret {
                     reference: SecretRef {
-                        id: id.parse().map_err(|error| SecretError::Storage(format!("invalid secret id: {error}")))?,
+                        id: id.parse().map_err(|error| {
+                            SecretError::Storage(format!("invalid secret id: {error}"))
+                        })?,
                         workspace_id,
                         name: name.to_owned(),
                     },
                     envelope,
                     key_version,
-                })).transpose()
+                    })
+                })
+                .transpose()
             }
             SecretBackend::Postgres(client) => {
                 let workspace = workspace_id.to_string();
-                let row = client.lock().expect("secret store poisoned").query_opt(
+                let row = client
+                    .lock()
+                    .expect("secret store poisoned")
+                    .query_opt(
                     "SELECT secret_id,envelope,key_version FROM hosted_secrets
                      WHERE workspace_id=$1 AND name=$2",
                     &[&workspace, &name],
-                ).map_err(|error| SecretError::Storage(error.to_string()))?;
-                row.map(|row| Ok(StoredSecret {
+                )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                row.map(|row| {
+                    Ok(StoredSecret {
                     reference: SecretRef {
-                        id: row.get::<_, String>(0).parse()
-                            .map_err(|error| SecretError::Storage(format!("invalid secret id: {error}")))?,
+                        id: row.get::<_, String>(0).parse().map_err(|error| {
+                            SecretError::Storage(format!("invalid secret id: {error}"))
+                        })?,
                         workspace_id,
                         name: name.to_owned(),
                     },
                     envelope: row.get(1),
                     key_version: row.get(2),
-                })).transpose()
+                    })
+                })
+                .transpose()
             }
         }
     }
 }
 
 pub fn decode_master_key(value: &str) -> Result<[u8; 32], SecretError> {
-    let bytes = STANDARD.decode(value).map_err(|_| SecretError::InvalidKey)?;
+    let bytes = STANDARD
+        .decode(value)
+        .map_err(|_| SecretError::InvalidKey)?;
     bytes.try_into().map_err(|_| SecretError::InvalidKey)
 }
 
-fn encrypt(key: &[u8; 32], workspace_id: Uuid, name: &str, plaintext: &[u8]) -> Result<String, SecretError> {
-    let key = LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
+fn encrypt(
+    key: &[u8; 32],
+    workspace_id: Uuid,
+    name: &str,
+    plaintext: &[u8],
+) -> Result<String, SecretError> {
+    let key =
+        LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
     let mut nonce_bytes = [0u8; 12];
     rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
@@ -256,7 +315,12 @@ fn encrypt(key: &[u8; 32], workspace_id: Uuid, name: &str, plaintext: &[u8]) -> 
     Ok(STANDARD.encode(envelope))
 }
 
-fn decrypt(key: &[u8; 32], workspace_id: Uuid, name: &str, envelope: &str) -> Result<Vec<u8>, SecretError> {
+fn decrypt(
+    key: &[u8; 32],
+    workspace_id: Uuid,
+    name: &str,
+    envelope: &str,
+) -> Result<Vec<u8>, SecretError> {
     let envelope = STANDARD.decode(envelope).map_err(|_| SecretError::Crypto)?;
     if envelope.len() < 12 + AES_256_GCM.tag_len() {
         return Err(SecretError::Crypto);
@@ -267,7 +331,8 @@ fn decrypt(key: &[u8; 32], workspace_id: Uuid, name: &str, envelope: &str) -> Re
     let key = LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
     let aad_text = format!("{workspace_id}:{name}:{KEY_VERSION}");
     let mut in_out = ciphertext.to_vec();
-    let plaintext = key.open_in_place(nonce, Aad::from(aad_text.as_bytes()), &mut in_out)
+    let plaintext = key
+        .open_in_place(nonce, Aad::from(aad_text.as_bytes()), &mut in_out)
         .map_err(|_| SecretError::Crypto)?;
     Ok(plaintext.to_vec())
 }
