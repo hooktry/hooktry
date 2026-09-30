@@ -80,10 +80,7 @@ async fn real_tcp_relay_round_trip_reaches_boundary_and_target() {
             query: Some("delivery=network".to_owned()),
             headers: vec![
                 ("content-type".to_owned(), "application/json".to_owned()),
-                (
-                    "x-hub-signature-256".to_owned(),
-                    "sha256=proof".to_owned(),
-                ),
+                ("x-hub-signature-256".to_owned(), "sha256=proof".to_owned()),
             ],
             body: br#"{"action":"opened"}"#.to_vec(),
         })
