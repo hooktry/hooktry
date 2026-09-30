@@ -16,6 +16,7 @@ fn interaction() -> Interaction {
         operation: "POST /stripe/payment_intents".into(),
         started_at: Utc::now(),
         duration_ms: 2,
+        observed_sequence: None,
         request: json!({"method":"POST","path":"/stripe/payment_intents","body":"{\"amount\":4999}"}),
         response: json!({"status":200}),
         source_interaction_id: None,
