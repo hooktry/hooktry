@@ -1,5 +1,9 @@
-use ortyo::mcp::handle;
+use ortyo::{
+    hosted_client::HostedClient,
+    mcp::{handle, handle_with_hosted_client},
+};
 use serde_json::json;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn initialize_advertises_tools_capability() {
@@ -40,6 +44,11 @@ async fn tools_list_exposes_complete_evidence_workflow() {
             "exposure_create",
             "exposure_get",
             "exposure_revoke",
+            "approval_create",
+            "approval_get",
+            "approval_decide",
+            "approval_execute",
+            "execution_get",
             "scenario_create",
             "scenario_get",
             "scenario_start",
@@ -105,6 +114,105 @@ async fn tool_schemas_require_identity_arguments() {
         scenario["inputSchema"]["properties"]["ordering"]["enum"],
         json!(["declared"])
     );
+
+    let approval_create = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_create")
+        .unwrap();
+    assert_eq!(
+        approval_create["inputSchema"]["required"],
+        json!(["request"])
+    );
+    assert_eq!(
+        approval_create["inputSchema"]["properties"]["request"]["required"],
+        json!(["method", "url"])
+    );
+    let secret_binding = &approval_create["inputSchema"]["properties"]["request"]["properties"]
+        ["secret_headers"]["additionalProperties"];
+    assert_eq!(
+        secret_binding["oneOf"][1]["required"],
+        json!(["secret_ref"])
+    );
+
+    let approval_decide = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_decide")
+        .unwrap();
+    assert_eq!(
+        approval_decide["inputSchema"]["required"],
+        json!(["approval_id", "decision"])
+    );
+    assert_eq!(
+        approval_decide["inputSchema"]["properties"]["decision"]["enum"],
+        json!(["approve", "deny"])
+    );
+}
+
+#[tokio::test]
+async fn approval_decision_never_falls_back_to_requester_token() {
+    let approval_id = Uuid::now_v7();
+    let hosted = HostedClient::for_test(
+        "http://127.0.0.1:9",
+        Some("requester-only".to_owned()),
+        None,
+    );
+    let response = handle_with_hosted_client(
+        "http://127.0.0.1:7777",
+        json!({
+            "jsonrpc":"2.0",
+            "id":41,
+            "method":"tools/call",
+            "params":{
+                "name":"approval_decide",
+                "arguments":{
+                    "approval_id":approval_id,
+                    "decision":"approve"
+                }
+            }
+        }),
+        &hosted,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
+    assert_eq!(response["result"]["isError"], true);
+    assert!(response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("ORTYO_APPROVER_TOKEN is required"));
+}
+
+#[tokio::test]
+async fn requester_tools_never_fall_back_to_approver_token() {
+    let execution_id = Uuid::now_v7();
+    let hosted = HostedClient::for_test(
+        "http://127.0.0.1:9",
+        None,
+        Some("approver-only".to_owned()),
+    );
+    let response = handle_with_hosted_client(
+        "http://127.0.0.1:7777",
+        json!({
+            "jsonrpc":"2.0",
+            "id":42,
+            "method":"tools/call",
+            "params":{
+                "name":"execution_get",
+                "arguments":{"execution_id":execution_id}
+            }
+        }),
+        &hosted,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
+    assert_eq!(response["result"]["isError"], true);
+    assert!(response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("ORTYO_TOKEN is required"));
 }
 
 #[tokio::test]
