@@ -1,9 +1,4 @@
-use axum::{
-    Json, Router,
-    body::Bytes,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
 use ortyo::{
     domain::{AssertionResult, Exposure, Interaction, Origin, Recording},
     http::{AppState, app},
@@ -46,7 +41,10 @@ async fn agent_drives_exposure_evidence_replay_and_assertion_through_mcp() {
     let exposure: Exposure = serde_json::from_value(exposure_value).unwrap();
 
     let response = reqwest::Client::new()
-        .post(format!("{base_url}/exposed/{}/webhook?delivery=42", exposure.id))
+        .post(format!(
+            "{base_url}/exposed/{}/webhook?delivery=42",
+            exposure.id
+        ))
         .header("content-type", "application/json")
         .header("x-agent-run", "mcp-run-123")
         .body(r#"{"event":"payment.created","amount":4999}"#)
