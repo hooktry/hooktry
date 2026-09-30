@@ -74,6 +74,8 @@ EXEC1 deliberately introduces `SecretRef` before building a complete secret-mana
 
 The domain is not Render-specific. The first hosted executor runs inside the existing ORTYO process on Render. Future providers can execute the same Request/Evidence contract in isolated workers, Cloudflare, BYOC, or other runtimes.
 
+Cloudflare's `@cloudflare/computer` is being evaluated separately as a broader sandbox/runtime substrate. It must not silently widen the HTTP-specific authority of EXEC1. See [Cloudflare Computer research](../research/cloudflare-computer.md).
+
 ## Dogfood acceptance
 
 The intended first production proof is:
