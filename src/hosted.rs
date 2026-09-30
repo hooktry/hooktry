@@ -100,10 +100,7 @@ async fn provision_exposure(
             name: request.name,
             public_url: format!("{}/e/{exposure_id}", state.public_base_url),
             relay_addr: state.relay_addr,
-            runtime_url: format!(
-                "{}/_ortyo/runtime/{exposure_id}",
-                state.runtime_ws_base_url
-            ),
+            runtime_url: format!("{}/_ortyo/runtime/{exposure_id}", state.runtime_ws_base_url),
             runtime_capability: capability.token,
             capability_expires_at_unix_seconds: expires_at,
             target_port: request.target_port,
@@ -112,7 +109,6 @@ async fn provision_exposure(
         }),
     ))
 }
-
 
 async fn runtime_websocket(
     State(state): State<HostedRelayState>,
