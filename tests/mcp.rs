@@ -40,6 +40,11 @@ async fn tools_list_exposes_complete_evidence_workflow() {
             "exposure_create",
             "exposure_get",
             "exposure_revoke",
+            "scenario_create",
+            "scenario_get",
+            "scenario_start",
+            "scenario_complete",
+            "scenario_outcome_get",
             "interactions_list",
             "recording_create",
             "recording_replay",
@@ -67,6 +72,15 @@ async fn tool_schemas_require_identity_arguments() {
         .find(|tool| tool["name"] == "exposure_create")
         .unwrap();
     assert_eq!(exposure["inputSchema"]["required"], json!(["name", "port"]));
+
+    let scenario = tools
+        .iter()
+        .find(|tool| tool["name"] == "scenario_create")
+        .unwrap();
+    let scenario_required = scenario["inputSchema"]["required"].as_array().unwrap();
+    assert!(scenario_required.contains(&json!("name")));
+    assert!(scenario_required.contains(&json!("port")));
+    assert!(scenario_required.contains(&json!("contracts")));
 
     let replay = tools
         .iter()
