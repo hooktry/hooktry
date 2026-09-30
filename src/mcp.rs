@@ -3,6 +3,12 @@ use std::io::{BufRead, Write};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
+use crate::{
+    approval::ApprovalDecision,
+    execution::HttpExecutionRequest,
+    hosted_client::{HostedApiFailure, HostedClient, HostedClientError},
+};
+
 pub async fn run_stdio(base_url: &str) -> Result<(), String> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
@@ -25,6 +31,16 @@ pub async fn run_stdio(base_url: &str) -> Result<(), String> {
 }
 
 pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, String> {
+    let hosted = HostedClient::from_env();
+    handle_with_hosted_client(base_url, request, &hosted).await
+}
+
+#[doc(hidden)]
+pub async fn handle_with_hosted_client(
+    base_url: &str,
+    request: Value,
+    hosted: &HostedClient,
+) -> Result<Option<Value>, String> {
     let id = request.get("id").cloned();
     let method = request
         .get("method")
@@ -47,6 +63,7 @@ pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, Str
             call_tool(
                 base_url,
                 request.get("params").cloned().unwrap_or(Value::Null),
+                hosted,
             )
             .await?
         }
@@ -75,6 +92,42 @@ fn tools() -> Vec<Value> {
             "exposure_revoke",
             "Revoke an active Exposure by ID.",
             uuid_schema("exposure_id"),
+        ),
+        tool_with_required(
+            "approval_create",
+            "Ask for approval of an exact hosted HTTP execution request. Uses ORTYO_TOKEN from the environment.",
+            json!({"request": http_execution_request_schema()}),
+            &["request"],
+        ),
+        tool_with_required(
+            "approval_get",
+            "Inspect a redacted hosted ApprovalRecord by ID. Uses ORTYO_TOKEN from the environment.",
+            uuid_schema("approval_id"),
+            &["approval_id"],
+        ),
+        tool_with_required(
+            "approval_decide",
+            "Approve or deny a pending hosted approval. Uses only ORTYO_APPROVER_TOKEN from the environment.",
+            json!({
+                "approval_id": {"type": "string", "format": "uuid"},
+                "decision": {"type": "string", "enum": ["approve", "deny"]}
+            }),
+            &["approval_id", "decision"],
+        ),
+        tool_with_required(
+            "approval_execute",
+            "Execute the exact approved hosted HTTP request once. Uses ORTYO_TOKEN from the environment.",
+            json!({
+                "approval_id": {"type": "string", "format": "uuid"},
+                "request": http_execution_request_schema()
+            }),
+            &["approval_id", "request"],
+        ),
+        tool_with_required(
+            "execution_get",
+            "Get durable hosted execution proof by ID. Uses ORTYO_TOKEN from the environment.",
+            uuid_schema("execution_id"),
+            &["execution_id"],
         ),
         tool(
             "scenario_create",
@@ -231,11 +284,81 @@ fn tool(name: &str, description: &str, properties: Value) -> Value {
     })
 }
 
+fn tool_with_required(
+    name: &str,
+    description: &str,
+    properties: Value,
+    required: &[&str],
+) -> Value {
+    json!({
+        "name": name,
+        "description": description,
+        "inputSchema": {
+            "type": "object",
+            "properties": properties,
+            "required": required,
+            "additionalProperties": false
+        }
+    })
+}
+
 fn uuid_schema(name: &str) -> Value {
     json!({name: {"type": "string", "format": "uuid"}})
 }
 
-async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
+fn http_execution_request_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "method": {"type": "string"},
+            "url": {"type": "string"},
+            "headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"}
+            },
+            "body": {},
+            "secret_headers": {
+                "type": "object",
+                "additionalProperties": {
+                    "oneOf": [
+                        {"type": "string"},
+                        {
+                            "type": "object",
+                            "properties": {
+                                "secret_ref": {"type": "string"},
+                                "prefix": {"type": "string"},
+                                "suffix": {"type": "string"}
+                            },
+                            "required": ["secret_ref"],
+                            "additionalProperties": false
+                        }
+                    ]
+                }
+            },
+            "capture": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "json_pointer": {"type": "string"},
+                        "secret_name": {"type": "string"}
+                    },
+                    "required": ["json_pointer", "secret_name"],
+                    "additionalProperties": false
+                }
+            },
+            "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 30000}
+        },
+        "required": ["method", "url"],
+        "additionalProperties": false
+    })
+}
+
+async fn call_tool(
+    base_url: &str,
+    params: Value,
+    hosted: &HostedClient,
+) -> Result<Value, String> {
     let name = params
         .get("name")
         .and_then(Value::as_str)
@@ -246,6 +369,28 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         .unwrap_or_else(|| json!({}));
 
     let value = match name {
+        "approval_create" => {
+            let request = execution_request_argument(&arguments)?;
+            return hosted_tool_result(hosted.approval_create(&request).await);
+        }
+        "approval_get" => {
+            let id = uuid_argument(&arguments, "approval_id")?;
+            return hosted_tool_result(hosted.approval_get(id).await);
+        }
+        "approval_decide" => {
+            let id = uuid_argument(&arguments, "approval_id")?;
+            let decision = approval_decision_argument(&arguments)?;
+            return hosted_tool_result(hosted.approval_decide(id, decision).await);
+        }
+        "approval_execute" => {
+            let id = uuid_argument(&arguments, "approval_id")?;
+            let request = execution_request_argument(&arguments)?;
+            return hosted_tool_result(hosted.approval_execute(id, &request).await);
+        }
+        "execution_get" => {
+            let id = uuid_argument(&arguments, "execution_id")?;
+            return hosted_tool_result(hosted.execution_get(id).await);
+        }
         "scenario_create" => {
             let scenario_name = string_argument(&arguments, "name")?;
             let port = port_argument(&arguments)?;
@@ -411,6 +556,41 @@ fn tool_error(message: String) -> Value {
         "content": [{"type": "text", "text": message}],
         "isError": true
     })
+}
+
+fn hosted_tool_result(result: Result<Value, HostedClientError>) -> Result<Value, String> {
+    match result {
+        Ok(value) => tool_success(value),
+        Err(HostedClientError::Api(HostedApiFailure { status, body })) => Ok(json!({
+            "content": [{
+                "type": "text",
+                "text": format!(
+                    "ORTYO hosted API returned HTTP {status}: {}",
+                    serde_json::to_string(&body).map_err(|error| error.to_string())?
+                )
+            }],
+            "structuredContent": body,
+            "isError": true
+        })),
+        Err(error) => Ok(tool_error(error.to_string())),
+    }
+}
+
+fn execution_request_argument(arguments: &Value) -> Result<HttpExecutionRequest, String> {
+    let request = arguments
+        .get("request")
+        .cloned()
+        .ok_or_else(|| "request is required".to_owned())?;
+    serde_json::from_value(request)
+        .map_err(|error| format!("request must be a valid HttpExecutionRequest: {error}"))
+}
+
+fn approval_decision_argument(arguments: &Value) -> Result<ApprovalDecision, String> {
+    match arguments.get("decision").and_then(Value::as_str) {
+        Some("approve") => Ok(ApprovalDecision::Approve),
+        Some("deny") => Ok(ApprovalDecision::Deny),
+        _ => Err("decision must be approve or deny".to_owned()),
+    }
 }
 
 fn uuid_argument(arguments: &Value, name: &str) -> Result<Uuid, String> {
