@@ -12,7 +12,9 @@ use tokio::net::TcpListener;
 fn hosted_server_config_has_deployable_defaults() {
     let config = HostedServerConfig::from_lookup(|key| match key {
         "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned()),
+        "ORTYO_SECRETS_KEY" => {
+            Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
+        }
         _ => None,
     })
     .unwrap();
@@ -31,7 +33,9 @@ fn hosted_server_config_uses_port_and_public_url() {
         "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
         "ORTYO_DATABASE_URL" => Some("postgresql://secret@db/ortyo".to_owned()),
         "ORTYO_HOSTED_DB_PATH" => Some("/tmp/ortyo-hosted-test.db".to_owned()),
-        "ORTYO_SECRETS_KEY" => Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned()),
+        "ORTYO_SECRETS_KEY" => {
+            Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
+        }
         _ => None,
     })
     .unwrap();
@@ -54,7 +58,9 @@ fn explicit_bind_wins_over_port() {
         "ORTYO_BIND" => Some("127.0.0.1:4242".to_owned()),
         "PORT" => Some("9090".to_owned()),
         "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned()),
+        "ORTYO_SECRETS_KEY" => {
+            Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
+        }
         _ => None,
     })
     .unwrap();
