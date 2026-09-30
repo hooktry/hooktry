@@ -144,13 +144,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
-            ensure_operator_bootstrap_async(
-                &identities,
-                &secrets,
-                slug,
-                &config.public_base_url,
-            )
-            .await?,
+            ensure_operator_bootstrap_async(&identities, &secrets, slug, &config.public_base_url)
+                .await?,
         )
     } else {
         None
@@ -304,12 +299,7 @@ fn ensure_operator_bootstrap(
             )
             .map_err(|error| format!("issue bootstrap recovery credential: {error:?}"))?;
         secrets
-            .put_bound(
-                    workspace.id,
-                    SECRET_NAME,
-                    credential.token,
-                    allowed_origin,
-                )
+            .put_bound(workspace.id, SECRET_NAME, credential.token, allowed_origin)
             .map_err(|error| format!("persist bootstrap recovery credential: {error:?}"))?;
         return Ok(());
     }
@@ -317,12 +307,7 @@ fn ensure_operator_bootstrap(
     match identities.bootstrap_first_workspace(slug, "operator-bootstrap") {
         Ok((workspace, credential)) => {
             secrets
-                .put_bound(
-                    workspace.id,
-                    SECRET_NAME,
-                    credential.token,
-                    allowed_origin,
-                )
+                .put_bound(workspace.id, SECRET_NAME, credential.token, allowed_origin)
                 .map_err(|error| format!("persist bootstrap credential: {error:?}"))?;
             Ok(())
         }
@@ -630,12 +615,7 @@ mod tests {
         let identities = HostedIdentityStore::open(&path).unwrap();
         let secrets = SecretStore::open(&path, [41; 32]).unwrap();
 
-        ensure_operator_bootstrap_async(
-            &identities,
-            &secrets,
-            "serhii",
-            "https://ortyo.example",
-        )
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://ortyo.example")
             .await
             .unwrap();
         let workspace = identities
@@ -652,12 +632,7 @@ mod tests {
             first_ref.allowed_origin.as_deref(),
             Some("https://ortyo.example")
         );
-        ensure_operator_bootstrap_async(
-            &identities,
-            &secrets,
-            "serhii",
-            "https://ortyo.example",
-        )
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://ortyo.example")
             .await
             .unwrap();
         let second_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
