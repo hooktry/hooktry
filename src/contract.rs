@@ -6,9 +6,24 @@ use crate::domain::{AssertionResult, Contract, Interaction, Mismatch};
 pub fn assert_interaction(contract: &Contract, interaction: &Interaction) -> AssertionResult {
     let mut mismatches = Vec::new();
 
-    check(&mut mismatches, "operation", contract.operation.as_ref(), Some(&Value::String(interaction.operation.clone())));
-    check(&mut mismatches, "request", contract.request.as_ref(), Some(&interaction.request));
-    check(&mut mismatches, "response", contract.response.as_ref(), Some(&interaction.response));
+    check(
+        &mut mismatches,
+        "operation",
+        contract.operation.as_ref(),
+        Some(&Value::String(interaction.operation.clone())),
+    );
+    check(
+        &mut mismatches,
+        "request",
+        contract.request.as_ref(),
+        Some(&interaction.request),
+    );
+    check(
+        &mut mismatches,
+        "response",
+        contract.response.as_ref(),
+        Some(&interaction.response),
+    );
 
     AssertionResult {
         id: Uuid::now_v7(),
@@ -19,7 +34,12 @@ pub fn assert_interaction(contract: &Contract, interaction: &Interaction) -> Ass
     }
 }
 
-fn check(mismatches: &mut Vec<Mismatch>, path: &str, expected: Option<&Value>, actual: Option<&Value>) {
+fn check(
+    mismatches: &mut Vec<Mismatch>,
+    path: &str,
+    expected: Option<&Value>,
+    actual: Option<&Value>,
+) {
     let Some(expected) = expected else { return };
     let actual = actual.cloned().unwrap_or(Value::Null);
     if !contains(&actual, expected) {
@@ -33,9 +53,13 @@ fn check(mismatches: &mut Vec<Mismatch>, path: &str, expected: Option<&Value>, a
 
 fn contains(actual: &Value, expected: &Value) -> bool {
     match (actual, expected) {
-        (Value::Object(actual), Value::Object(expected)) => expected
-            .iter()
-            .all(|(key, expected)| actual.get(key).is_some_and(|actual| contains(actual, expected))),
+        (Value::Object(actual), Value::Object(expected)) => {
+            expected.iter().all(|(key, expected)| {
+                actual
+                    .get(key)
+                    .is_some_and(|actual| contains(actual, expected))
+            })
+        }
         _ => actual == expected,
     }
 }
