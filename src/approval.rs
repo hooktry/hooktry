@@ -1099,9 +1099,7 @@ fn load_sqlite_record(
         .transpose()
 }
 
-fn backfill_sqlite_notification_outbox(
-    connection: &mut Connection,
-) -> Result<(), ApprovalError> {
+fn backfill_sqlite_notification_outbox(connection: &mut Connection) -> Result<(), ApprovalError> {
     let transaction = connection
         .transaction()
         .map_err(|error| ApprovalError::Storage(error.to_string()))?;
