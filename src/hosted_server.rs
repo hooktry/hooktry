@@ -255,7 +255,49 @@ fn local_public_base_url(socket: SocketAddr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{HostedServerConfig, open_hosted_stores};
+    use super::{HostedServerConfig, ensure_operator_bootstrap, open_hosted_stores};
+    use crate::{
+        hosted_identity::{ApiScope, HostedIdentityStore},
+        secret::SecretStore,
+    };
+    use uuid::Uuid;
+
+    #[test]
+    fn operator_bootstrap_captures_token_and_is_idempotent() {
+        let path = std::env::temp_dir().join(format!("ortyo-bootstrap-{}.db", Uuid::now_v7()));
+        let identities = HostedIdentityStore::open(&path).unwrap();
+        let secrets = SecretStore::open(&path, [41; 32]).unwrap();
+
+        ensure_operator_bootstrap(&identities, &secrets, "serhii").unwrap();
+        let workspace = identities
+            .find_workspace_by_slug("serhii")
+            .unwrap()
+            .unwrap();
+        let token = secrets
+            .resolve(workspace.id, "default-api-token")
+            .unwrap();
+        identities
+            .authorize(&token, ApiScope::RequestsExecute)
+            .unwrap();
+
+        let first_ref = secrets
+            .get_ref(workspace.id, "default-api-token")
+            .unwrap();
+        ensure_operator_bootstrap(&identities, &secrets, "serhii").unwrap();
+        let second_ref = secrets
+            .get_ref(workspace.id, "default-api-token")
+            .unwrap();
+        assert_eq!(first_ref.id, second_ref.id);
+
+        drop(secrets);
+        drop(identities);
+        let reopened = SecretStore::open(&path, [41; 32]).unwrap();
+        assert_eq!(
+            reopened.resolve(workspace.id, "default-api-token").unwrap(),
+            token
+        );
+        let _ = std::fs::remove_file(path);
+    }
 
     #[tokio::test]
     async fn postgres_initialization_fails_without_nested_runtime_panic() {
