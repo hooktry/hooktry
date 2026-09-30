@@ -38,6 +38,7 @@ fn interaction_survives_database_reopen() {
     assert_eq!(interactions[0].id, interaction_id);
     assert_eq!(interactions[0].session_id, session_id);
     assert_eq!(interactions[0].operation, "POST /stripe/payment_intents");
+    assert_eq!(interactions[0].observed_sequence, Some(1));
 
     std::fs::remove_file(path).unwrap();
 }
@@ -98,6 +99,63 @@ fn persistence_order_is_durable_and_independent_from_interaction_timestamps() {
             .collect::<Vec<_>>(),
         vec![first_id, second_id]
     );
+    assert_eq!(persistence_order[0].observed_sequence, Some(1));
+    assert_eq!(persistence_order[1].observed_sequence, Some(2));
+
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn legacy_interaction_payload_is_backfilled_with_observed_sequence_on_read() {
+    let path = std::env::temp_dir().join(format!("ortyo-legacy-order-{}.db", Uuid::now_v7()));
+    let interaction_id = Uuid::now_v7();
+    let session_id = Uuid::now_v7();
+    let started_at = Utc::now();
+    let payload = json!({
+        "id": interaction_id,
+        "session_id": session_id,
+        "protocol": "http",
+        "direction": "inbound",
+        "origin": "observed",
+        "operation": "POST /legacy",
+        "started_at": started_at,
+        "duration_ms": 1,
+        "request": {},
+        "response": {}
+    })
+    .to_string();
+
+    {
+        let connection = rusqlite::Connection::open(&path).unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE interactions (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );",
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO interactions (id, session_id, started_at, payload)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![
+                    interaction_id.to_string(),
+                    session_id.to_string(),
+                    started_at.to_rfc3339(),
+                    payload
+                ],
+            )
+            .unwrap();
+    }
+
+    let store = InteractionStore::open(&path).unwrap();
+    let interaction = store.find(interaction_id).unwrap();
+
+    assert_eq!(interaction.observed_sequence, Some(1));
+    assert_eq!(interaction.operation, "POST /legacy");
 
     std::fs::remove_file(path).unwrap();
 }
