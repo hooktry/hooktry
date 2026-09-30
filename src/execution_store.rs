@@ -84,8 +84,8 @@ impl ExecutionStore {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ExecutionStoreError> {
-        let connection =
-            Connection::open(path).map_err(|error| ExecutionStoreError::Storage(error.to_string()))?;
+        let connection = Connection::open(path)
+            .map_err(|error| ExecutionStoreError::Storage(error.to_string()))?;
         Self::from_sqlite_connection(connection)
     }
 
