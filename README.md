@@ -28,6 +28,10 @@ ortyo --base-url http://127.0.0.1:7777 interactions
 
 Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling.
 
+### MCP
+
+`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. The first tools are `interactions_list` and `contract_assert`, so agents consume the same canonical evidence and assertion semantics as the CLI.
+
 ## License
 
 TBD before the first public release.
