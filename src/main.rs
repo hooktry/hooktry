@@ -43,20 +43,16 @@ async fn main() {
                 .await
                 .map(|_| 0)
         }
-        Command::ApprovalCreate { path } => {
-            approval_create(&cli.base_url, &path).await.map(|_| 0)
-        }
+        Command::ApprovalCreate { path } => approval_create(&cli.base_url, &path).await.map(|_| 0),
         Command::ApprovalGet { id } => approval_get(&cli.base_url, id).await.map(|_| 0),
         Command::ApprovalApprove { id } => {
             approval_decide(&cli.base_url, id, ApprovalDecision::Approve)
                 .await
                 .map(|_| 0)
         }
-        Command::ApprovalDeny { id } => {
-            approval_decide(&cli.base_url, id, ApprovalDecision::Deny)
-                .await
-                .map(|_| 0)
-        }
+        Command::ApprovalDeny { id } => approval_decide(&cli.base_url, id, ApprovalDecision::Deny)
+            .await
+            .map(|_| 0),
         Command::ApprovalExecute { id, path } => {
             approval_execute(&cli.base_url, id, &path).await.map(|_| 0)
         }
