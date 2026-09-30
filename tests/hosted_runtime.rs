@@ -14,9 +14,7 @@ use tokio::net::TcpListener;
 async fn daemon_owns_public_runtime_after_provisioning() {
     let target = Router::new().route(
         "/hook",
-        post(|body: Bytes| async move {
-            (StatusCode::ACCEPTED, [("x-target", "local")], body)
-        }),
+        post(|body: Bytes| async move { (StatusCode::ACCEPTED, [("x-target", "local")], body) }),
     );
     let target_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let target_port = target_listener.local_addr().unwrap().port();
@@ -124,5 +122,8 @@ async fn daemon_owns_public_runtime_after_provisioning() {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
-    assert!(unavailable, "revoked exposure left hosted runtime connected");
+    assert!(
+        unavailable,
+        "revoked exposure left hosted runtime connected"
+    );
 }
