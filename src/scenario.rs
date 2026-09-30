@@ -57,15 +57,17 @@ pub fn create(
         return Err(ScenarioError::ContractRequired);
     }
 
-    let mut contract_ids = Vec::with_capacity(request.contracts.len());
-    for spec in request.contracts {
+    for spec in &request.contracts {
         if spec.name.trim().is_empty() {
             return Err(ScenarioError::InvalidContractName);
         }
         if spec.operation.trim().is_empty() {
             return Err(ScenarioError::InvalidOperation);
         }
+    }
 
+    let mut contract_ids = Vec::with_capacity(request.contracts.len());
+    for spec in request.contracts {
         let contract = Contract {
             id: Uuid::now_v7(),
             name: spec.name,
