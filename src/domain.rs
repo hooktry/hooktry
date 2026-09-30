@@ -173,12 +173,37 @@ pub struct AssertionResult {
     pub mismatches: Vec<Mismatch>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InteractionCardinality {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ScenarioExpectation {
+    pub contract_id: Uuid,
+    #[serde(default, skip_serializing_if = "InteractionCardinality::is_default")]
+    pub cardinality: InteractionCardinality,
+}
+
+impl InteractionCardinality {
+    pub fn is_default(&self) -> bool {
+        self.count.is_none() && self.min.is_none() && self.max.is_none()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scenario {
     pub id: Uuid,
     pub name: String,
     pub port: u16,
     pub contract_ids: Vec<Uuid>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expectations: Vec<ScenarioExpectation>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -201,6 +226,14 @@ pub struct ScenarioRun {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioCheckOutcome {
     pub contract_id: Uuid,
+    #[serde(default)]
+    pub cardinality: InteractionCardinality,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_interaction_ids: Vec<Uuid>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub matched_interaction_ids: Vec<Uuid>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub assertion_ids: Vec<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interaction_id: Option<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
