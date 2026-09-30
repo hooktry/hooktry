@@ -76,7 +76,8 @@ pub async fn serve_connection(
             capability,
         }) => {
             capabilities
-                .authorize(exposure_id, &capability)
+                .authorize_async(exposure_id, &capability)
+                .await
                 .map_err(|error| {
                     TransportError::Protocol(format!("registration denied: {error:?}"))
                 })?;

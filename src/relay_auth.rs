@@ -5,6 +5,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::digest::{SHA256, digest};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -37,6 +38,7 @@ struct CapabilityRecord {
 enum CapabilityBackend {
     Memory(Arc<RwLock<HashMap<[u8; 32], CapabilityRecord>>>),
     Sqlite(Arc<Mutex<Connection>>),
+    Postgres(Arc<Mutex<Client>>),
 }
 
 #[derive(Clone)]
@@ -72,6 +74,58 @@ impl CapabilityStore {
         Ok(Self {
             backend: CapabilityBackend::Sqlite(Arc::new(Mutex::new(connection))),
         })
+    }
+
+    pub fn open_postgres(database_url: &str) -> Result<Self, CapabilityError> {
+        let mut client = Client::connect(database_url, NoTls)
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+        client
+            .batch_execute(
+                "CREATE TABLE IF NOT EXISTS runtime_capabilities (
+                    token_digest BYTEA PRIMARY KEY,
+                    exposure_id TEXT NOT NULL,
+                    expires_at BIGINT NOT NULL,
+                    revoked BOOLEAN NOT NULL DEFAULT FALSE
+                );
+                CREATE INDEX IF NOT EXISTS runtime_capabilities_exposure
+                    ON runtime_capabilities(exposure_id);",
+            )
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+
+        Ok(Self {
+            backend: CapabilityBackend::Postgres(Arc::new(Mutex::new(client))),
+        })
+    }
+
+    pub async fn issue_async(
+        &self,
+        exposure_id: Uuid,
+        ttl: Duration,
+    ) -> Result<RuntimeCapability, CapabilityError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.issue(exposure_id, ttl))
+            .await
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?
+    }
+
+    pub async fn authorize_async(
+        &self,
+        exposure_id: Uuid,
+        token: &str,
+    ) -> Result<(), CapabilityError> {
+        let store = self.clone();
+        let token = token.to_owned();
+        tokio::task::spawn_blocking(move || store.authorize(exposure_id, &token))
+            .await
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?
+    }
+
+    pub async fn revoke_async(&self, token: &str) -> Result<(), CapabilityError> {
+        let store = self.clone();
+        let token = token.to_owned();
+        tokio::task::spawn_blocking(move || store.revoke(&token))
+            .await
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?
     }
 
     pub fn issue(
@@ -135,6 +189,21 @@ impl CapabilityStore {
                     Ok(())
                 }
             }
+            CapabilityBackend::Postgres(client) => {
+                let updated = client
+                    .lock()
+                    .expect("capability store poisoned")
+                    .execute(
+                        "UPDATE runtime_capabilities SET revoked = TRUE WHERE token_digest = $1",
+                        &[&digest.as_slice()],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                if updated == 0 {
+                    Err(CapabilityError::Invalid)
+                } else {
+                    Ok(())
+                }
+            }
         }
     }
 
@@ -160,6 +229,26 @@ impl CapabilityStore {
                             record.exposure_id.to_string(),
                             unix_seconds(record.expires_at)?,
                             record.revoked
+                        ],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                Ok(())
+            }
+            CapabilityBackend::Postgres(client) => {
+                let exposure_id = record.exposure_id.to_string();
+                let expires_at = unix_seconds(record.expires_at)?;
+                client
+                    .lock()
+                    .expect("capability store poisoned")
+                    .execute(
+                        "INSERT INTO runtime_capabilities
+                            (token_digest, exposure_id, expires_at, revoked)
+                         VALUES ($1, $2, $3, $4)",
+                        &[
+                            &digest.as_slice(),
+                            &exposure_id,
+                            &expires_at,
+                            &record.revoked,
                         ],
                     )
                     .map_err(|error| CapabilityError::Storage(error.to_string()))?;
@@ -192,23 +281,47 @@ impl CapabilityStore {
                 )
                 .optional()
                 .map_err(|error| CapabilityError::Storage(error.to_string()))?
-                .map(|(exposure_id, expires_at, revoked)| {
-                    let exposure_id = exposure_id.parse().map_err(|error| {
-                        CapabilityError::Storage(format!("invalid exposure id: {error}"))
-                    })?;
-                    let expires_at = UNIX_EPOCH
-                        + Duration::from_secs(u64::try_from(expires_at).map_err(|error| {
-                            CapabilityError::Storage(format!("invalid capability expiry: {error}"))
-                        })?);
-                    Ok(CapabilityRecord {
-                        exposure_id,
-                        expires_at,
-                        revoked,
-                    })
-                })
+                .map(capability_record_from_raw)
                 .transpose(),
+            CapabilityBackend::Postgres(client) => {
+                let row = client
+                    .lock()
+                    .expect("capability store poisoned")
+                    .query_opt(
+                        "SELECT exposure_id, expires_at, revoked
+                         FROM runtime_capabilities
+                         WHERE token_digest = $1",
+                        &[&digest.as_slice()],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                row.map(|row| {
+                    capability_record_from_raw((
+                        row.get::<_, String>(0),
+                        row.get::<_, i64>(1),
+                        row.get::<_, bool>(2),
+                    ))
+                })
+                .transpose()
+            }
         }
     }
+}
+
+fn capability_record_from_raw(
+    (exposure_id, expires_at, revoked): (String, i64, bool),
+) -> Result<CapabilityRecord, CapabilityError> {
+    let exposure_id = exposure_id
+        .parse()
+        .map_err(|error| CapabilityError::Storage(format!("invalid exposure id: {error}")))?;
+    let expires_at = UNIX_EPOCH
+        + Duration::from_secs(u64::try_from(expires_at).map_err(|error| {
+            CapabilityError::Storage(format!("invalid capability expiry: {error}"))
+        })?);
+    Ok(CapabilityRecord {
+        exposure_id,
+        expires_at,
+        revoked,
+    })
 }
 
 fn unix_seconds(time: SystemTime) -> Result<i64, CapabilityError> {

@@ -146,7 +146,8 @@ async fn provision_exposure(
     let exposure_id = Uuid::now_v7();
     let capability = state
         .capabilities
-        .issue(exposure_id, state.capability_ttl)
+        .issue_async(exposure_id, state.capability_ttl)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let expires_at = capability
         .expires_at
@@ -159,7 +160,7 @@ async fn provision_exposure(
 
     if state
         .exposures
-        .save(&HostedExposureRecord {
+        .save_async(HostedExposureRecord {
             exposure_id,
             name: request.name.clone(),
             target_port: request.target_port,
@@ -168,9 +169,10 @@ async fn provision_exposure(
             capability_expires_at_unix_seconds: expires_at,
             revoked: false,
         })
+        .await
         .is_err()
     {
-        let _ = state.capabilities.revoke(&capability.token);
+        let _ = state.capabilities.revoke_async(&capability.token).await;
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
@@ -213,18 +215,21 @@ async fn revoke_runtime(
     headers: HeaderMap,
 ) -> Result<StatusCode, StatusCode> {
     let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
-    active_hosted_exposure(&state, exposure_id)?;
+    active_hosted_exposure(&state, exposure_id).await?;
     state
         .capabilities
-        .authorize(exposure_id, capability)
+        .authorize_async(exposure_id, capability)
+        .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
     state
         .capabilities
-        .revoke(capability)
+        .revoke_async(capability)
+        .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
     state
         .exposures
-        .revoke(exposure_id)
+        .revoke_async(exposure_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     state.broker.disconnect(exposure_id).await;
     Ok(StatusCode::NO_CONTENT)
@@ -237,11 +242,12 @@ async fn runtime_websocket(
     ws: WebSocketUpgrade,
 ) -> Result<Response, StatusCode> {
     let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
-    active_hosted_exposure(&state, exposure_id)?;
+    active_hosted_exposure(&state, exposure_id).await?;
 
     state
         .capabilities
-        .authorize(exposure_id, capability)
+        .authorize_async(exposure_id, capability)
+        .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let broker = state.broker.clone();
@@ -252,13 +258,14 @@ async fn runtime_websocket(
         }))
 }
 
-fn active_hosted_exposure(
+async fn active_hosted_exposure(
     state: &HostedRelayState,
     exposure_id: Uuid,
 ) -> Result<HostedExposureRecord, StatusCode> {
     let exposure = state
         .exposures
-        .get(exposure_id)
+        .get_async(exposure_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
     if exposure.revoked {
