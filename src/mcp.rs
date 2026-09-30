@@ -64,7 +64,13 @@ pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, Str
                 }
             ]
         }),
-        "tools/call" => call_tool(base_url, request.get("params").cloned().unwrap_or(Value::Null)).await?,
+        "tools/call" => {
+            call_tool(
+                base_url,
+                request.get("params").cloned().unwrap_or(Value::Null),
+            )
+            .await?
+        }
         _ => return Ok(Some(error(id, -32601, "method not found"))),
     };
 
@@ -76,17 +82,20 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         .get("name")
         .and_then(Value::as_str)
         .ok_or_else(|| "tools/call requires a tool name".to_owned())?;
-    let arguments = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
+    let arguments = params
+        .get("arguments")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
 
     let value = match name {
-        "interactions_list" => fetch_json(&format!("{base_url}/_ortyo/interactions"), false).await?,
+        "interactions_list" => {
+            fetch_json(&format!("{base_url}/_ortyo/interactions"), false).await?
+        }
         "contract_assert" => {
             let contract_id = uuid_argument(&arguments, "contract_id")?;
             let interaction_id = uuid_argument(&arguments, "interaction_id")?;
             fetch_json(
-                &format!(
-                    "{base_url}/_ortyo/contracts/{contract_id}/assert/{interaction_id}"
-                ),
+                &format!("{base_url}/_ortyo/contracts/{contract_id}/assert/{interaction_id}"),
                 true,
             )
             .await?
