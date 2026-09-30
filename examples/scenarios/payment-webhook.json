@@ -11,6 +11,10 @@
     {
       "name": "payment accepted",
       "operation": "POST /webhook",
+      "context": {
+        "correlation_id": "checkout-42",
+        "idempotency_key": "payment-42"
+      },
       "request": {
         "body": "{\"event\":\"payment.created\",\"amount\":4999}"
       },
