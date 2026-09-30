@@ -12,6 +12,7 @@ This slice adds a lightweight, non-durable lifecycle envelope around the existin
 ```text
 ExecutionRecord
   execution_id
+  workspace_id
   provider = http
   started_at_unix_ms
   completed_at_unix_ms
@@ -24,7 +25,7 @@ ExecutionRecord
       error
 ```
 
-The `execution_id` is allocated before request validation, destination policy checks, secret resolution, or network work.
+The `execution_id` is allocated before request validation, destination policy checks, secret resolution, or network work. The record retains the existing `workspace_id` boundary so a future durable/query layer can enforce tenant ownership without reconstructing it from external context.
 
 For successful execution:
 
