@@ -281,7 +281,10 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             "/_ortyo/hosted/executions/{execution_id}",
             get(get_execution),
         )
-        .route("/_ortyo/hosted/approvals", post(create_approval))
+        .route(
+            "/_ortyo/hosted/approvals",
+            get(list_pending_approvals).post(create_approval),
+        )
         .route("/_ortyo/hosted/approvals/{approval_id}", get(get_approval))
         .route(
             "/_ortyo/hosted/approvals/{approval_id}/decision",
@@ -364,6 +367,19 @@ async fn issue_credential(
         .await
         .map_err(identity_admin_error)?;
     Ok((StatusCode::CREATED, Json(credential)))
+}
+
+async fn list_pending_approvals(
+    State(state): State<HostedRelayState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<ApprovalRecord>>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsApprove).await?;
+    let approvals = state
+        .approvals
+        .list_pending_async(authorization.workspace_id)
+        .await
+        .map_err(approval_error)?;
+    Ok(Json(approvals))
 }
 
 async fn create_approval(
