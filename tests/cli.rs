@@ -132,3 +132,46 @@ fn rejects_invalid_scenario_ids() {
 
     assert_eq!(error, "scenario complete requires a valid UUID");
 }
+
+#[test]
+fn parses_scenario_run_with_explicit_child_command() {
+    let cli = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "run".to_owned(),
+        "ortyo/payment-webhook.json".to_owned(),
+        "--".to_owned(),
+        "bundle".to_owned(),
+        "exec".to_owned(),
+        "ruby".to_owned(),
+        "test/webhook_test.rb".to_owned(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        cli.command,
+        Command::ScenarioRun {
+            path: "ortyo/payment-webhook.json".to_owned(),
+            command: vec![
+                "bundle".to_owned(),
+                "exec".to_owned(),
+                "ruby".to_owned(),
+                "test/webhook_test.rb".to_owned(),
+            ],
+        }
+    );
+}
+
+#[test]
+fn scenario_run_requires_a_child_command_after_separator() {
+    let error = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "run".to_owned(),
+        "scenario.json".to_owned(),
+        "--".to_owned(),
+    ])
+    .unwrap_err();
+
+    assert_eq!(error, ortyo::cli::usage());
+}
