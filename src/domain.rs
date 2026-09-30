@@ -196,6 +196,24 @@ impl InteractionCardinality {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ScenarioObservation {
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub within_ms: u64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub settle_ms: u64,
+}
+
+impl ScenarioObservation {
+    pub fn is_default(&self) -> bool {
+        self.within_ms == 0 && self.settle_ms == 0
+    }
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scenario {
     pub id: Uuid,
@@ -204,6 +222,8 @@ pub struct Scenario {
     pub contract_ids: Vec<Uuid>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub expectations: Vec<ScenarioExpectation>,
+    #[serde(default, skip_serializing_if = "ScenarioObservation::is_default")]
+    pub observation: ScenarioObservation,
     pub created_at: DateTime<Utc>,
 }
 
@@ -249,6 +269,10 @@ pub struct ScenarioOutcome {
     pub scenario_id: Uuid,
     pub completed_at: DateTime<Utc>,
     pub passed: bool,
+    #[serde(default, skip_serializing_if = "ScenarioObservation::is_default")]
+    pub observation: ScenarioObservation,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub observation_elapsed_ms: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recording_id: Option<Uuid>,
     pub replayed_interaction_ids: Vec<Uuid>,

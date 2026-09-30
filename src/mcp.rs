@@ -82,6 +82,14 @@ fn tools() -> Vec<Value> {
             json!({
                 "name": {"type": "string"},
                 "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+                "observation": {
+                    "type": "object",
+                    "properties": {
+                        "within_ms": {"type": "integer", "minimum": 0},
+                        "settle_ms": {"type": "integer", "minimum": 0}
+                    },
+                    "additionalProperties": false
+                },
                 "contracts": {
                     "type": "array",
                     "minItems": 1,
@@ -215,12 +223,17 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
                 .get("contracts")
                 .cloned()
                 .ok_or_else(|| "contracts is required".to_owned())?;
+            let observation = arguments
+                .get("observation")
+                .cloned()
+                .unwrap_or_else(|| json!({}));
             api_json(
                 "POST",
                 &format!("{base_url}/_ortyo/scenarios"),
                 Some(json!({
                     "name": scenario_name,
                     "port": port,
+                    "observation": observation,
                     "contracts": contracts
                 })),
             )
