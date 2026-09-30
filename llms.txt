@@ -1,0 +1,66 @@
+# ORTYO
+
+> ORTYO is a programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
+
+## Canonical interfaces
+
+- MCP: run `ortyo mcp`; always call `initialize` and `tools/list` before relying on tool names or schemas.
+- CLI: `ortyo ...`; successful command output is structured JSON.
+- Local HTTP API: canonical local Boundary, Exposure, Scenario, Recording, Contract, Assertion, and Interaction APIs.
+- Hosted HTTP API: workspace-scoped Exposure and bounded outbound HTTP execution APIs.
+
+## Core model
+
+- Boundary - executable edge between an application and an external dependency.
+- Session - runtime grouping of related interactions.
+- Interaction - canonical evidence of what crossed a Boundary.
+- Exposure - controlled reachability through an ORTYO Boundary.
+- Recording - immutable captured evidence for replay.
+- Contract - assertions over observed interactions.
+- Scenario - reusable setup + evidence + replay + assertion workflow.
+
+Do not model ORTYO as a VM, Devbox, sandbox, or generic tunnel provider. Compute providers are implementation details behind execution/runtime boundaries.
+
+## Default agent workflow
+
+For integration verification, prefer:
+
+`scenario_create -> scenario_start -> exercise application behavior -> scenario_complete -> scenario_outcome_get`
+
+For lower-level evidence work, use Exposure -> Interactions -> Recording -> Replay -> Contract -> Assertion.
+
+Use MCP when available because `tools/list` is the authoritative machine-readable tool schema. Use CLI structured JSON when MCP is unavailable.
+
+## Security invariants
+
+- Never print, return, log, or paste raw ORTYO tokens, runtime capabilities, or captured secret values.
+- Prefer typed `ortyo://secrets/...` SecretRefs for hosted execution.
+- Typed SecretRefs are workspace-scoped and bound to an allowed HTTP origin; wrong-origin use fails closed.
+- Public Exposure URLs are reachability, not authentication credentials.
+- Runtime capabilities are separate, short-lived credentials for a specific Exposure.
+- Hosted outbound execution permits bounded HTTP/HTTPS only and rejects unsafe destinations and redirects.
+- Do not bypass ORTYO policy by reaching directly into secret storage or provider-specific infrastructure.
+
+## Failure semantics
+
+Hosted execution distinguishes:
+- succeeded - structured ExecutionEvidence exists;
+- rejected - ORTYO rejected the attempted action under its request/security contract;
+- failed - provider/runtime work did not produce valid successful evidence.
+
+Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and start/completion timestamps.
+
+## Canonical source docs
+
+- README: https://github.com/ortyohq/ortyo/blob/main/README.md
+- Hosted execution and SecretRefs: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/hosted-execution.md
+- Execution lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/execution-lifecycle.md
+- Service access / Exposure boundary: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/service-access.md
+- Runtime capabilities: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/runtime-capabilities.md
+- Secret lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/secret-lifecycle.md
+
+## Agent skill
+
+Read `/skills/ortyo/SKILL.md` on an ORTYO HTTP service, or `skills/ortyo/SKILL.md` in the repository.
+
+For a longer self-contained projection, read `/llms-full.txt`.

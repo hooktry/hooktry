@@ -52,6 +52,16 @@ Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted proc
 
 `ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, and create/assert Contracts without bypassing ORTYO's HTTP boundary.
 
+### Agent discovery
+
+Both local and hosted ORTYO HTTP services publish agent-readable discovery surfaces:
+
+- `/llms.txt` - concise product, interface, and safety index.
+- `/llms-full.txt` - self-contained projection composed from `llms.txt`, this README, and the Agent Skill.
+- `/skills/ortyo/SKILL.md` - operational agent workflow and sharp edges.
+
+The repository keeps the canonical concise index at `llms.txt` and the skill at `skills/ortyo/SKILL.md`. MCP `tools/list` remains authoritative for the live tool names and JSON input schemas, so the prose surfaces do not duplicate a second tool catalog.
+
 ### Scenario
 
 A Scenario packages the repeatable part of that workflow. Create it once with an upstream port and one or more operation-bound Contracts, then run it repeatedly:

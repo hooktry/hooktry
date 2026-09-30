@@ -17,6 +17,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
+    agent_surface,
     context::from_http_headers,
     contract::assert_interaction,
     domain::{
@@ -94,6 +95,9 @@ struct ProxiedHttpResponse {
 
 pub fn app(state: AppState) -> Router {
     Router::new()
+        .route("/llms.txt", get(agent_surface::llms_txt))
+        .route("/llms-full.txt", get(agent_surface::llms_full_txt))
+        .route("/skills/ortyo/SKILL.md", get(agent_surface::skill_md))
         .route("/_ortyo/interactions", get(list_interactions))
         .route("/_ortyo/recordings", post(create_recording))
         .route("/_ortyo/recordings/{id}/replay", post(replay_recording))

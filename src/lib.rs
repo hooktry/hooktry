@@ -1,3 +1,4 @@
+pub mod agent_surface;
 pub mod cli;
 pub mod context;
 pub mod contract;
