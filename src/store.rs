@@ -85,8 +85,13 @@ impl InteractionStore {
                 ON scenario_outcomes(scenario_id);",
         )?;
         connection.execute(
-            "INSERT OR IGNORE INTO interaction_order (interaction_id)
-             SELECT id FROM interactions ORDER BY rowid",
+            "INSERT INTO interaction_order (interaction_id)
+             SELECT interactions.id
+             FROM interactions
+             LEFT JOIN interaction_order
+               ON interaction_order.interaction_id = interactions.id
+             WHERE interaction_order.interaction_id IS NULL
+             ORDER BY interactions.rowid",
             [],
         )?;
 
