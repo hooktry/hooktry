@@ -60,9 +60,16 @@ async fn websocket_runtime_carries_public_request_to_local_boundary() {
 
     assert_eq!(
         provision.runtime_url,
-        format!("ws://{hosted_addr}/_ortyo/runtime/{}", provision.exposure_id)
+        format!(
+            "ws://{hosted_addr}/_ortyo/runtime/{}",
+            provision.exposure_id
+        )
     );
-    assert!(!provision.runtime_url.contains(&provision.runtime_capability));
+    assert!(
+        !provision
+            .runtime_url
+            .contains(&provision.runtime_capability)
+    );
     assert!(!provision.public_url.contains(&provision.runtime_capability));
 
     let runtime_state = AppState::default();
