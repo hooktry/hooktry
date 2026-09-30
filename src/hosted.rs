@@ -370,7 +370,12 @@ async fn get_approval(
     Path(approval_id): Path<Uuid>,
     headers: HeaderMap,
 ) -> Result<Json<ApprovalRecord>, HostedApiError> {
-    let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let authorization = authorize_api_any(
+        &state,
+        &headers,
+        &[ApiScope::RequestsExecute, ApiScope::RequestsApprove],
+    )
+    .await?;
     let approval = state
         .approvals
         .get_async(authorization.workspace_id, approval_id)
@@ -626,6 +631,24 @@ async fn authorize_api(
         .authorize_async(token, required_scope)
         .await
         .map_err(identity_authorization_error)
+}
+
+async fn authorize_api_any(
+    state: &HostedRelayState,
+    headers: &HeaderMap,
+    required_scopes: &[ApiScope],
+) -> Result<ApiAuthorization, HostedApiError> {
+    let token = bearer_token(headers)
+        .ok_or_else(HostedApiError::unauthorized)?
+        .to_owned();
+    for scope in required_scopes {
+        match state.identities.authorize_async(token.clone(), *scope).await {
+            Ok(authorization) => return Ok(authorization),
+            Err(IdentityError::Forbidden) => continue,
+            Err(error) => return Err(identity_authorization_error(error)),
+        }
+    }
+    Err(HostedApiError::forbidden())
 }
 
 fn identity_authorization_error(error: IdentityError) -> HostedApiError {
