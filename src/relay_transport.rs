@@ -55,7 +55,11 @@ pub async fn serve_connection(
 
     let exposure_id = match read_frame::<RelayFrame, _>(&mut reader).await? {
         Some(RelayFrame::Register { exposure_id }) => exposure_id,
-        Some(_) => return Err(TransportError::Protocol("expected register frame".to_owned())),
+        Some(_) => {
+            return Err(TransportError::Protocol(
+                "expected register frame".to_owned(),
+            ));
+        }
         None => return Ok(()),
     };
 
@@ -66,9 +70,10 @@ pub async fn serve_connection(
     )
     .await?;
 
-    let pending = Arc::new(Mutex::new(
-        std::collections::HashMap::<Uuid, tokio::sync::oneshot::Sender<RelayResponse>>::new(),
-    ));
+    let pending = Arc::new(Mutex::new(std::collections::HashMap::<
+        Uuid,
+        tokio::sync::oneshot::Sender<RelayResponse>,
+    >::new()));
     let read_pending = pending.clone();
     let read_writer = writer.clone();
 
@@ -81,7 +86,8 @@ pub async fn serve_connection(
                     }
                 }
                 RelayFrame::Ping { nonce } => {
-                    write_frame(&mut *read_writer.lock().await, &RelayFrame::Pong { nonce }).await?;
+                    write_frame(&mut *read_writer.lock().await, &RelayFrame::Pong { nonce })
+                        .await?;
                 }
                 _ => {}
             }
