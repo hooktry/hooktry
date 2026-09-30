@@ -106,7 +106,9 @@ impl InteractionStore {
         let payload = serde_json::to_string(&interaction).expect("serialize interaction");
         let interaction_id = interaction.id.to_string();
         let mut connection = self.connection.lock().expect("interaction store poisoned");
-        let transaction = connection.transaction().expect("begin interaction transaction");
+        let transaction = connection
+            .transaction()
+            .expect("begin interaction transaction");
         transaction
             .execute(
                 "INSERT INTO interactions (id, session_id, started_at, payload)
@@ -125,7 +127,9 @@ impl InteractionStore {
                 [interaction.id.to_string()],
             )
             .expect("persist interaction order");
-        transaction.commit().expect("commit interaction transaction");
+        transaction
+            .commit()
+            .expect("commit interaction transaction");
         drop(connection);
 
         let revision = *self.interaction_revision.borrow();
