@@ -101,7 +101,11 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
     assert_eq!(replayed.len(), 2);
     let replayed_keys = replayed
         .iter()
-        .map(|item| item["context"]["correlation"]["idempotency_key"].as_str().unwrap())
+        .map(|item| {
+            item["context"]["correlation"]["idempotency_key"]
+                .as_str()
+                .unwrap()
+        })
         .collect::<Vec<_>>();
     assert!(replayed_keys.contains(&"payment-wrong"));
     assert!(replayed_keys.contains(&"payment-42"));
@@ -141,12 +145,7 @@ async fn system() -> (String, u16) {
     (base_url, target_port)
 }
 
-async fn send(
-    exposure_url: &str,
-    correlation_id: &str,
-    idempotency_key: &str,
-    body: &str,
-) {
+async fn send(exposure_url: &str, correlation_id: &str, idempotency_key: &str, body: &str) {
     let response = reqwest::Client::new()
         .post(format!("{exposure_url}/webhook"))
         .header("content-type", "application/json")
