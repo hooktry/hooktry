@@ -100,11 +100,11 @@ Notification delivery state is never approval state.
 
 ## Provider boundary
 
-CONTROL3 intentionally stops before provider delivery.
+CONTROL3 intentionally separates durable intent from provider delivery.
 
-A follow-up provider must consume durable outbox intents. It must not send directly from `create_approval`.
+NOTIFY2 is the first consumer: a leased webhook provider documented in [approval-webhook.md](./approval-webhook.md). It claims durable outbox rows, sends only the redacted ApprovalRecord projection, and marks delivery only after a 2xx response.
 
-This makes provider outages, process restarts, and retries independent from ApprovalRecord persistence.
+No provider sends directly from `create_approval`. This keeps provider outages, process restarts, retries, and deployment overlap independent from ApprovalRecord persistence.
 
 ## Out of scope
 
