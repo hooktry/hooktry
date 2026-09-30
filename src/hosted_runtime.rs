@@ -32,7 +32,7 @@ pub struct HostedRuntimeStatus {
     pub mode: ExposureMode,
     pub target_port: u16,
     pub verified: bool,
-    pub runtime_state: &'static str,
+    pub runtime_state: String,
 }
 
 #[derive(Clone, Default)]
@@ -121,7 +121,7 @@ impl HostedRuntimeManager {
             mode: exposure.mode,
             target_port: exposure.target.port,
             verified: true,
-            runtime_state: "connected",
+            runtime_state: "connected".to_owned(),
         })
     }
 
