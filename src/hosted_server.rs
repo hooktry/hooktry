@@ -10,9 +10,7 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
-    approval::{
-        ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore,
-    },
+    approval::{ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore},
     approval_webhook::{ensure_webhook_secret, run_worker, validate_webhook_url},
     domain::{ExposureAccess, ExposureMode},
     execution::{
