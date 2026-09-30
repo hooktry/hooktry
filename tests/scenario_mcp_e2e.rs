@@ -166,7 +166,7 @@ async fn scenario_without_evidence_completes_with_explicit_failure() {
     assert_eq!(outcome["checks"][0]["passed"], false);
     assert_eq!(
         outcome["checks"][0]["error"],
-        "no replayed interaction matched operation POST /webhook"
+        "expected exactly 1, observed 0 matching interactions"
     );
 }
 
