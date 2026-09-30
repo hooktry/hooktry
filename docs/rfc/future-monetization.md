@@ -60,6 +60,69 @@ Collaboration     paid
 Managed compute   paid / usage-based
 ```
 
+## Breadth is free; depth is paid
+
+Do not use workspace count as the primary monetization boundary.
+
+The current thesis is the opposite:
+
+> **Let users create many workspaces for free. Monetize the depth, reliability, retained state, and managed resources inside the workspaces that become important.**
+
+This matters more in an agent-heavy development world because project creation is getting cheaper. A developer may have many small experiments, pet projects, generated services, prototypes, and short-lived ideas at the same time.
+
+Ortyo should benefit from that proliferation instead of taxing it.
+
+A healthy funnel can look like:
+
+```text
+user creates workspace A -> experiment -> remains free
+user creates workspace B -> pet project -> remains free
+user creates workspace C -> becomes useful -> adds durable retention / stable Exposure
+user creates workspace D -> needs notifications / compute / background execution
+user creates workspace E -> abandoned -> costs almost nothing
+```
+
+The more projects a user brings into Ortyo, the more chances there are that one of them eventually becomes important enough to justify managed reliability.
+
+This suggests a platform shape closer to resource-level monetization than account-level gating:
+
+```text
+Account
+  -> many free Workspaces
+       -> free/lightweight resources
+       -> optional paid durability
+       -> optional paid retention
+       -> optional paid notifications
+       -> optional paid background/managed execution
+       -> optional paid compute
+       -> optional paid collaboration
+```
+
+The important conversion event is not:
+
+```text
+"I need a second workspace."
+```
+
+It is:
+
+```text
+"This workspace now matters enough that I need Ortyo to keep it alive,
+remember it, run it, notify me, or guarantee more around it."
+```
+
+Workspace creation may still need abuse-prevention or fair-use controls, but those should be operational safeguards rather than the core pricing lever.
+
+This also makes pricing composable. Different workspaces under the same account can naturally have different economics:
+
+- disposable experiment: $0
+- pet project: $0
+- important side project: small durable-cloud charge
+- production integration: retention + notifications + higher limits
+- compute-heavy project: usage-based compute
+
+This model aligns revenue with actual reliance while keeping project creation frictionless.
+
 ## Candidate free-to-paid boundaries
 
 These are product hypotheses, not implementation commitments.
@@ -95,8 +158,8 @@ Illustrative only:
 Ortyo Cloud Free
 $0
 
-1 workspace
-1 active Exposure
+many workspaces
+1 active Exposure per lightweight/free workspace
 small secret quota
 small execution quota
 short evidence retention
@@ -107,9 +170,9 @@ temporary/inactivity-limited hosted reservations
 
 ```text
 Ortyo Cloud
-~$3-6/month hypothesis
+~$3-6/month hypothesis for a workspace that needs managed durability
 
-1 workspace
+paid reliability can be enabled selectively per workspace
 multiple active Exposures
 larger secret quota
 larger execution quota
@@ -273,6 +336,8 @@ Avoid:
 - unlimited expensive managed compute in a low flat tier
 - turning notifications into a second source of workflow truth
 - introducing a generic workflow/task engine only to justify a higher tier
+- charging primarily for creating additional workspaces/projects
+- forcing every workspace under an account onto the same reliability tier
 
 ## Cost-aligned axes to measure before final pricing
 
@@ -303,8 +368,9 @@ Pricing should follow real cost curves and observed willingness to pay, not the 
 6. At what point do collaboration and RBAC justify a distinct Team tier?
 7. Which managed compute providers can be passed through transparently enough for usage-based billing?
 8. What export guarantees should users have before any hosted data ages out?
-9. Should billing follow workspace, user, project, or organization boundaries?
-10. Which paid guarantees can Ortyo prove automatically in dogfood the same way it proves runtime continuity today?
+9. Which billable resources should attach directly to a workspace versus to an organization-wide subscription?
+10. How should free workspace creation be protected from abuse without turning workspace count into the pricing boundary?
+11. Which paid guarantees can Ortyo prove automatically in dogfood the same way it proves runtime continuity today?
 
 ## Current conclusion
 
@@ -313,5 +379,7 @@ Do not lock pricing yet.
 Preserve this as the current thesis:
 
 > **Ortyo should monetize reliance, not curiosity.**
+>
+> **Breadth should be free; depth should be paid.**
 
-A user should be able to discover the full core loop for free. Payment should become natural when they want Ortyo Cloud to remain available, remember state, retain proof, hold human handoffs, collaborate, and scale.
+A user should be able to create many projects/workspaces and discover the full core loop without paying merely for breadth. Payment should become natural inside the specific workspaces that need Ortyo Cloud to remain available, remember state, retain proof, hold human handoffs, collaborate, execute in the background, consume managed compute, or scale.
