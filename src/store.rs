@@ -6,7 +6,7 @@ use std::{
 use rusqlite::{Connection, params};
 use uuid::Uuid;
 
-use crate::domain::{AssertionResult, Contract, Interaction, Recording};
+use crate::domain::{AssertionResult, Contract, Interaction, Recording, Scenario, ScenarioOutcome, ScenarioRun};
 
 #[derive(Clone)]
 pub struct InteractionStore {
@@ -55,7 +55,26 @@ impl InteractionStore {
                 payload TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS assertion_results_contract_interaction
-                ON assertion_results(contract_id, interaction_id);",
+                ON assertion_results(contract_id, interaction_id);
+            CREATE TABLE IF NOT EXISTS scenarios (
+                id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS scenario_runs (
+                id TEXT PRIMARY KEY,
+                scenario_id TEXT NOT NULL,
+                payload TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS scenario_runs_scenario
+                ON scenario_runs(scenario_id);
+            CREATE TABLE IF NOT EXISTS scenario_outcomes (
+                run_id TEXT PRIMARY KEY,
+                scenario_id TEXT NOT NULL,
+                passed INTEGER NOT NULL,
+                payload TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS scenario_outcomes_scenario
+                ON scenario_outcomes(scenario_id);",
         )?;
 
         Ok(Self {
@@ -175,6 +194,84 @@ impl InteractionStore {
             )
             .ok()
             .map(|payload| serde_json::from_str(&payload).expect("deserialize assertion result"))
+    }
+
+    pub fn save_scenario(&self, scenario: &Scenario) {
+        let payload = serde_json::to_string(scenario).expect("serialize scenario");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO scenarios (id, payload) VALUES (?1, ?2)",
+                params![scenario.id.to_string(), payload],
+            )
+            .expect("persist scenario");
+    }
+
+    pub fn scenario(&self, id: Uuid) -> Option<Scenario> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM scenarios WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize scenario"))
+    }
+
+    pub fn save_scenario_run(&self, run: &ScenarioRun) {
+        let payload = serde_json::to_string(run).expect("serialize scenario run");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO scenario_runs (id, scenario_id, payload) VALUES (?1, ?2, ?3)",
+                params![run.id.to_string(), run.scenario_id.to_string(), payload],
+            )
+            .expect("persist scenario run");
+    }
+
+    pub fn scenario_run(&self, id: Uuid) -> Option<ScenarioRun> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM scenario_runs WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize scenario run"))
+    }
+
+    pub fn save_scenario_outcome(&self, outcome: &ScenarioOutcome) {
+        let payload = serde_json::to_string(outcome).expect("serialize scenario outcome");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO scenario_outcomes (run_id, scenario_id, passed, payload)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    outcome.run_id.to_string(),
+                    outcome.scenario_id.to_string(),
+                    outcome.passed,
+                    payload
+                ],
+            )
+            .expect("persist scenario outcome");
+    }
+
+    pub fn scenario_outcome(&self, run_id: Uuid) -> Option<ScenarioOutcome> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM scenario_outcomes WHERE run_id = ?1",
+                [run_id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize scenario outcome"))
     }
 
     pub fn all(&self) -> Vec<Interaction> {
