@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     net::IpAddr,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use reqwest::{Method, Url, redirect::Policy};
@@ -68,7 +68,8 @@ pub struct CapturedSecret {
     pub allowed_origin: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum ExecutionError {
     InvalidRequest,
     UnsafeDestination,
@@ -77,6 +78,50 @@ pub enum ExecutionError {
     RequestFailed,
     ResponseTooLarge,
     CaptureFailed,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionProviderKind {
+    Http,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum ExecutionOutcome {
+    Succeeded { evidence: ExecutionEvidence },
+    Rejected { error: ExecutionError },
+    Failed { error: ExecutionError },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionRecord {
+    pub execution_id: Uuid,
+    pub provider: ExecutionProviderKind,
+    pub started_at_unix_ms: u64,
+    pub completed_at_unix_ms: u64,
+    pub outcome: ExecutionOutcome,
+}
+
+impl ExecutionRecord {
+    fn into_result(self) -> Result<ExecutionEvidence, ExecutionError> {
+        match self.outcome {
+            ExecutionOutcome::Succeeded { evidence } => Ok(evidence),
+            ExecutionOutcome::Rejected { error } | ExecutionOutcome::Failed { error } => Err(error),
+        }
+    }
+}
+
+impl ExecutionError {
+    fn into_outcome(self) -> ExecutionOutcome {
+        match self {
+            error @ (Self::InvalidRequest
+            | Self::UnsafeDestination
+            | Self::SecretDestinationDenied
+            | Self::SecretNotFound) => ExecutionOutcome::Rejected { error },
+            error => ExecutionOutcome::Failed { error },
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -99,7 +144,46 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
     ) -> Result<ExecutionEvidence, ExecutionError> {
-        self.execute_inner(workspace_id, request, true).await
+        self.execute_recorded(workspace_id, request)
+            .await
+            .into_result()
+    }
+
+    pub async fn execute_recorded(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+    ) -> ExecutionRecord {
+        self.execute_recorded_inner(workspace_id, request, true).await
+    }
+
+    async fn execute_recorded_inner(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+        enforce_public_destination: bool,
+    ) -> ExecutionRecord {
+        let execution_id = Uuid::now_v7();
+        let started_at_unix_ms = unix_time_ms();
+        let outcome = match self
+            .execute_inner(
+                workspace_id,
+                request,
+                enforce_public_destination,
+                execution_id,
+            )
+            .await
+        {
+            Ok(evidence) => ExecutionOutcome::Succeeded { evidence },
+            Err(error) => error.into_outcome(),
+        };
+        ExecutionRecord {
+            execution_id,
+            provider: ExecutionProviderKind::Http,
+            started_at_unix_ms,
+            completed_at_unix_ms: unix_time_ms(),
+            outcome,
+        }
     }
 
     async fn execute_inner(
@@ -107,6 +191,7 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
         enforce_public_destination: bool,
+        execution_id: Uuid,
     ) -> Result<ExecutionEvidence, ExecutionError> {
         let method = Method::from_bytes(request.method.as_bytes())
             .map_err(|_| ExecutionError::InvalidRequest)?;
@@ -216,7 +301,7 @@ impl HttpExecutionProvider {
         }
 
         Ok(ExecutionEvidence {
-            execution_id: Uuid::now_v7(),
+            execution_id,
             status,
             headers,
             body,
@@ -231,7 +316,18 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
     ) -> Result<ExecutionEvidence, ExecutionError> {
-        self.execute_inner(workspace_id, request, false).await
+        self.execute_recorded_for_test(workspace_id, request)
+            .await
+            .into_result()
+    }
+
+    #[doc(hidden)]
+    pub async fn execute_recorded_for_test(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+    ) -> ExecutionRecord {
+        self.execute_recorded_inner(workspace_id, request, false).await
     }
 
     pub fn secret_store(&self) -> &SecretStore {
@@ -369,6 +465,14 @@ fn redact_pointer(body: &mut Value, pointer: &str) -> Result<(), ExecutionError>
         }
         _ => Err(ExecutionError::CaptureFailed),
     }
+}
+
+fn unix_time_ms() -> u64 {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    u64::try_from(millis).unwrap_or(u64::MAX)
 }
 
 fn default_timeout_ms() -> u64 {
