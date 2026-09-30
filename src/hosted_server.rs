@@ -104,7 +104,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let (capabilities, exposures, identities, secrets, storage) = open_hosted_stores(&config).await?;
+    let (capabilities, exposures, identities, secrets, storage) =
+        open_hosted_stores(&config).await?;
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
