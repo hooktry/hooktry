@@ -583,10 +583,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "GET",
-        &format!(
-            "/_ortyo/hosted/executions/{}",
-            proof.execution.execution_id
-        ),
+        &format!("/_ortyo/hosted/executions/{}", proof.execution.execution_id),
         None,
     )
     .await?;
