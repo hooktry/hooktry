@@ -261,7 +261,10 @@ async fn provision_exposure(
     let authorization = authorize_api(&state, &headers, ApiScope::ExposuresCreate).await?;
 
     if request.name.trim().is_empty() || request.target_port == 0 {
-        return Err(HostedApiError::new(StatusCode::BAD_REQUEST, "invalid_exposure"));
+        return Err(HostedApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_exposure",
+        ));
     }
 
     let exposure_id = Uuid::now_v7();
@@ -361,10 +364,7 @@ async fn revoke_hosted_exposure(
     Ok(StatusCode::NO_CONTENT)
 }
 
-fn authorize_control(
-    state: &HostedRelayState,
-    headers: &HeaderMap,
-) -> Result<(), HostedApiError> {
+fn authorize_control(state: &HostedRelayState, headers: &HeaderMap) -> Result<(), HostedApiError> {
     let token = bearer_token(headers).ok_or_else(HostedApiError::unauthorized)?;
     if token_digest(token) != state.control_token_digest {
         return Err(HostedApiError::unauthorized());
