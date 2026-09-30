@@ -268,9 +268,7 @@ fn local_public_base_url(socket: SocketAddr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        HostedServerConfig, ensure_operator_bootstrap_async, open_hosted_stores,
-    };
+    use super::{HostedServerConfig, ensure_operator_bootstrap_async, open_hosted_stores};
     use crate::{
         hosted_identity::{ApiScope, HostedIdentityStore},
         secret::SecretStore,
