@@ -368,10 +368,7 @@ impl ApprovalStore {
         Ok(Some(record))
     }
 
-    pub fn list_pending(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<ApprovalRecord>, ApprovalError> {
+    pub fn list_pending(&self, workspace_id: Uuid) -> Result<Vec<ApprovalRecord>, ApprovalError> {
         const LIMIT: i64 = 100;
         let workspace = workspace_id.to_string();
 
