@@ -178,9 +178,10 @@ mod tests {
             db_path: "unused.db".to_owned(),
         };
 
-        let error = open_hosted_stores(&config)
-            .await
-            .expect_err("unreachable Postgres should return an error");
+        let error = match open_hosted_stores(&config).await {
+            Ok(_) => panic!("unreachable Postgres unexpectedly opened"),
+            Err(error) => error,
+        };
 
         assert!(
             error.contains("open Postgres capability store"),
