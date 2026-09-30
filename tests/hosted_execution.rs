@@ -417,9 +417,10 @@ async fn recorded_success_has_lifecycle_identity_and_matching_evidence_id() {
 #[tokio::test]
 async fn recorded_rejection_has_identity_before_request_validation() {
     let provider = HttpExecutionProvider::new(SecretStore::default());
+    let workspace_id = Uuid::now_v7();
     let record = provider
         .execute_recorded_for_test(
-            Uuid::now_v7(),
+            workspace_id,
             HttpExecutionRequest {
                 method: "GET".to_owned(),
                 url: "ftp://example.com/file".to_owned(),
@@ -433,6 +434,7 @@ async fn recorded_rejection_has_identity_before_request_validation() {
         .await;
 
     assert_ne!(record.execution_id, Uuid::nil());
+    assert_eq!(record.workspace_id, workspace_id);
     assert!(record.started_at_unix_ms <= record.completed_at_unix_ms);
     assert_eq!(
         record.outcome,
@@ -440,6 +442,11 @@ async fn recorded_rejection_has_identity_before_request_validation() {
             error: ExecutionError::InvalidRequest
         }
     );
+
+    let json = serde_json::to_value(&record).unwrap();
+    assert_eq!(json["provider"], "http");
+    assert_eq!(json["outcome"]["status"], "rejected");
+    assert_eq!(json["outcome"]["error"], "invalid_request");
 }
 
 #[tokio::test]
