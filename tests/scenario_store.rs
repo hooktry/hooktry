@@ -1,6 +1,9 @@
 use chrono::Utc;
 use ortyo::{
-    domain::{Scenario, ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState},
+    domain::{
+        Scenario, ScenarioCheckOutcome, ScenarioOrdering, ScenarioOutcome, ScenarioRun,
+        ScenarioRunState,
+    },
     store::InteractionStore,
 };
 use uuid::Uuid;
@@ -15,7 +18,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         contract_ids: vec![Uuid::now_v7()],
         expectations: Vec::new(),
         observation: Default::default(),
-        ordering: None,
+        ordering: Some(ScenarioOrdering::Declared),
         created_at: Utc::now(),
     };
     let run = ScenarioRun {
@@ -63,6 +66,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
 
     assert_eq!(persisted_scenario.id, scenario.id);
     assert_eq!(persisted_scenario.contract_ids, scenario.contract_ids);
+    assert_eq!(persisted_scenario.ordering, Some(ScenarioOrdering::Declared));
     assert_eq!(persisted_run.id, run.id);
     assert_eq!(persisted_run.exposure_id, run.exposure_id);
     assert_eq!(persisted_outcome.run_id, run.id);
