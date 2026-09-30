@@ -216,6 +216,30 @@ fn is_zero(value: &u64) -> bool {
     *value == 0
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ScenarioOrdering {
+    Declared,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioOrderViolation {
+    pub expected_before_contract_id: Uuid,
+    pub expected_before_interaction_id: Uuid,
+    pub expected_after_contract_id: Uuid,
+    pub expected_after_interaction_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioOrderOutcome {
+    pub policy: ScenarioOrdering,
+    pub passed: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub observed_interaction_ids: Vec<Uuid>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub violations: Vec<ScenarioOrderViolation>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scenario {
     pub id: Uuid,
@@ -226,6 +250,8 @@ pub struct Scenario {
     pub expectations: Vec<ScenarioExpectation>,
     #[serde(default, skip_serializing_if = "ScenarioObservation::is_default")]
     pub observation: ScenarioObservation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ordering: Option<ScenarioOrdering>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -279,4 +305,6 @@ pub struct ScenarioOutcome {
     pub recording_id: Option<Uuid>,
     pub replayed_interaction_ids: Vec<Uuid>,
     pub checks: Vec<ScenarioCheckOutcome>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<ScenarioOrderOutcome>,
 }
