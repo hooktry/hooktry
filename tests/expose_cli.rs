@@ -67,7 +67,6 @@ fn exposure_management_commands_are_typed() {
     );
 }
 
-
 #[test]
 fn hosted_command_is_typed() {
     let cli = Cli::parse(["ortyo".to_owned(), "hosted".to_owned()]).unwrap();
