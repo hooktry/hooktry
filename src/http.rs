@@ -17,6 +17,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
+    context::from_http_headers,
     contract::assert_interaction,
     domain::{
         AssertionResult, Contract, Direction, Exposure, ExposureAccess, ExposureMode,
@@ -155,6 +156,7 @@ async fn capture(
         request,
         response,
         source_interaction_id: None,
+        context: from_http_headers(&headers),
     });
 
     (StatusCode::OK, Json(json!({"ok": true})))
@@ -459,6 +461,7 @@ async fn forward_and_record(
             "body": String::from_utf8_lossy(&response_body)
         }),
         source_interaction_id: None,
+        context: from_http_headers(&request.headers),
     });
 
     Ok(ProxiedHttpResponse {
