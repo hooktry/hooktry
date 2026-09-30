@@ -188,7 +188,7 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         _ => return Ok(tool_error(format!("unknown tool: {name}"))),
     };
 
-    Ok(tool_success(value)?)
+    tool_success(value)
 }
 
 async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value, String> {
