@@ -62,6 +62,14 @@ fn parses_approval_and_execution_commands() {
     let approval_id = Uuid::now_v7();
     let execution_id = Uuid::now_v7();
 
+    let inbox = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "inbox".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(inbox.command, Command::ApprovalInbox);
+
     let create = Cli::parse([
         "ortyo".to_owned(),
         "approval".to_owned(),
