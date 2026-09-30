@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use axum::{Json, Router, routing::post};
 use ortyo::{
     execution::{
-        ExecutionError, HttpExecutionProvider, HttpExecutionRequest, SecretCapture,
-        SecretHeaderBinding,
+        ExecutionError, ExecutionOutcome, ExecutionProviderKind, HttpExecutionProvider,
+        HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
     },
     secret::SecretStore,
 };
@@ -372,4 +372,123 @@ async fn legacy_secret_name_cannot_bypass_a_bound_origin_policy() {
         .unwrap_err();
 
     assert_eq!(error, ExecutionError::SecretDestinationDenied);
+}
+
+#[tokio::test]
+async fn recorded_success_has_lifecycle_identity_and_matching_evidence_id() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            Router::new().route("/ok", post(|| async { Json(json!({"ok": true})) })),
+        )
+        .await
+        .unwrap();
+    });
+
+    let provider = HttpExecutionProvider::new(SecretStore::default());
+    let record = provider
+        .execute_recorded_for_test(
+            Uuid::now_v7(),
+            HttpExecutionRequest {
+                method: "POST".to_owned(),
+                url: format!("http://{addr}/ok"),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers: BTreeMap::new(),
+                capture: vec![],
+                timeout_ms: 1000,
+            },
+        )
+        .await;
+
+    assert_eq!(record.provider, ExecutionProviderKind::Http);
+    assert!(record.started_at_unix_ms <= record.completed_at_unix_ms);
+    match record.outcome {
+        ExecutionOutcome::Succeeded { evidence } => {
+            assert_eq!(evidence.execution_id, record.execution_id);
+            assert_eq!(evidence.status, 200);
+        }
+        outcome => panic!("unexpected outcome: {outcome:?}"),
+    }
+}
+
+#[tokio::test]
+async fn recorded_rejection_has_identity_before_request_validation() {
+    let provider = HttpExecutionProvider::new(SecretStore::default());
+    let workspace_id = Uuid::now_v7();
+    let record = provider
+        .execute_recorded_for_test(
+            workspace_id,
+            HttpExecutionRequest {
+                method: "GET".to_owned(),
+                url: "ftp://example.com/file".to_owned(),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers: BTreeMap::new(),
+                capture: vec![],
+                timeout_ms: 1000,
+            },
+        )
+        .await;
+
+    assert_ne!(record.execution_id, Uuid::nil());
+    assert_eq!(record.workspace_id, workspace_id);
+    assert!(record.started_at_unix_ms <= record.completed_at_unix_ms);
+    assert_eq!(
+        record.outcome,
+        ExecutionOutcome::Rejected {
+            error: ExecutionError::InvalidRequest
+        }
+    );
+
+    let json = serde_json::to_value(&record).unwrap();
+    assert_eq!(json["provider"], "http");
+    assert_eq!(json["outcome"]["status"], "rejected");
+    assert_eq!(json["outcome"]["error"], "invalid_request");
+}
+
+#[tokio::test]
+async fn recorded_provider_failure_retains_typed_failure() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            Router::new().route(
+                "/missing-capture",
+                post(|| async { Json(json!({"ok": true})) }),
+            ),
+        )
+        .await
+        .unwrap();
+    });
+
+    let provider = HttpExecutionProvider::new(SecretStore::default());
+    let record = provider
+        .execute_recorded_for_test(
+            Uuid::now_v7(),
+            HttpExecutionRequest {
+                method: "POST".to_owned(),
+                url: format!("http://{addr}/missing-capture"),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers: BTreeMap::new(),
+                capture: vec![SecretCapture {
+                    json_pointer: "/credential/token".to_owned(),
+                    secret_name: "missing-token".to_owned(),
+                }],
+                timeout_ms: 1000,
+            },
+        )
+        .await;
+
+    assert_ne!(record.execution_id, Uuid::nil());
+    assert_eq!(
+        record.outcome,
+        ExecutionOutcome::Failed {
+            error: ExecutionError::CaptureFailed
+        }
+    );
 }
