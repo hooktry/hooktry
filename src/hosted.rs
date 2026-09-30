@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, State, ws::WebSocketUpgrade},
     http::{HeaderMap, StatusCode, header::AUTHORIZATION},
     response::Response,
-    routing::{any, get, post},
+    routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -97,7 +97,10 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
         .route("/_ortyo/health", get(health))
         .route("/healthz", get(health))
         .route("/_ortyo/hosted/exposures", post(provision_exposure))
-        .route("/_ortyo/runtime/{exposure_id}", any(runtime_websocket))
+        .route(
+            "/_ortyo/runtime/{exposure_id}",
+            get(runtime_websocket).delete(revoke_runtime),
+        )
         .with_state(state)
         .merge(ingress)
 }
@@ -159,6 +162,24 @@ fn bearer_token(headers: &HeaderMap) -> Option<&str> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .filter(|token| !token.is_empty())
+}
+
+async fn revoke_runtime(
+    State(state): State<HostedRelayState>,
+    Path(exposure_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<StatusCode, StatusCode> {
+    let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    state
+        .capabilities
+        .authorize(exposure_id, capability)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    state
+        .capabilities
+        .revoke(capability)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    state.broker.disconnect(exposure_id).await;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn runtime_websocket(
