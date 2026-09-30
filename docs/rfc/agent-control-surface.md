@@ -15,6 +15,9 @@ The canonical lifecycle is:
 approval_create
     |
     v
+approval_inbox (approver handoff)
+    |
+    v
 approval_get
     |
     v
@@ -33,6 +36,7 @@ These operations are projections over the existing hosted HTTP API and its durab
 
 The live `tools/list` surface includes:
 
+- `approval_inbox`
 - `approval_create`
 - `approval_get`
 - `approval_decide`
@@ -62,6 +66,7 @@ Raw credential values are not MCP arguments.
 The equivalent structured-JSON CLI is:
 
 ```text
+ortyo --base-url https://... approval inbox
 ortyo --base-url https://... approval create request.json
 ortyo --base-url https://... approval get <approval-id>
 ortyo --base-url https://... approval approve <approval-id>

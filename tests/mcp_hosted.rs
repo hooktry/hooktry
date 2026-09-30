@@ -80,6 +80,14 @@ async fn mcp_proves_ask_approve_act_and_durable_query_against_hosted_boundary() 
         .parse::<Uuid>()
         .unwrap();
 
+    let inbox = call(&base_url, &hosted, "approval_inbox", json!({})).await;
+    assert_eq!(inbox["isError"], false);
+    assert_eq!(inbox["structuredContent"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        inbox["structuredContent"][0]["approval_id"],
+        approval_id.to_string()
+    );
+
     let inspected = call(
         &base_url,
         &hosted,
@@ -98,6 +106,15 @@ async fn mcp_proves_ask_approve_act_and_durable_query_against_hosted_boundary() 
     .await;
     assert_eq!(approved["isError"], false);
     assert_eq!(approved["structuredContent"]["state"], "approved");
+
+    let after_approval = call(&base_url, &hosted, "approval_inbox", json!({})).await;
+    assert_eq!(after_approval["isError"], false);
+    assert!(
+        after_approval["structuredContent"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 
     let acted = call(
         &base_url,

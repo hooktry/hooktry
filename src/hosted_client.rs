@@ -45,6 +45,16 @@ impl HostedClient {
         .await
     }
 
+    pub async fn approval_inbox(&self) -> Result<Value, String> {
+        self.request_json(
+            Method::GET,
+            "/_ortyo/hosted/approvals",
+            CredentialKind::Approve,
+            None,
+        )
+        .await
+    }
+
     pub async fn get_approval(&self, approval_id: Uuid) -> Result<Value, String> {
         if self.execute_token.is_none() && self.approver_token.is_none() {
             return Err(

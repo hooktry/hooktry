@@ -91,6 +91,11 @@ fn tools() -> Vec<Value> {
             "Revoke an active Exposure by ID.",
             uuid_schema("exposure_id"),
         ),
+        tool(
+            "approval_inbox",
+            "List pending approvals for the approver's Workspace, oldest first. Requires ORTYO_APPROVER_TOKEN.",
+            json!({}),
+        ),
         tool_with_required(
             "approval_create",
             "Ask for one exact hosted HTTP action. Returns a redacted pending ApprovalRecord.",
@@ -365,6 +370,9 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
         .unwrap_or_else(|| json!({}));
 
     let value = match name {
+        "approval_inbox" => {
+            return hosted_tool_result(hosted.approval_inbox().await);
+        }
         "approval_create" => {
             let request = http_execution_request_argument(&arguments)?;
             return hosted_tool_result(hosted.create_approval(&request).await);

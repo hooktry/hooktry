@@ -40,6 +40,7 @@ async fn tools_list_exposes_complete_evidence_workflow() {
             "exposure_create",
             "exposure_get",
             "exposure_revoke",
+            "approval_inbox",
             "approval_create",
             "approval_get",
             "approval_decide",
@@ -77,6 +78,18 @@ async fn tool_schemas_require_identity_arguments() {
         .find(|tool| tool["name"] == "exposure_create")
         .unwrap();
     assert_eq!(exposure["inputSchema"]["required"], json!(["name", "port"]));
+
+    let approval_inbox = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_inbox")
+        .unwrap();
+    assert_eq!(approval_inbox["inputSchema"]["required"], json!([]));
+    assert!(
+        approval_inbox["inputSchema"]["properties"]
+            .as_object()
+            .unwrap()
+            .is_empty()
+    );
 
     let approval_create = tools
         .iter()

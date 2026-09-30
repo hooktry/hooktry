@@ -83,6 +83,7 @@ When an action requires explicit approval, prefer the agent-native sequence:
 
 ```text
 approval_create
+  -> approval_inbox
   -> approval_get
   -> approval_decide
   -> approval_execute
@@ -90,10 +91,11 @@ approval_create
 ```
 
 1. Create an approval with the exact `HttpExecutionRequest` using `ORTYO_TOKEN` / `requests:execute`.
-2. Present or inspect the returned redacted summary. Do not reconstruct hidden query, body, header, or secret values from hashes.
-3. Approval or denial requires the MCP/CLI process to have a distinct `ORTYO_APPROVER_TOKEN`. Discovery of `approval_decide` is not approval authority.
-4. Execute by resubmitting the exact original request with `ORTYO_TOKEN`.
-5. Query `execution_get` and use the durable EXEC5 record as the post-response proof.
+2. An approver can discover pending handoffs with `approval_inbox`. It requires `ORTYO_APPROVER_TOKEN` and returns only pending approvals in that Workspace, oldest first.
+3. Present or inspect the returned redacted summary. Do not reconstruct hidden query, body, header, or secret values from hashes.
+4. Approval or denial requires the MCP/CLI process to have a distinct `ORTYO_APPROVER_TOKEN`. Discovery of `approval_decide` is not approval authority.
+5. Execute by resubmitting the exact original request with `ORTYO_TOKEN`.
+6. Query `execution_get` and use the durable EXEC5 record as the post-response proof.
 
 Never modify an approved request before execution. A digest mismatch is a failed-closed condition, not a reason to bypass the gate. Never reuse a consumed approval. Retries require a new approval. Never assume `ORTYO_TOKEN` can approve: the client intentionally does not fall back when `ORTYO_APPROVER_TOKEN` is absent.
 

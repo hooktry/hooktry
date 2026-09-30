@@ -27,7 +27,7 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
     let addr = listener.local_addr().unwrap();
     let seen = Seen::default();
     let app = Router::new()
-        .route("/_ortyo/hosted/approvals", post(record))
+        .route("/_ortyo/hosted/approvals", get(record).post(record))
         .route("/_ortyo/hosted/approvals/{id}", get(record))
         .route("/_ortyo/hosted/approvals/{id}/decision", post(record))
         .route("/_ortyo/hosted/approvals/{id}/execute", post(record))
@@ -55,6 +55,7 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
     let execution_id = Uuid::now_v7();
 
     client.create_approval(&request).await.unwrap();
+    client.approval_inbox().await.unwrap();
     client.get_approval(approval_id).await.unwrap();
     client
         .decide_approval(approval_id, ApprovalDecision::Approve)
@@ -73,6 +74,10 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
             (
                 "/_ortyo/hosted/approvals".to_owned(),
                 "Bearer execute-token".to_owned()
+            ),
+            (
+                "/_ortyo/hosted/approvals".to_owned(),
+                "Bearer approve-token".to_owned()
             ),
             (
                 format!("/_ortyo/hosted/approvals/{approval_id}"),
@@ -106,6 +111,20 @@ async fn hosted_client_never_falls_back_to_execute_token_for_decision() {
         .await
         .unwrap_err();
 
+    assert_eq!(
+        error,
+        "ORTYO_APPROVER_TOKEN is required for approval decisions"
+    );
+}
+
+#[tokio::test]
+async fn approval_inbox_requires_approver_token_without_execute_fallback() {
+    let client = HostedClient::from_lookup("http://127.0.0.1:9", |key| match key {
+        "ORTYO_TOKEN" => Some("execute-token".to_owned()),
+        _ => None,
+    });
+
+    let error = client.approval_inbox().await.unwrap_err();
     assert_eq!(
         error,
         "ORTYO_APPROVER_TOKEN is required for approval decisions"
