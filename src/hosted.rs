@@ -244,9 +244,14 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
 }
 
 async fn health() -> Json<serde_json::Value> {
+    let revision = std::env::var("RENDER_GIT_COMMIT")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "unknown".to_owned());
     Json(serde_json::json!({
         "ok": true,
-        "service": "hosted_relay"
+        "service": "hosted_relay",
+        "revision": revision
     }))
 }
 
