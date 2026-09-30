@@ -59,6 +59,24 @@ pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, Str
 fn tools() -> Vec<Value> {
     vec![
         tool(
+            "exposure_create",
+            "Create a local HTTP Exposure for an upstream port.",
+            json!({
+                "name": {"type": "string"},
+                "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+            }),
+        ),
+        tool(
+            "exposure_get",
+            "Get an Exposure by ID.",
+            uuid_schema("exposure_id"),
+        ),
+        tool(
+            "exposure_revoke",
+            "Revoke an active Exposure by ID.",
+            uuid_schema("exposure_id"),
+        ),
+        tool(
             "interactions_list",
             "List canonical ORTYO interaction evidence.",
             json!({}),
@@ -142,6 +160,24 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         .unwrap_or_else(|| json!({}));
 
     let value = match name {
+        "exposure_create" => {
+            let name = string_argument(&arguments, "name")?;
+            let port = port_argument(&arguments)?;
+            api_json(
+                "POST",
+                &format!("{base_url}/_ortyo/exposures"),
+                Some(json!({"name": name, "port": port})),
+            )
+            .await?
+        }
+        "exposure_get" => {
+            let id = uuid_argument(&arguments, "exposure_id")?;
+            api_json("GET", &format!("{base_url}/_ortyo/exposures/{id}"), None).await?
+        }
+        "exposure_revoke" => {
+            let id = uuid_argument(&arguments, "exposure_id")?;
+            api_json("DELETE", &format!("{base_url}/_ortyo/exposures/{id}"), None).await?
+        }
         "interactions_list" => {
             api_json("GET", &format!("{base_url}/_ortyo/interactions"), None).await?
         }
@@ -196,6 +232,7 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
     let request = match method {
         "GET" => client.get(url),
         "POST" => client.post(url),
+        "DELETE" => client.delete(url),
         _ => return Err(format!("unsupported ORTYO API method: {method}")),
     };
     let request = if let Some(body) = body {
@@ -240,6 +277,17 @@ fn uuid_argument(arguments: &Value, name: &str) -> Result<Uuid, String> {
         .ok_or_else(|| format!("{name} is required"))?
         .parse()
         .map_err(|_| format!("{name} must be a UUID"))
+}
+
+fn port_argument(arguments: &Value) -> Result<u16, String> {
+    let port = arguments
+        .get("port")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "port is required".to_owned())?;
+    u16::try_from(port)
+        .ok()
+        .filter(|port| *port > 0)
+        .ok_or_else(|| "port must be between 1 and 65535".to_owned())
 }
 
 fn string_argument<'a>(arguments: &'a Value, name: &str) -> Result<&'a str, String> {
