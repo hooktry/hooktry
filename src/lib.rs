@@ -1,9 +1,9 @@
 pub mod cli;
-pub mod mcp;
 pub mod contract;
 pub mod domain;
 pub mod exposure;
 pub mod http;
+pub mod mcp;
 pub mod relay;
 pub mod relay_ingress;
 pub mod relay_transport;
