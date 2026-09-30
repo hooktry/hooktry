@@ -9,6 +9,7 @@ use crate::{
     hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
+    secret::SecretStore,
 };
 
 #[derive(Clone, PartialEq, Eq)]
@@ -127,6 +128,7 @@ async fn open_hosted_stores(
         CapabilityStore,
         HostedExposureStore,
         HostedIdentityStore,
+        SecretStore,
         &'static str,
     ),
     String,
