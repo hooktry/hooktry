@@ -446,9 +446,7 @@ fn exposure_error_status(error: ExposureError) -> StatusCode {
         ExposureError::InvalidName
         | ExposureError::InvalidPort
         | ExposureError::DuplicateName
-        | ExposureError::DuplicateId => {
-            StatusCode::BAD_REQUEST
-        }
+        | ExposureError::DuplicateId => StatusCode::BAD_REQUEST,
         ExposureError::NotFound => StatusCode::NOT_FOUND,
         ExposureError::Inactive => StatusCode::GONE,
         ExposureError::Provider(_) => StatusCode::BAD_GATEWAY,
