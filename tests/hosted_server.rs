@@ -16,6 +16,7 @@ fn hosted_server_config_has_deployable_defaults() {
 
     assert_eq!(config.bind, "0.0.0.0:8080");
     assert_eq!(config.public_base_url, "http://127.0.0.1:8080");
+    assert_eq!(config.db_path, "ortyo-hosted.db");
 }
 
 #[test]
@@ -24,12 +25,14 @@ fn hosted_server_config_uses_port_and_public_url() {
         "PORT" => Some("9090".to_owned()),
         "ORTYO_PUBLIC_BASE_URL" => Some("https://relay.example/".to_owned()),
         "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "ORTYO_HOSTED_DB_PATH" => Some("/tmp/ortyo-hosted-test.db".to_owned()),
         _ => None,
     })
     .unwrap();
 
     assert_eq!(config.bind, "0.0.0.0:9090");
     assert_eq!(config.public_base_url, "https://relay.example");
+    assert_eq!(config.db_path, "/tmp/ortyo-hosted-test.db");
 }
 
 #[test]
