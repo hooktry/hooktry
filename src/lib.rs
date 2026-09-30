@@ -12,3 +12,4 @@ pub mod relay_ingress;
 pub mod relay_transport;
 pub mod scenario;
 pub mod store;
+pub mod websocket_transport;
