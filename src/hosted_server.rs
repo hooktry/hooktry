@@ -5,6 +5,7 @@ use tokio::net::TcpListener;
 
 use crate::{
     hosted::{HostedRelayState, hosted_relay_app},
+    hosted_identity::HostedIdentityStore,
     hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
@@ -92,11 +93,12 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let (capabilities, exposures, storage) = open_hosted_stores(&config).await?;
-    let state = HostedRelayState::websocket_only_with_store(
+    let (capabilities, exposures, identities, storage) = open_hosted_stores(&config).await?;
+    let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
         exposures,
+        identities,
         config.public_base_url.clone(),
         &config.control_token,
     );
@@ -120,7 +122,15 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
 
 async fn open_hosted_stores(
     config: &HostedServerConfig,
-) -> Result<(CapabilityStore, HostedExposureStore, &'static str), String> {
+) -> Result<
+    (
+        CapabilityStore,
+        HostedExposureStore,
+        HostedIdentityStore,
+        &'static str,
+    ),
+    String,
+> {
     if let Some(database_url) = &config.database_url {
         let database_url = database_url.clone();
         tokio::task::spawn_blocking(move || {
@@ -128,7 +138,9 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
             let exposures = HostedExposureStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
-            Ok((capabilities, exposures, "postgres"))
+            let identities = HostedIdentityStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, "postgres"))
         })
         .await
         .map_err(|error| format!("join Postgres store initialization: {error}"))?
@@ -139,7 +151,9 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
             let exposures = HostedExposureStore::open(&db_path)
                 .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
-            Ok((capabilities, exposures, "sqlite"))
+            let identities = HostedIdentityStore::open(&db_path)
+                .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, "sqlite"))
         })
         .await
         .map_err(|error| format!("join SQLite store initialization: {error}"))?
