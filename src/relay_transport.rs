@@ -62,9 +62,11 @@ pub async fn serve_connection(
         }) => {
             capabilities
                 .authorize(exposure_id, &capability)
-                .map_err(|error| TransportError::Protocol(format!("registration denied: {error:?}")))?;
+                .map_err(|error| {
+                    TransportError::Protocol(format!("registration denied: {error:?}"))
+                })?;
             exposure_id
-        },
+        }
         Some(_) => {
             return Err(TransportError::Protocol(
                 "expected register frame".to_owned(),
@@ -199,7 +201,8 @@ pub async fn run_runtime_reconnecting(
     loop {
         match TcpStream::connect(relay_addr).await {
             Ok(stream) => {
-                let _ = run_runtime_connection(stream, exposure_id, capability, state.clone()).await;
+                let _ =
+                    run_runtime_connection(stream, exposure_id, capability, state.clone()).await;
             }
             Err(error) if error.kind() == io::ErrorKind::InvalidInput => {
                 return Err(TransportError::Io(error));
