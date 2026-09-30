@@ -112,11 +112,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
             .all(|approval| approval.workspace_id == workspace_a.id)
     );
     let inbox_json = serde_json::to_string(&inbox_a).unwrap();
-    for secret in [
-        "do-not-show",
-        "header-do-not-show",
-        "body-do-not-show",
-    ] {
+    for secret in ["do-not-show", "header-do-not-show", "body-do-not-show"] {
         assert!(!inbox_json.contains(secret));
     }
 
