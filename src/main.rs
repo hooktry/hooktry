@@ -12,7 +12,7 @@ use axum::{
     routing::{any, get},
 };
 use chrono::Utc;
-use domain::{Direction, Interaction, Origin, Protocol};
+use domain::{Direction, Interaction, Origin, Protocol, Session};
 use serde_json::{Value, json};
 use store::InteractionStore;
 use uuid::Uuid;
@@ -20,14 +20,17 @@ use uuid::Uuid;
 #[derive(Clone)]
 struct AppState {
     store: InteractionStore,
-    session_id: Uuid,
+    session: Session,
 }
 
 #[tokio::main]
 async fn main() {
     let state = AppState {
         store: InteractionStore::default(),
-        session_id: Uuid::now_v7(),
+        session: Session {
+            id: Uuid::now_v7(),
+            started_at: Utc::now(),
+        },
     };
     let app = app(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:7777")
@@ -66,7 +69,7 @@ async fn capture(
     let response = json!({"status": StatusCode::OK.as_u16()});
     state.store.record(Interaction {
         id: Uuid::now_v7(),
-        session_id: state.session_id,
+        session_id: state.session.id,
         protocol: Protocol::Http,
         direction: Direction::Inbound,
         origin: Origin::Observed,
