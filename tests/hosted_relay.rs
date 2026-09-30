@@ -55,8 +55,7 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
             .unwrap();
     });
 
-    let credential =
-        common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
+    let credential = common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
     let provision: ProvisionedExposure = reqwest::Client::new()
         .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
         .bearer_auth(&credential.token)
