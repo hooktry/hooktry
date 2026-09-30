@@ -154,7 +154,8 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
     ) -> ExecutionRecord {
-        self.execute_recorded_inner(workspace_id, request, true).await
+        self.execute_recorded_inner(workspace_id, request, true)
+            .await
     }
 
     async fn execute_recorded_inner(
@@ -327,7 +328,8 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
     ) -> ExecutionRecord {
-        self.execute_recorded_inner(workspace_id, request, false).await
+        self.execute_recorded_inner(workspace_id, request, false)
+            .await
     }
 
     pub fn secret_store(&self) -> &SecretStore {
