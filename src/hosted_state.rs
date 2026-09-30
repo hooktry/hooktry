@@ -124,7 +124,10 @@ impl HostedExposureStore {
         };
         if !has_workspace_id {
             connection
-                .execute("ALTER TABLE hosted_exposures ADD COLUMN workspace_id TEXT", [])
+                .execute(
+                    "ALTER TABLE hosted_exposures ADD COLUMN workspace_id TEXT",
+                    [],
+                )
                 .map_err(|error| HostedStateError::Storage(error.to_string()))?;
         }
         connection
@@ -332,8 +335,16 @@ impl HostedExposureStore {
                     })
                     .map_err(|error| HostedStateError::Storage(error.to_string()))?;
                 rows.map(|row| {
-                    let (exposure_id, workspace_id, name, target_port, public_url, runtime_url, expires_at, revoked) =
-                        row.map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                    let (
+                        exposure_id,
+                        workspace_id,
+                        name,
+                        target_port,
+                        public_url,
+                        runtime_url,
+                        expires_at,
+                        revoked,
+                    ) = row.map_err(|error| HostedStateError::Storage(error.to_string()))?;
                     let exposure_id = exposure_id.parse().map_err(|error| {
                         HostedStateError::InvalidRecord(format!("invalid exposure id: {error}"))
                     })?;
@@ -421,20 +432,21 @@ impl HostedExposureStore {
 
 fn hosted_record_from_raw(
     exposure_id: Uuid,
-    (
-        workspace_id,
-        name,
-        target_port,
-        public_url,
-        runtime_url,
-        capability_expires_at,
-        revoked,
-    ): (Option<String>, String, i64, String, String, i64, bool),
+    (workspace_id, name, target_port, public_url, runtime_url, capability_expires_at, revoked): (
+        Option<String>,
+        String,
+        i64,
+        String,
+        String,
+        i64,
+        bool,
+    ),
 ) -> Result<HostedExposureRecord, HostedStateError> {
     let workspace_id = workspace_id
         .map(|id| {
-            id.parse()
-                .map_err(|error| HostedStateError::InvalidRecord(format!("invalid workspace id: {error}")))
+            id.parse().map_err(|error| {
+                HostedStateError::InvalidRecord(format!("invalid workspace id: {error}"))
+            })
         })
         .transpose()?;
 
