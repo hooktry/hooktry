@@ -79,6 +79,10 @@ impl RelayBroker {
         }
     }
 
+    pub async fn disconnect(&self, exposure_id: Uuid) -> bool {
+        self.runtimes.lock().await.remove(&exposure_id).is_some()
+    }
+
     pub async fn ingress(&self, request: RelayRequest) -> Result<RelayResponse, RelayError> {
         self.ingress_with_timeout(request, Duration::from_secs(30))
             .await
