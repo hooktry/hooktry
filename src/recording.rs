@@ -52,6 +52,7 @@ pub fn replay(
             request: source.request,
             response: source.response,
             source_interaction_id: Some(source.id),
+            context: source.context,
         };
         store.record(interaction.clone());
         replayed.push(interaction);

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -25,6 +27,50 @@ pub enum Origin {
     Generated,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CorrelationContext {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_span_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correlation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub causation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+}
+
+impl CorrelationContext {
+    pub fn is_empty(&self) -> bool {
+        self.trace_id.is_none()
+            && self.parent_span_id.is_none()
+            && self.request_id.is_none()
+            && self.correlation_id.is_none()
+            && self.causation_id.is_none()
+            && self.message_id.is_none()
+            && self.idempotency_key.is_none()
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InteractionContext {
+    #[serde(default, skip_serializing_if = "CorrelationContext::is_empty")]
+    pub correlation: CorrelationContext,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub attributes: BTreeMap<String, serde_json::Value>,
+}
+
+impl InteractionContext {
+    pub fn is_empty(&self) -> bool {
+        self.correlation.is_empty() && self.attributes.is_empty()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Interaction {
     pub id: Uuid,
@@ -39,6 +85,8 @@ pub struct Interaction {
     pub response: serde_json::Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_interaction_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "InteractionContext::is_empty")]
+    pub context: InteractionContext,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -16,6 +16,11 @@ async fn recording_replays_captured_interactions_with_provenance() {
             Request::builder()
                 .method("POST")
                 .uri("/boundary/github/webhook")
+                .header(
+                    "traceparent",
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                )
+                .header("x-correlation-id", "github-pr-42")
                 .body(Body::from(r#"{"action":"opened"}"#))
                 .unwrap(),
         )
@@ -38,6 +43,19 @@ async fn recording_replays_captured_interactions_with_provenance() {
     let source_id = recording.interaction_ids[0];
 
     let response = router
+        .clone()
+        .oneshot(
+            Request::get("/_ortyo/interactions")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let source: Vec<Interaction> = serde_json::from_slice(&bytes).unwrap();
+    let source_context = source[0].context.clone();
+
+    let response = router
         .oneshot(
             Request::post(format!("/_ortyo/recordings/{}/replay", recording.id))
                 .body(Body::empty())
@@ -53,4 +71,9 @@ async fn recording_replays_captured_interactions_with_provenance() {
     assert_eq!(replayed[0].source_interaction_id, Some(source_id));
     assert_eq!(replayed[0].operation, "POST /github/webhook");
     assert_eq!(replayed[0].request["body"], r#"{"action":"opened"}"#);
+    assert_eq!(replayed[0].context, source_context);
+    assert_eq!(
+        replayed[0].context.correlation.correlation_id.as_deref(),
+        Some("github-pr-42")
+    );
 }

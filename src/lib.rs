@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod context;
 pub mod contract;
 pub mod domain;
 pub mod exposure;
