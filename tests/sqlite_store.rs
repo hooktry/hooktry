@@ -89,7 +89,10 @@ fn persistence_order_is_durable_and_independent_from_interaction_timestamps() {
     let reopened = InteractionStore::open(&path).unwrap();
     let persistence_order = reopened.all_recorded();
     assert_eq!(
-        persistence_order.iter().map(|item| item.id).collect::<Vec<_>>(),
+        persistence_order
+            .iter()
+            .map(|item| item.id)
+            .collect::<Vec<_>>(),
         vec![first_id, second_id]
     );
 
