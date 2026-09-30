@@ -73,7 +73,7 @@ impl HostedServerConfig {
             .ok_or_else(|| "ORTYO_SECRETS_KEY is required".to_owned())
             .and_then(|value| {
                 decode_master_key(&value)
-                    .map_err(|_| "ORTYO_SECRETS_KEY must encode exactly 32 bytes".to_owned())
+                    .map_err(|_| "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned())
             })?;
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
