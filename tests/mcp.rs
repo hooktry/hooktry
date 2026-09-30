@@ -66,7 +66,7 @@ async fn tool_schemas_require_identity_arguments() {
         .iter()
         .find(|tool| tool["name"] == "exposure_create")
         .unwrap();
-    assert_eq!(exposure["inputSchema"]["required"], json!(["name"]));
+    assert_eq!(exposure["inputSchema"]["required"], json!(["name", "port"]));
 
     let replay = tools
         .iter()
