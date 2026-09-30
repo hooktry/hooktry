@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     approval::{ApprovalRecord, ApprovalState, ApprovalStore},
+    approval_webhook::{ensure_webhook_secret, run_worker, validate_webhook_url},
     domain::{ExposureAccess, ExposureMode},
     execution::{
         ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
@@ -34,6 +35,7 @@ pub struct HostedServerConfig {
     pub db_path: String,
     pub secrets_key: [u8; 32],
     pub bootstrap_workspace: Option<String>,
+    pub approval_webhook_url: Option<String>,
 }
 
 impl std::fmt::Debug for HostedServerConfig {
@@ -49,6 +51,10 @@ impl std::fmt::Debug for HostedServerConfig {
             .field("db_path", &self.db_path)
             .field("secrets_key", &"[REDACTED]")
             .field("bootstrap_workspace", &self.bootstrap_workspace)
+            .field(
+                "approval_webhook_url",
+                &self.approval_webhook_url.as_ref().map(|_| "[REDACTED]"),
+            )
             .finish()
     }
 }
@@ -93,6 +99,11 @@ impl HostedServerConfig {
             })?;
         let bootstrap_workspace =
             lookup("ORTYO_BOOTSTRAP_WORKSPACE").filter(|value| !value.trim().is_empty());
+        let approval_webhook_url =
+            lookup("ORTYO_APPROVAL_WEBHOOK_URL").filter(|value| !value.trim().is_empty());
+        if let Some(url) = approval_webhook_url.as_deref() {
+            validate_webhook_url(url)?;
+        }
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -105,6 +116,7 @@ impl HostedServerConfig {
             db_path,
             secrets_key,
             bootstrap_workspace,
+            approval_webhook_url,
         })
     }
 }
@@ -123,6 +135,7 @@ struct HostedStartup {
     runtime_transport: &'static str,
     storage: &'static str,
     dogfood_exposure: bool,
+    approval_webhook: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -166,6 +179,20 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     if dogfood.is_some() && bootstrap_workspace_id.is_none() {
         return Err("ORTYO_DOGFOOD_EXPOSURE_PORT requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned());
     }
+    if config.approval_webhook_url.is_some() && bootstrap_workspace_id.is_none() {
+        return Err("ORTYO_APPROVAL_WEBHOOK_URL requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned());
+    }
+    let approval_webhook = match (
+        bootstrap_workspace_id,
+        config.approval_webhook_url.as_deref(),
+    ) {
+        (Some(workspace_id), Some(url)) => {
+            ensure_webhook_secret(&secrets, workspace_id, url).await?;
+            true
+        }
+        _ => false,
+    };
+
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
@@ -177,6 +204,14 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     )
     .with_approval_store(approvals)
     .with_execution_store(executions);
+
+    if approval_webhook {
+        let webhook_state = state.clone();
+        let workspace_id = bootstrap_workspace_id.expect("webhook requires bootstrap workspace");
+        tokio::spawn(async move {
+            run_worker(webhook_state, workspace_id).await;
+        });
+    }
 
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
@@ -229,6 +264,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         runtime_transport: "websocket",
         storage,
         dogfood_exposure: dogfood.is_some(),
+        approval_webhook,
     };
     println!(
         "{}",
