@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use base64::{Engine, engine::general_purpose::STANDARD};
 use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
@@ -286,10 +285,42 @@ impl SecretStore {
 }
 
 pub fn decode_master_key(value: &str) -> Result<[u8; 32], SecretError> {
-    let bytes = STANDARD
-        .decode(value)
-        .map_err(|_| SecretError::InvalidKey)?;
+    let bytes = hex_decode(value).map_err(|_| SecretError::InvalidKey)?;
     bytes.try_into().map_err(|_| SecretError::InvalidKey)
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    encoded
+}
+
+fn hex_decode(value: &str) -> Result<Vec<u8>, ()> {
+    if !value.len().is_multiple_of(2) {
+        return Err(());
+    }
+    value
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let high = hex_nibble(pair[0])?;
+            let low = hex_nibble(pair[1])?;
+            Ok((high << 4) | low)
+        })
+        .collect()
+}
+
+fn hex_nibble(value: u8) -> Result<u8, ()> {
+    match value {
+        b'0'..=b'9' => Ok(value - b'0'),
+        b'a'..=b'f' => Ok(value - b'a' + 10),
+        b'A'..=b'F' => Ok(value - b'A' + 10),
+        _ => Err(()),
+    }
 }
 
 fn encrypt(
@@ -309,7 +340,7 @@ fn encrypt(
         .map_err(|_| SecretError::Crypto)?;
     let mut envelope = nonce_bytes.to_vec();
     envelope.extend_from_slice(&in_out);
-    Ok(STANDARD.encode(envelope))
+    Ok(hex_encode(&envelope))
 }
 
 fn decrypt(
@@ -318,7 +349,7 @@ fn decrypt(
     name: &str,
     envelope: &str,
 ) -> Result<Vec<u8>, SecretError> {
-    let envelope = STANDARD.decode(envelope).map_err(|_| SecretError::Crypto)?;
+    let envelope = hex_decode(envelope).map_err(|_| SecretError::Crypto)?;
     if envelope.len() < 12 + AES_256_GCM.tag_len() {
         return Err(SecretError::Crypto);
     }
