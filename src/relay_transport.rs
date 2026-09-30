@@ -18,13 +18,28 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RelayFrame {
-    Register { exposure_id: Uuid, capability: String },
-    Registered { exposure_id: Uuid },
-    Request { request: RelayRequest },
-    Response { response: RelayResponse },
-    Ping { nonce: Uuid },
-    Pong { nonce: Uuid },
-    Error { message: String },
+    Register {
+        exposure_id: Uuid,
+        capability: String,
+    },
+    Registered {
+        exposure_id: Uuid,
+    },
+    Request {
+        request: RelayRequest,
+    },
+    Response {
+        response: RelayResponse,
+    },
+    Ping {
+        nonce: Uuid,
+    },
+    Pong {
+        nonce: Uuid,
+    },
+    Error {
+        message: String,
+    },
 }
 
 #[derive(Debug)]
