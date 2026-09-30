@@ -102,7 +102,7 @@ impl InteractionStore {
         })
     }
 
-    pub fn record(&self, mut interaction: Interaction) {
+    pub fn record(&self, mut interaction: Interaction) -> Interaction {
         let interaction_id = interaction.id.to_string();
         let mut connection = self.connection.lock().expect("interaction store poisoned");
         let transaction = connection
@@ -137,6 +137,7 @@ impl InteractionStore {
         let revision = *self.interaction_revision.borrow();
         self.interaction_revision
             .send_replace(revision.wrapping_add(1));
+        interaction
     }
 
     pub fn subscribe_interactions(&self) -> watch::Receiver<u64> {
