@@ -20,7 +20,9 @@ async fn bootstrap_issues_first_token_once_and_token_is_immediately_usable() {
         "server-only-control-token",
     );
     tokio::spawn(async move {
-        axum::serve(listener, hosted_relay_app(state)).await.unwrap();
+        axum::serve(listener, hosted_relay_app(state))
+            .await
+            .unwrap();
     });
 
     let client = reqwest::Client::new();
