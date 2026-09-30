@@ -55,5 +55,6 @@ impl Cli {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|interactions|assert CONTRACT_ID INTERACTION_ID>".to_owned()
+    "usage: ortyo [--base-url URL] <serve|interactions|assert CONTRACT_ID INTERACTION_ID>"
+        .to_owned()
 }
