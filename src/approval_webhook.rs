@@ -160,10 +160,7 @@ async fn process_one(
     };
 
     let result = if allow_private_destination_for_test {
-        state
-            .executor
-            .execute_for_test(workspace_id, request)
-            .await
+        state.executor.execute_for_test(workspace_id, request).await
     } else {
         state.executor.execute(workspace_id, request).await
     };
