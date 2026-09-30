@@ -195,7 +195,7 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .execute(
-                    "INSERT INTO hosted_secrets
+                        "INSERT INTO hosted_secrets
                         (secret_id, workspace_id, name, envelope, key_version)
                      VALUES ($1,$2,$3,$4,$5)
                      ON CONFLICT(workspace_id, name) DO UPDATE SET
@@ -243,11 +243,11 @@ impl SecretStore {
                 row.map(|(id, envelope, key_version)| {
                     Ok(StoredSecret {
                         reference: SecretRef {
-                        id: id.parse().map_err(|error| {
-                            SecretError::Storage(format!("invalid secret id: {error}"))
-                        })?,
-                        workspace_id,
-                        name: name.to_owned(),
+                            id: id.parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid secret id: {error}"))
+                            })?,
+                            workspace_id,
+                            name: name.to_owned(),
                         },
                         envelope,
                         key_version,
