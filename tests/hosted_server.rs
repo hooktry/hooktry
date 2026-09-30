@@ -65,7 +65,9 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
     );
 
     tokio::spawn(async move {
-        axum::serve(listener, hosted_relay_app(state)).await.unwrap();
+        axum::serve(listener, hosted_relay_app(state))
+            .await
+            .unwrap();
     });
 
     let health: serde_json::Value = reqwest::get(format!("http://{addr}/healthz"))
