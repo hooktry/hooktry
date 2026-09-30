@@ -155,7 +155,6 @@ async fn ingress_times_out_when_registered_runtime_never_answers() {
     assert_eq!(response.status(), StatusCode::GATEWAY_TIMEOUT);
 }
 
-
 #[tokio::test]
 async fn ingress_rejects_body_over_configured_limit() {
     let broker = RelayBroker::default();
