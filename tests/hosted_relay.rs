@@ -126,7 +126,10 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
     let interactions = runtime_state.store.all();
     assert_eq!(interactions.len(), 1);
     assert_eq!(interactions[0].origin, Origin::Proxied);
-    assert_eq!(interactions[0].request["exposure_id"], exposure_id.to_string());
+    assert_eq!(
+        interactions[0].request["exposure_id"],
+        exposure_id.to_string()
+    );
     assert_eq!(interactions[0].request["path"], "/webhook");
     assert_eq!(interactions[0].request["query"], "delivery=hosted");
     assert_eq!(interactions[0].request["headers"]["x-signature"], "proof");
@@ -142,11 +145,7 @@ async fn socket_disconnect_removes_runtime_registration() {
 
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();
-    tokio::spawn(serve_listener(
-        relay_listener,
-        broker.clone(),
-        capabilities,
-    ));
+    tokio::spawn(serve_listener(relay_listener, broker.clone(), capabilities));
 
     let stream = TcpStream::connect(relay_addr).await.unwrap();
     let state = AppState::default();
@@ -171,7 +170,10 @@ async fn socket_disconnect_removes_runtime_registration() {
         }
     }
 
-    assert!(unavailable, "disconnected runtime registration stayed routable");
+    assert!(
+        unavailable,
+        "disconnected runtime registration stayed routable"
+    );
 }
 
 fn request_for(exposure_id: uuid::Uuid) -> ortyo::relay::RelayRequest {
