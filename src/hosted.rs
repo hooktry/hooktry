@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, State, ws::WebSocketUpgrade},
     http::{HeaderMap, StatusCode, header::AUTHORIZATION},
     response::Response,
-    routing::{any, post},
+    routing::{any, get, post},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -23,7 +23,7 @@ pub struct HostedRelayState {
     pub broker: RelayBroker,
     pub capabilities: CapabilityStore,
     pub public_base_url: String,
-    pub relay_addr: String,
+    pub relay_addr: Option<String>,
     pub runtime_ws_base_url: String,
     pub capability_ttl: Duration,
 }
@@ -41,7 +41,24 @@ impl HostedRelayState {
             broker,
             capabilities,
             public_base_url,
-            relay_addr: relay_addr.into(),
+            relay_addr: Some(relay_addr.into()),
+            runtime_ws_base_url,
+            capability_ttl: Duration::from_secs(15 * 60),
+        }
+    }
+
+    pub fn websocket_only(
+        broker: RelayBroker,
+        capabilities: CapabilityStore,
+        public_base_url: impl Into<String>,
+    ) -> Self {
+        let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
+        let runtime_ws_base_url = websocket_base_url(&public_base_url);
+        Self {
+            broker,
+            capabilities,
+            public_base_url,
+            relay_addr: None,
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
         }
@@ -59,7 +76,8 @@ pub struct ProvisionedExposure {
     pub exposure_id: Uuid,
     pub name: String,
     pub public_url: String,
-    pub relay_addr: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relay_addr: Option<String>,
     pub runtime_url: String,
     pub runtime_capability: String,
     pub capability_expires_at_unix_seconds: u64,
@@ -71,10 +89,19 @@ pub struct ProvisionedExposure {
 pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     let ingress = relay_ingress_app(RelayIngressState::new(state.broker.clone()));
     Router::new()
+        .route("/_ortyo/health", get(health))
+        .route("/healthz", get(health))
         .route("/_ortyo/hosted/exposures", post(provision_exposure))
         .route("/_ortyo/runtime/{exposure_id}", any(runtime_websocket))
         .with_state(state)
         .merge(ingress)
+}
+
+async fn health() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "ok": true,
+        "service": "hosted_relay"
+    }))
 }
 
 async fn provision_exposure(
