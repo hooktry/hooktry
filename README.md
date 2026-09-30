@@ -21,12 +21,16 @@ ORTYO is not an observability backend. OpenTelemetry may enrich ORTYO evidence, 
 Run the local boundary with `ortyo` or `ortyo serve`. The CLI talks to the same HTTP API used by other clients:
 
 ```sh
+ortyo expose 3000
+ortyo exposures
+ortyo exposure-get <exposure-id>
+ortyo exposure-revoke <exposure-id>
 ortyo interactions
 ortyo assert <contract-id> <interaction-id>
 ortyo --base-url http://127.0.0.1:7777 interactions
 ```
 
-Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling.
+Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling. `ortyo expose 3000` creates a private local exposure and returns `exposure_id`, `url`, `access`, `mode`, `target_port`, and a fail-closed `verified` result.
 
 ### MCP
 
