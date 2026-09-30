@@ -96,6 +96,22 @@ Or define a range:
 
 ORTYO evaluates every replayed interaction with the same operation, persists assertion evidence for every candidate, and applies `count`/`min`/`max` to the subset that actually matches the Contract. Scenario outcome evidence includes candidate, matched, and assertion IDs, so duplicate calls and payload mismatches remain distinguishable.
 
+Contracts can also match the normalized correlation context extracted from boundary evidence:
+
+```json
+{
+  "name": "checkout payment",
+  "operation": "POST /payments",
+  "context": {
+    "correlation_id": "checkout-42",
+    "idempotency_key": "payment-42"
+  },
+  "count": 1
+}
+```
+
+Context matching is subset-based like request/response matching. Supported canonical fields are `trace_id`, `parent_span_id`, `request_id`, `correlation_id`, `causation_id`, `message_id`, and `idempotency_key`. Raw headers remain evidence; the Contract matches the normalized values. This lets two otherwise identical external calls be distinguished by their logical flow or idempotency identity without making OpenTelemetry mandatory.
+
 Asynchronous integrations can define a Scenario-level observation window:
 
 ```json
