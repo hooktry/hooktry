@@ -160,6 +160,19 @@ impl HostedExposureStore {
             .map_err(|error| HostedStateError::Storage(error.to_string()))?
     }
 
+    pub async fn update_capability_expiry_async(
+        &self,
+        exposure_id: Uuid,
+        expires_at_unix_seconds: u64,
+    ) -> Result<(), HostedStateError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.update_capability_expiry(exposure_id, expires_at_unix_seconds)
+        })
+        .await
+        .map_err(|error| HostedStateError::Storage(error.to_string()))?
+    }
+
     pub async fn revoke_async(&self, exposure_id: Uuid) -> Result<(), HostedStateError> {
         let store = self.clone();
         tokio::task::spawn_blocking(move || store.revoke(exposure_id))
@@ -220,6 +233,48 @@ impl HostedExposureStore {
                     .map_err(|error| HostedStateError::Storage(error.to_string()))?;
                 Ok(())
             }
+        }
+    }
+
+    pub fn update_capability_expiry(
+        &self,
+        exposure_id: Uuid,
+        expires_at_unix_seconds: u64,
+    ) -> Result<(), HostedStateError> {
+        let expires_at = i64::try_from(expires_at_unix_seconds)
+            .map_err(|error| HostedStateError::InvalidRecord(error.to_string()))?;
+
+        let updated = match &self.backend {
+            HostedExposureBackend::Sqlite(connection) => connection
+                .lock()
+                .expect("hosted exposure store poisoned")
+                .execute(
+                    "UPDATE hosted_exposures
+                     SET capability_expires_at = ?1
+                     WHERE exposure_id = ?2 AND revoked = 0",
+                    params![expires_at, exposure_id.to_string()],
+                )
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?,
+            HostedExposureBackend::Postgres(client) => {
+                let exposure_id = exposure_id.to_string();
+                client
+                    .lock()
+                    .expect("hosted exposure store poisoned")
+                    .execute(
+                        "UPDATE hosted_exposures
+                         SET capability_expires_at = $1
+                         WHERE exposure_id = $2 AND revoked = FALSE",
+                        &[&expires_at, &exposure_id],
+                    )
+                    .map_err(|error| HostedStateError::Storage(error.to_string()))?
+                    as usize
+            }
+        };
+
+        if updated == 0 {
+            Err(HostedStateError::NotFound)
+        } else {
+            Ok(())
         }
     }
 
