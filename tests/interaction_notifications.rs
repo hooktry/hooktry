@@ -21,6 +21,7 @@ async fn interaction_revision_wakes_after_persisted_evidence() {
         operation: "POST /webhook".into(),
         started_at: Utc::now(),
         duration_ms: 1,
+        observed_sequence: None,
         request: json!({}),
         response: json!({"status": 200}),
         source_interaction_id: None,
