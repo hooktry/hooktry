@@ -60,8 +60,8 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     let ingress = relay_ingress_app(RelayIngressState::new(state.broker.clone()));
     Router::new()
         .route("/_ortyo/hosted/exposures", post(provision_exposure))
-        .merge(ingress)
         .with_state(state)
+        .merge(ingress)
 }
 
 async fn provision_exposure(
