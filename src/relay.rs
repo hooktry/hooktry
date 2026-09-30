@@ -56,7 +56,8 @@ impl RelayBroker {
     }
 
     pub async fn ingress(&self, request: RelayRequest) -> Result<RelayResponse, RelayError> {
-        self.ingress_with_timeout(request, Duration::from_secs(30)).await
+        self.ingress_with_timeout(request, Duration::from_secs(30))
+            .await
     }
 
     pub async fn ingress_with_timeout(
