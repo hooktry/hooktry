@@ -209,12 +209,13 @@ impl ApprovalStore {
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+        backfill_postgres_notification_outbox(&mut client)?;
         Ok(Self {
             backend: ApprovalBackend::Postgres(Arc::new(Mutex::new(client))),
         })
     }
 
-    fn from_sqlite_connection(connection: Connection) -> Result<Self, ApprovalError> {
+    fn from_sqlite_connection(mut connection: Connection) -> Result<Self, ApprovalError> {
         connection
             .execute_batch(
                 "CREATE TABLE IF NOT EXISTS hosted_approvals (
@@ -249,6 +250,7 @@ impl ApprovalStore {
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+        backfill_sqlite_notification_outbox(&mut connection)?;
         Ok(Self {
             backend: ApprovalBackend::Sqlite(Arc::new(Mutex::new(connection))),
         })
@@ -1095,6 +1097,97 @@ fn load_sqlite_record(
         .map_err(|error| ApprovalError::Storage(error.to_string()))?
         .map(|row| row.into_record(approval_id))
         .transpose()
+}
+
+fn backfill_sqlite_notification_outbox(
+    connection: &mut Connection,
+) -> Result<(), ApprovalError> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+    let missing = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT a.approval_id, a.workspace_id, a.requested_at
+                 FROM hosted_approvals a
+                 LEFT JOIN hosted_approval_notification_outbox n
+                   ON n.approval_id = a.approval_id
+                 WHERE a.state='pending' AND n.approval_id IS NULL
+                 ORDER BY a.requested_at ASC, a.approval_id ASC",
+            )
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            })
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    };
+
+    for (approval_id, workspace_id, requested_at) in missing {
+        transaction
+            .execute(
+                "INSERT INTO hosted_approval_notification_outbox
+                    (notification_id, workspace_id, approval_id, event, created_at, delivered_at)
+                 VALUES (?1, ?2, ?3, 'approval_requested', ?4, NULL)",
+                params![
+                    Uuid::now_v7().to_string(),
+                    workspace_id,
+                    approval_id,
+                    requested_at
+                ],
+            )
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+    }
+
+    transaction
+        .commit()
+        .map_err(|error| ApprovalError::Storage(error.to_string()))
+}
+
+fn backfill_postgres_notification_outbox(client: &mut Client) -> Result<(), ApprovalError> {
+    let mut transaction = client
+        .transaction()
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+    let missing = transaction
+        .query(
+            "SELECT a.approval_id, a.workspace_id, a.requested_at
+             FROM hosted_approvals a
+             LEFT JOIN hosted_approval_notification_outbox n
+               ON n.approval_id = a.approval_id
+             WHERE a.state='pending' AND n.approval_id IS NULL
+             ORDER BY a.requested_at ASC, a.approval_id ASC",
+            &[],
+        )
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+
+    for row in missing {
+        let approval_id: String = row.get(0);
+        let workspace_id: String = row.get(1);
+        let requested_at: i64 = row.get(2);
+        transaction
+            .execute(
+                "INSERT INTO hosted_approval_notification_outbox
+                    (notification_id, workspace_id, approval_id, event, created_at, delivered_at)
+                 VALUES ($1, $2, $3, 'approval_requested', $4, NULL)",
+                &[
+                    &Uuid::now_v7().to_string(),
+                    &workspace_id,
+                    &approval_id,
+                    &requested_at,
+                ],
+            )
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+    }
+
+    transaction
+        .commit()
+        .map_err(|error| ApprovalError::Storage(error.to_string()))
 }
 
 fn verify_consumable(record: &ApprovalRecord, request_digest: &str) -> Result<(), ApprovalError> {
