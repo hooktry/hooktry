@@ -19,6 +19,7 @@ use crate::relay::{RelayBroker, RelayError, RelayRequest, RelayResponse};
 pub struct RelayIngressState {
     pub broker: RelayBroker,
     pub timeout: Duration,
+    pub max_body_bytes: usize,
 }
 
 impl RelayIngressState {
@@ -26,6 +27,7 @@ impl RelayIngressState {
         Self {
             broker,
             timeout: Duration::from_secs(30),
+            max_body_bytes: 1024 * 1024,
         }
     }
 }
@@ -86,6 +88,10 @@ async fn ingress(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Response, StatusCode> {
+    if body.len() > state.max_body_bytes {
+        return Err(StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
     let response = state
         .broker
         .ingress_with_timeout(
@@ -149,5 +155,6 @@ fn relay_error_status(error: RelayError) -> StatusCode {
         }
         RelayError::Timeout => StatusCode::GATEWAY_TIMEOUT,
         RelayError::ResponseDropped => StatusCode::BAD_GATEWAY,
+        RelayError::Overloaded => StatusCode::SERVICE_UNAVAILABLE,
     }
 }
