@@ -7,7 +7,8 @@ Implementation status:
 - MATCH1: implemented — all-candidate Contract matching with `count`/`min`/`max` cardinality evidence.
 - WINDOW1: implemented — Scenario-level `within_ms` + quiet `settle_ms`, event-driven by persisted interaction revisions.
 - CONTEXT-MATCH1: implemented — Contracts can subset-match canonical normalized correlation context, and Scenario/WINDOW1 use the same matcher.
-- ORDER1, per-expectation WAIT1/eventually, RETRY1, OTEL1: deferred.
+- ORDER1: implemented — optional `ordering: "declared"` over durable source-interaction persistence order with machine-readable violations.
+- Per-expectation WAIT1/eventually, RETRY1, OTEL1: deferred.
 
 ## Summary
 
@@ -429,17 +430,24 @@ Outcome evidence should include candidate/matched interaction IDs and expected/o
 
 ### ORDER1
 
-Assertions over observed ordering, not a generic workflow DSL.
+Implemented as an optional Scenario-level policy:
 
-Example:
-
-```text
-POST /customers
-  before
-POST /subscriptions
-  before
-POST /emails
+```json
+{
+  "ordering": "declared",
+  "contracts": [
+    {"name": "customer", "operation": "POST /customers"},
+    {"name": "subscription", "operation": "POST /subscriptions"},
+    {"name": "email", "operation": "POST /emails"}
+  ]
+}
 ```
+
+The declaration order defines the expected partial sequence of matching groups. Every match of an earlier expectation must be persisted before every match of each later expectation. Cardinality remains a separate concern, so two expectations may both satisfy their Contracts/counts while ORDER1 still fails.
+
+ORDER1 is based on a durable monotonic persistence sequence, not `started_at`, UUID ordering, or wall-clock comparison. SQLite keeps that sequence in an internal `interaction_order` table. Existing local databases are backfilled once from SQLite insertion order; all new interactions persist their evidence row and order row atomically.
+
+The outcome contains the observed source interaction IDs and explicit violating pairs. This is observable boundary order only; it does not claim application-level causality. Missing groups do not invent an order relation.
 
 ### WAIT1
 
