@@ -338,9 +338,7 @@ impl HostedIdentityStore {
                 .query_row(
                     "SELECT id, status FROM hosted_workspaces WHERE slug = ?1",
                     params![slug],
-                    |row| {
-                        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-                    },
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
                 )
                 .optional()
                 .map_err(|error| IdentityError::Storage(error.to_string()))?
