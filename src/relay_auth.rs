@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}, time::{Duration, SystemTime}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+    time::{Duration, SystemTime},
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,19 +36,36 @@ impl CapabilityStore {
     pub fn issue(&self, exposure_id: Uuid, ttl: Duration) -> RuntimeCapability {
         let token = format!("ortyo_rt_{}", Uuid::now_v7().simple());
         let expires_at = SystemTime::now() + ttl;
-        self.inner.write().expect("capability store poisoned").insert(
-            token.clone(),
-            CapabilityRecord { exposure_id, expires_at, revoked: false },
-        );
-        RuntimeCapability { token, exposure_id, expires_at }
+        self.inner
+            .write()
+            .expect("capability store poisoned")
+            .insert(
+                token.clone(),
+                CapabilityRecord {
+                    exposure_id,
+                    expires_at,
+                    revoked: false,
+                },
+            );
+        RuntimeCapability {
+            token,
+            exposure_id,
+            expires_at,
+        }
     }
 
     pub fn authorize(&self, exposure_id: Uuid, token: &str) -> Result<(), CapabilityError> {
         let store = self.inner.read().expect("capability store poisoned");
         let record = store.get(token).ok_or(CapabilityError::Invalid)?;
-        if record.revoked { return Err(CapabilityError::Revoked); }
-        if record.exposure_id != exposure_id { return Err(CapabilityError::WrongExposure); }
-        if SystemTime::now() >= record.expires_at { return Err(CapabilityError::Expired); }
+        if record.revoked {
+            return Err(CapabilityError::Revoked);
+        }
+        if record.exposure_id != exposure_id {
+            return Err(CapabilityError::WrongExposure);
+        }
+        if SystemTime::now() >= record.expires_at {
+            return Err(CapabilityError::Expired);
+        }
         Ok(())
     }
 
