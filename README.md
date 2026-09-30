@@ -127,6 +127,23 @@ Asynchronous integrations can define a Scenario-level observation window:
 
 Interaction arrival wakes Scenario completion through an in-process revision notification after persistence; SQLite remains the source of truth and no polling loop is used. The final `ScenarioOutcome` records both the observation policy and elapsed observation time.
 
+Scenarios can also assert the observed order of their contract definitions:
+
+```json
+{
+  "ordering": "declared",
+  "contracts": [
+    {"name": "customer", "operation": "POST /customers", "count": 1},
+    {"name": "subscription", "operation": "POST /subscriptions", "count": 1},
+    {"name": "email", "operation": "POST /emails", "count": 1}
+  ]
+}
+```
+
+`declared` means every matching source interaction for an earlier contract must be persisted before every matching source interaction for each later contract. Ordering is evaluated independently from cardinality: both contracts can individually pass and the Scenario can still fail because their observed order is reversed. Missing optional/zero-match groups do not create an order edge.
+
+ORTYO does not use wall-clock timestamps to decide order. The local evidence store maintains a durable monotonic persistence sequence in `interaction_order`; existing databases are backfilled once from their SQLite insertion order. `ScenarioOutcome.order` records the observed source interaction IDs and machine-readable violating contract/interaction pairs.
+
 Scenario definitions can live in the repository as portable JSON manifests:
 
 ```json
