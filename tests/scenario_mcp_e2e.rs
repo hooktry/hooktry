@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    body::Bytes,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
 use ortyo::{
     domain::{Exposure, Scenario, ScenarioOutcome, ScenarioRun},
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
@@ -96,12 +91,7 @@ async fn scenario_drives_setup_evidence_replay_assertion_and_cleanup_through_mcp
         .unwrap();
     assert_eq!(response.status(), StatusCode::ACCEPTED);
 
-    let outcome_value = mcp_call(
-        &base_url,
-        "scenario_complete",
-        json!({"run_id": run.id}),
-    )
-    .await;
+    let outcome_value = mcp_call(&base_url, "scenario_complete", json!({"run_id": run.id})).await;
     let outcome: ScenarioOutcome = serde_json::from_value(outcome_value.clone()).unwrap();
     assert!(outcome.passed);
     assert!(outcome.recording_id.is_some());
@@ -111,20 +101,11 @@ async fn scenario_drives_setup_evidence_replay_assertion_and_cleanup_through_mcp
     assert!(outcome.checks[0].interaction_id.is_some());
     assert!(outcome.checks[0].assertion_id.is_some());
 
-    let persisted_outcome = mcp_call(
-        &base_url,
-        "scenario_outcome_get",
-        json!({"run_id": run.id}),
-    )
-    .await;
+    let persisted_outcome =
+        mcp_call(&base_url, "scenario_outcome_get", json!({"run_id": run.id})).await;
     assert_eq!(persisted_outcome, outcome_value);
 
-    let repeated = mcp_call(
-        &base_url,
-        "scenario_complete",
-        json!({"run_id": run.id}),
-    )
-    .await;
+    let repeated = mcp_call(&base_url, "scenario_complete", json!({"run_id": run.id})).await;
     assert_eq!(repeated, outcome_value);
 
     let exposure_value = mcp_call(
@@ -177,12 +158,7 @@ async fn scenario_without_evidence_completes_with_explicit_failure() {
     )
     .await;
 
-    let outcome = mcp_call(
-        &base_url,
-        "scenario_complete",
-        json!({"run_id": run["id"]}),
-    )
-    .await;
+    let outcome = mcp_call(&base_url, "scenario_complete", json!({"run_id": run["id"]})).await;
 
     assert_eq!(outcome["passed"], false);
     assert!(outcome["recording_id"].is_null());
