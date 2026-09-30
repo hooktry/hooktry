@@ -68,6 +68,7 @@ Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provid
 - Approval gate: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-gate.md
 - Approval inbox: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-inbox.md
 - Approval notification outbox: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-notification-outbox.md
+- Approval webhook provider: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-webhook.md
 - Service access / Exposure boundary: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/service-access.md
 - Runtime capabilities: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/runtime-capabilities.md
 - Secret lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/secret-lifecycle.md
