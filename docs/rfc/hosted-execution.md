@@ -92,7 +92,7 @@ HTTP capture binds a newly captured SecretRef to the origin that issued the valu
 
 The operator bootstrap credential is also bound to `ORTYO_PUBLIC_BASE_URL`. Existing bootstrap secrets are upgraded in place by attaching the origin policy at startup; the credential plaintext does not need to be reissued or exposed.
 
-The legacy string form in `secret_headers` remains intentionally unrestricted for backward compatibility:
+The legacy string form in `secret_headers` remains available for backward compatibility:
 
 ```json
 {
@@ -102,7 +102,7 @@ The legacy string form in `secret_headers` remains intentionally unrestricted fo
 }
 ```
 
-New agent-facing integrations should use the typed SecretRef form. An unbound secret used through a typed SecretRef fails closed rather than inheriting the legacy unrestricted behavior.
+New agent-facing integrations should use the typed SecretRef form. An unbound secret used through a typed SecretRef fails closed. A genuinely legacy unbound secret can still be used through the string form, but once a secret has an origin binding that policy is enforced regardless of whether the caller uses the typed or legacy syntax. Changing syntax cannot bypass the destination policy.
 
 Raw secret values are resolved only inside the executor and are never added to request Evidence. Durable hosted secrets are encrypted at rest with AES-256-GCM and an external `ORTYO_SECRETS_KEY`. The allowed origin is policy metadata, not secret material, and may be returned as part of captured-secret evidence.
 
