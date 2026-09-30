@@ -1271,6 +1271,7 @@ mod tests {
             db_path: "unused.db".to_owned(),
             secrets_key: [7; 32],
             bootstrap_workspace: None,
+            approval_webhook_url: None,
         };
 
         let error = match open_hosted_stores(&config).await {
