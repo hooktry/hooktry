@@ -9,6 +9,7 @@ use crate::{
     hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
+    secret::{SecretStore, decode_master_key},
 };
 
 #[derive(Clone, PartialEq, Eq)]
@@ -18,6 +19,7 @@ pub struct HostedServerConfig {
     pub control_token: String,
     pub database_url: Option<String>,
     pub db_path: String,
+    pub secrets_key: [u8; 32],
 }
 
 impl std::fmt::Debug for HostedServerConfig {
@@ -31,6 +33,7 @@ impl std::fmt::Debug for HostedServerConfig {
                 &self.database_url.as_ref().map(|_| "[REDACTED]"),
             )
             .field("db_path", &self.db_path)
+            .field("secrets_key", &"[REDACTED]")
             .finish()
     }
 }
@@ -65,6 +68,14 @@ impl HostedServerConfig {
         {
             return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
         }
+        let secrets_key = lookup("ORTYO_SECRETS_KEY")
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| "ORTYO_SECRETS_KEY is required".to_owned())
+            .and_then(|value| {
+                decode_master_key(&value).map_err(|_| {
+                    "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
+                })
+            })?;
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -75,6 +86,7 @@ impl HostedServerConfig {
             control_token,
             database_url,
             db_path,
+            secrets_key,
         })
     }
 }
@@ -93,12 +105,14 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let (capabilities, exposures, identities, storage) = open_hosted_stores(&config).await?;
+    let (capabilities, exposures, identities, secrets, storage) =
+        open_hosted_stores(&config).await?;
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
         exposures,
         identities,
+        secrets,
         config.public_base_url.clone(),
         &config.control_token,
     );
@@ -127,12 +141,14 @@ async fn open_hosted_stores(
         CapabilityStore,
         HostedExposureStore,
         HostedIdentityStore,
+        SecretStore,
         &'static str,
     ),
     String,
 > {
     if let Some(database_url) = &config.database_url {
         let database_url = database_url.clone();
+        let secrets_key = config.secrets_key;
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
@@ -140,12 +156,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, "postgres"))
+            let secrets = SecretStore::open_postgres(&database_url, secrets_key)
+                .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, secrets, "postgres"))
         })
         .await
         .map_err(|error| format!("join Postgres store initialization: {error}"))?
     } else {
         let db_path = config.db_path.clone();
+        let secrets_key = config.secrets_key;
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
@@ -153,7 +172,9 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
-            Ok((capabilities, exposures, identities, "sqlite"))
+            let secrets = SecretStore::open(&db_path, secrets_key)
+                .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
+            Ok((capabilities, exposures, identities, secrets, "sqlite"))
         })
         .await
         .map_err(|error| format!("join SQLite store initialization: {error}"))?
@@ -190,6 +211,7 @@ mod tests {
             control_token: "test-control-token".to_owned(),
             database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
             db_path: "unused.db".to_owned(),
+            secrets_key: [7; 32],
         };
 
         let error = match open_hosted_stores(&config).await {
