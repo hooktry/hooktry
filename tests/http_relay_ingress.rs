@@ -52,7 +52,9 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
     let server_broker = broker.clone();
     tokio::spawn(async move {
         let (stream, _) = relay_listener.accept().await.unwrap();
-        serve_connection(stream, server_broker, capabilities).await.unwrap();
+        serve_connection(stream, server_broker, capabilities)
+            .await
+            .unwrap();
     });
     tokio::spawn({
         let state = runtime_state.clone();
