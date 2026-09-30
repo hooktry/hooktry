@@ -16,6 +16,18 @@ Early development. The first vertical slice focuses on an HTTP boundary and a ca
 
 ORTYO is not an observability backend. OpenTelemetry may enrich ORTYO evidence, but ORTYO does not require application instrumentation.
 
+## CLI
+
+Run the local boundary with `ortyo` or `ortyo serve`. The CLI talks to the same HTTP API used by other clients:
+
+```sh
+ortyo interactions
+ortyo assert <contract-id> <interaction-id>
+ortyo --base-url http://127.0.0.1:7777 interactions
+```
+
+Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling.
+
 ## License
 
 TBD before the first public release.

@@ -1,3 +1,4 @@
+pub mod cli;
 pub mod contract;
 pub mod domain;
 pub mod exposure;
