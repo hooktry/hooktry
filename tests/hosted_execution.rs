@@ -294,7 +294,6 @@ async fn secret_ref_resolution_is_workspace_scoped() {
     assert_eq!(error, ExecutionError::SecretNotFound);
 }
 
-
 #[tokio::test]
 async fn typed_secret_ref_denies_a_different_origin_before_sending() {
     let workspace_id = Uuid::now_v7();
