@@ -10,9 +10,7 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
-    execution::{
-        ExecutionError, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
-    },
+    execution::{ExecutionError, HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
     hosted::{HostedRelayState, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::HostedExposureStore,
@@ -144,9 +142,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     };
     let dogfood = dogfood_exposure_config(|key| std::env::var(key).ok())?;
     if dogfood.is_some() && bootstrap_workspace_id.is_none() {
-        return Err(
-            "ORTYO_DOGFOOD_EXPOSURE_PORT requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned(),
-        );
+        return Err("ORTYO_DOGFOOD_EXPOSURE_PORT requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned());
     }
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
@@ -161,7 +157,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
         tokio::spawn(async move {
-            if let Err(error) = provision_dogfood_exposure(dogfood_state, workspace_id, dogfood).await
+            if let Err(error) =
+                provision_dogfood_exposure(dogfood_state, workspace_id, dogfood).await
             {
                 eprintln!(
                     "{}",
@@ -312,8 +309,8 @@ fn dogfood_exposure_config(
     else {
         return Ok(None);
     };
-    let target_port = parse_port(&port)
-        .map_err(|_| format!("invalid ORTYO_DOGFOOD_EXPOSURE_PORT: {port}"))?;
+    let target_port =
+        parse_port(&port).map_err(|_| format!("invalid ORTYO_DOGFOOD_EXPOSURE_PORT: {port}"))?;
     let name = lookup("ORTYO_DOGFOOD_EXPOSURE_NAME")
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| "ortyo-dogfood".to_owned());
@@ -385,8 +382,7 @@ async fn provision_dogfood_exposure(
                     .as_str()
                     .ok_or_else(|| "dogfood response missing public_url".to_owned())?;
                 let captured = evidence.captured_secrets.iter().any(|secret| {
-                    secret.secret_ref
-                        == format!("ortyo://secrets/{RUNTIME_CAPABILITY_SECRET}")
+                    secret.secret_ref == format!("ortyo://secrets/{RUNTIME_CAPABILITY_SECRET}")
                 });
                 if !captured {
                     return Err("dogfood runtime capability was not captured".to_owned());
@@ -406,7 +402,10 @@ async fn provision_dogfood_exposure(
             }
             Ok(evidence) => {
                 if attempt + 1 == ATTEMPTS {
-                    return Err(format!("dogfood exposure returned HTTP {}", evidence.status));
+                    return Err(format!(
+                        "dogfood exposure returned HTTP {}",
+                        evidence.status
+                    ));
                 }
             }
             Err(ExecutionError::RequestFailed) => {
