@@ -101,12 +101,6 @@ fn contract_context_is_a_subset_matcher_with_machine_readable_mismatch() {
             "idempotency_key": "payment-99"
         })
     );
-    assert_eq!(
-        result.mismatches[0].actual["request_id"],
-        "req-123"
-    );
-    assert_eq!(
-        result.mismatches[0].actual["idempotency_key"],
-        "payment-42"
-    );
+    assert_eq!(result.mismatches[0].actual["request_id"], "req-123");
+    assert_eq!(result.mismatches[0].actual["idempotency_key"], "payment-42");
 }
