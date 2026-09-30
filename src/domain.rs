@@ -155,6 +155,8 @@ pub struct Contract {
     pub operation: Option<serde_json::Value>,
     pub request: Option<serde_json::Value>,
     pub response: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<CorrelationContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

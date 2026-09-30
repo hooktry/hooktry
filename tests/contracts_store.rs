@@ -14,6 +14,7 @@ fn contracts_and_assertions_survive_database_reopen() {
         operation: Some(json!("POST /stripe/payment_intents")),
         request: Some(json!({"method": "POST"})),
         response: Some(json!({"status": 200})),
+        context: None,
     };
     let assertion = AssertionResult {
         id: Uuid::now_v7(),

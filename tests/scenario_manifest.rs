@@ -17,6 +17,10 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
                     "name": "payment accepted",
                     "operation": "POST /webhook",
                     "count": 1,
+                    "context": {
+                        "correlation_id": "checkout-42",
+                        "idempotency_key": "payment-42"
+                    },
                     "request": {"body": {"event": "payment.created"}},
                     "response": {"status": 202}
                 }
@@ -34,6 +38,24 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
     assert_eq!(request.contracts.len(), 1);
     assert_eq!(request.contracts[0].operation, "POST /webhook");
     assert_eq!(request.contracts[0].count, Some(1));
+    assert_eq!(
+        request.contracts[0]
+            .context
+            .as_ref()
+            .unwrap()
+            .correlation_id
+            .as_deref(),
+        Some("checkout-42")
+    );
+    assert_eq!(
+        request.contracts[0]
+            .context
+            .as_ref()
+            .unwrap()
+            .idempotency_key
+            .as_deref(),
+        Some("payment-42")
+    );
     assert_eq!(
         request.contracts[0].response.as_ref().unwrap()["status"],
         202
