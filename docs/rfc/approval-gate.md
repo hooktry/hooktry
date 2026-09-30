@@ -146,7 +146,7 @@ Approval IDs are workspace-scoped. Cross-workspace inspection, decision, or cons
 
 ApprovalRecord state is durable in the same hosted SQLite/Postgres persistence boundary as other hosted control-plane state.
 
-CONTROL1 does not persist EXEC4 ExecutionRecords yet. The act response carries the ExecutionRecord as proof. Durable execution query storage remains a separate decision.
+EXEC5 now reserves a durable execution record before an approved action is consumed, then completes that record with the terminal EXEC4 outcome. Therefore a consumed approval's `execution_id` is queryable at `GET /_ortyo/hosted/executions/{execution_id}`. If the process stops before terminal proof is committed, the durable execution remains `started` rather than inventing an outcome.
 
 ## Out of scope
 
@@ -160,4 +160,3 @@ CONTROL1 does not add:
 - approval templates
 - environment or VM leases
 - automatic retries
-- durable ExecutionRecord query APIs
