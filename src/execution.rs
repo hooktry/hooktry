@@ -97,6 +97,7 @@ pub enum ExecutionOutcome {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExecutionRecord {
     pub execution_id: Uuid,
+    pub workspace_id: Uuid,
     pub provider: ExecutionProviderKind,
     pub started_at_unix_ms: u64,
     pub completed_at_unix_ms: u64,
@@ -180,6 +181,7 @@ impl HttpExecutionProvider {
         };
         ExecutionRecord {
             execution_id,
+            workspace_id,
             provider: ExecutionProviderKind::Http,
             started_at_unix_ms,
             completed_at_unix_ms: unix_time_ms(),
