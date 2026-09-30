@@ -200,6 +200,18 @@ fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
         .next()
         .unwrap();
     assert_eq!(notification.approval_id, approval.approval_id);
+    assert_eq!(
+        store
+            .get_notification_for_approval(workspace_id, approval.approval_id)
+            .unwrap(),
+        Some(notification.clone())
+    );
+    assert_eq!(
+        store
+            .get_notification_for_approval(other_workspace_id, approval.approval_id)
+            .unwrap(),
+        None
+    );
     assert!(
         store
             .list_undelivered_notifications(other_workspace_id)
