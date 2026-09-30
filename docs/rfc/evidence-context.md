@@ -5,7 +5,8 @@ Status: foundational design / incremental adoption
 Implementation status:
 - CTX1: implemented — normalized allowlisted HTTP context and replay preservation.
 - MATCH1: implemented — all-candidate Contract matching with `count`/`min`/`max` cardinality evidence.
-- ORDER1, WAIT1, RETRY1, OTEL1: deferred.
+- WINDOW1: implemented — Scenario-level `within_ms` + quiet `settle_ms`, event-driven by persisted interaction revisions.
+- ORDER1, per-expectation WAIT1/eventually, RETRY1, OTEL1: deferred.
 
 ## Summary
 
