@@ -198,13 +198,8 @@ pub async fn complete(
         .ok_or(ScenarioError::ScenarioNotFound)?;
     let definitions = expectation_contracts(store, &scenario)?;
     let observation_started = Instant::now();
-    let sources = observe_sources(
-        store,
-        run.exposure_id,
-        &scenario.observation,
-        &definitions,
-    )
-    .await;
+    let sources =
+        observe_sources(store, run.exposure_id, &scenario.observation, &definitions).await;
     let observation_elapsed_ms = observation_started.elapsed().as_millis() as u64;
 
     let (recording_id, replayed) = if sources.is_empty() {
@@ -314,9 +309,8 @@ async fn observe_sources(
             return source_interactions(store, exposure_id);
         }
 
-        let can_settle_early = observation.settle_ms > 0
-            && state.satisfied
-            && !state.requires_full_window;
+        let can_settle_early =
+            observation.settle_ms > 0 && state.satisfied && !state.requires_full_window;
         let wake_at = if can_settle_early {
             let settle_deadline = last_relevant_activity + settle;
             if now >= settle_deadline {
