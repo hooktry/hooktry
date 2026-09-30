@@ -3,6 +3,10 @@
   "target": {
     "port": 3000
   },
+  "observation": {
+    "within_ms": 5000,
+    "settle_ms": 500
+  },
   "contracts": [
     {
       "name": "payment accepted",
