@@ -1,11 +1,6 @@
 use std::time::{Duration, UNIX_EPOCH};
 
-use axum::{
-    Json, Router,
-    extract::State,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
