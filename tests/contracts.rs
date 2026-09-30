@@ -19,6 +19,7 @@ fn interaction() -> Interaction {
         request: json!({"method":"POST","path":"/stripe/payment_intents","body":"{\"amount\":4999}"}),
         response: json!({"status":200}),
         source_interaction_id: None,
+        context: Default::default(),
     }
 }
 
