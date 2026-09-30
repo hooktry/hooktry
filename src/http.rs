@@ -26,7 +26,10 @@ use crate::{
     exposure::{CreateExposure, ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot_all},
     relay::{RelayRequest, RelayResponse},
-    scenario::{CreateScenario, ScenarioError, complete as complete_scenario_run, create as create_scenario_definition, start as start_scenario_run},
+    scenario::{
+        CreateScenario, ScenarioError, complete as complete_scenario_run,
+        create as create_scenario_definition, start as start_scenario_run,
+    },
     store::InteractionStore,
 };
 
