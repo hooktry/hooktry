@@ -146,7 +146,6 @@ fn hosted_server_config_requires_control_token() {
     assert_eq!(error, "ORTYO_CONTROL_TOKEN is required");
 }
 
-
 #[test]
 fn hosted_server_config_rejects_non_postgres_database_url() {
     let error = HostedServerConfig::from_lookup(|key| match key {
