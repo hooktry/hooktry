@@ -53,10 +53,15 @@ impl HostedClient {
     }
 
     pub async fn get_approval(&self, approval_id: Uuid) -> Result<Value, String> {
+        let credential = if self.execute_token.is_some() {
+            CredentialKind::Execute
+        } else {
+            CredentialKind::Approve
+        };
         self.request_json(
             Method::GET,
             &format!("/_ortyo/hosted/approvals/{approval_id}"),
-            CredentialKind::Execute,
+            credential,
             None,
         )
         .await
