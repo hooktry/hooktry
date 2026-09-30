@@ -53,3 +53,49 @@ pub struct Session {
     pub id: Uuid,
     pub started_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExposureMode {
+    Forward,
+    Relay,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExposureAccess {
+    Private,
+    Workspace,
+    Public,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExposureState {
+    Active,
+    Revoked,
+    Expired,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExposureTarget {
+    pub host: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Exposure {
+    pub id: Uuid,
+    pub session_id: Uuid,
+    pub name: String,
+    pub protocol: Protocol,
+    pub mode: ExposureMode,
+    pub access: ExposureAccess,
+    pub target: ExposureTarget,
+    pub url: String,
+    pub state: ExposureState,
+    pub created_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revoked_at: Option<DateTime<Utc>>,
+}
