@@ -124,8 +124,8 @@ impl Default for ApprovalStore {
 
 impl ApprovalStore {
     pub fn in_memory() -> Result<Self, ApprovalError> {
-        let connection =
-            Connection::open_in_memory().map_err(|error| ApprovalError::Storage(error.to_string()))?;
+        let connection = Connection::open_in_memory()
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?;
         Self::from_sqlite_connection(connection)
     }
 
@@ -398,8 +398,7 @@ impl ApprovalStore {
                 if row.get::<_, String>(0) != workspace {
                     return Err(ApprovalError::NotFound);
                 }
-                if ApprovalState::parse(row.get::<_, String>(1).as_str())?
-                    != ApprovalState::Pending
+                if ApprovalState::parse(row.get::<_, String>(1).as_str())? != ApprovalState::Pending
                 {
                     return Err(ApprovalError::NotPending);
                 }
@@ -643,10 +642,7 @@ fn load_sqlite_record(
         .transpose()
 }
 
-fn verify_consumable(
-    record: &ApprovalRecord,
-    request_digest: &str,
-) -> Result<(), ApprovalError> {
+fn verify_consumable(record: &ApprovalRecord, request_digest: &str) -> Result<(), ApprovalError> {
     match record.state {
         ApprovalState::Pending => return Err(ApprovalError::Pending),
         ApprovalState::Denied => return Err(ApprovalError::Denied),
@@ -660,11 +656,9 @@ fn verify_consumable(
 }
 
 pub fn request_digest(request: &HttpExecutionRequest) -> Result<String, ApprovalError> {
-    let value =
-        serde_json::to_value(request).map_err(|_| ApprovalError::InvalidRequest)?;
+    let value = serde_json::to_value(request).map_err(|_| ApprovalError::InvalidRequest)?;
     let canonical = canonicalize_json(value);
-    let bytes =
-        serde_json::to_vec(&canonical).map_err(|_| ApprovalError::InvalidRequest)?;
+    let bytes = serde_json::to_vec(&canonical).map_err(|_| ApprovalError::InvalidRequest)?;
     Ok(sha256_hex(&bytes))
 }
 
@@ -697,9 +691,7 @@ pub fn request_summary(request: &HttpExecutionRequest) -> Result<ApprovalSummary
 
 fn canonicalize_json(value: Value) -> Value {
     match value {
-        Value::Array(values) => {
-            Value::Array(values.into_iter().map(canonicalize_json).collect())
-        }
+        Value::Array(values) => Value::Array(values.into_iter().map(canonicalize_json).collect()),
         Value::Object(values) => {
             let mut entries = values.into_iter().collect::<Vec<_>>();
             entries.sort_by(|left, right| left.0.cmp(&right.0));
