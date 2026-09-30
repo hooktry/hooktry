@@ -493,6 +493,14 @@ async fn run_dogfood_approval_gate(
         );
     }
 
+    let pending = dogfood_approval_inbox(state, workspace_id).await?;
+    if !pending
+        .iter()
+        .any(|candidate| candidate.approval_id == approval.approval_id)
+    {
+        return Err("dogfood pending approval was missing from approval inbox".to_owned());
+    }
+
     let decision = execute_dogfood_control_request(
         state,
         workspace_id,
@@ -514,6 +522,14 @@ async fn run_dogfood_approval_gate(
             "dogfood approval was not approved: {:?}",
             approved.state
         ));
+    }
+
+    let after_decision = dogfood_approval_inbox(state, workspace_id).await?;
+    if after_decision
+        .iter()
+        .any(|candidate| candidate.approval_id == approval.approval_id)
+    {
+        return Err("dogfood decided approval remained in approval inbox".to_owned());
     }
 
     let mut mismatched = inner_request.clone();
@@ -634,6 +650,28 @@ async fn run_dogfood_approval_gate(
     );
 
     Ok(())
+}
+
+async fn dogfood_approval_inbox(
+    state: &HostedRelayState,
+    workspace_id: Uuid,
+) -> Result<Vec<ApprovalRecord>, String> {
+    let inbox = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "GET",
+        "/_ortyo/hosted/approvals",
+        None,
+    )
+    .await?;
+    if inbox.status != 200 {
+        return Err(format!(
+            "dogfood approval inbox returned HTTP {}: {}",
+            inbox.status, inbox.body
+        ));
+    }
+    serde_json::from_value(inbox.body)
+        .map_err(|error| format!("parse dogfood approval inbox: {error}"))
 }
 
 async fn execute_dogfood_control_request(
