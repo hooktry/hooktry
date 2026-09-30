@@ -534,7 +534,8 @@ async fn run_dogfood_approval_webhook(
     for attempt in 0..ATTEMPTS {
         let current = state
             .approvals
-            .get_notification(workspace_id, notification.notification_id)
+            .get_notification_async(workspace_id, notification.notification_id)
+            .await
             .map_err(|error| format!("poll dogfood webhook notification: {error:?}"))?
             .ok_or_else(|| "dogfood webhook notification disappeared".to_owned())?;
         if current.delivered_at_unix_ms.is_some() {
