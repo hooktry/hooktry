@@ -4,6 +4,7 @@ use uuid::Uuid;
 pub enum Command {
     Serve,
     Interactions,
+    Mcp,
     Assert {
         contract_id: Uuid,
         interaction_id: Uuid,
@@ -38,6 +39,7 @@ impl Cli {
         let command = match remaining.as_slice() {
             [command] if command == "serve" => Command::Serve,
             [command] if command == "interactions" => Command::Interactions,
+            [command] if command == "mcp" => Command::Mcp,
             [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
                 contract_id: contract_id
                     .parse()
@@ -55,6 +57,6 @@ impl Cli {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|interactions|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|mcp|interactions|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
