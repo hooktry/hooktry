@@ -128,7 +128,6 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
     );
 }
 
-
 #[test]
 fn hosted_server_config_requires_control_token() {
     let error = HostedServerConfig::from_lookup(|_| None).unwrap_err();
