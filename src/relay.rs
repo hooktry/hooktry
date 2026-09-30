@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex, mpsc, oneshot};
+use tokio::{
+    sync::{Mutex, mpsc, oneshot},
+    time::{Duration, timeout},
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -29,6 +32,7 @@ pub enum RelayError {
     RuntimeUnavailable,
     RuntimeDisconnected,
     ResponseDropped,
+    Timeout,
 }
 
 struct RelayDispatch {
@@ -52,6 +56,14 @@ impl RelayBroker {
     }
 
     pub async fn ingress(&self, request: RelayRequest) -> Result<RelayResponse, RelayError> {
+        self.ingress_with_timeout(request, Duration::from_secs(30)).await
+    }
+
+    pub async fn ingress_with_timeout(
+        &self,
+        request: RelayRequest,
+        deadline: Duration,
+    ) -> Result<RelayResponse, RelayError> {
         let runtime = self
             .runtimes
             .lock()
@@ -69,7 +81,10 @@ impl RelayBroker {
             .await
             .map_err(|_| RelayError::RuntimeDisconnected)?;
 
-        response_rx.await.map_err(|_| RelayError::ResponseDropped)
+        timeout(deadline, response_rx)
+            .await
+            .map_err(|_| RelayError::Timeout)?
+            .map_err(|_| RelayError::ResponseDropped)
     }
 }
 
