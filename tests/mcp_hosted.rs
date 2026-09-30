@@ -109,7 +109,12 @@ async fn mcp_proves_ask_approve_act_and_durable_query_against_hosted_boundary() 
 
     let after_approval = call(&base_url, &hosted, "approval_inbox", json!({})).await;
     assert_eq!(after_approval["isError"], false);
-    assert!(after_approval["structuredContent"].as_array().unwrap().is_empty());
+    assert!(
+        after_approval["structuredContent"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 
     let acted = call(
         &base_url,
