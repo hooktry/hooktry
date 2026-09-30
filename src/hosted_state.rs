@@ -57,8 +57,8 @@ impl HostedExposureStore {
     }
 
     pub fn open_postgres(database_url: &str) -> Result<Self, HostedStateError> {
-        let mut client =
-            Client::connect(database_url, NoTls).map_err(|error| HostedStateError::Storage(error.to_string()))?;
+        let mut client = Client::connect(database_url, NoTls)
+            .map_err(|error| HostedStateError::Storage(error.to_string()))?;
         client
             .batch_execute(
                 "CREATE TABLE IF NOT EXISTS hosted_exposures (
