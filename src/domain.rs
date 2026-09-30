@@ -53,3 +53,28 @@ pub struct Session {
     pub id: Uuid,
     pub started_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Contract {
+    pub id: Uuid,
+    pub name: String,
+    pub operation: Option<serde_json::Value>,
+    pub request: Option<serde_json::Value>,
+    pub response: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Mismatch {
+    pub path: String,
+    pub expected: serde_json::Value,
+    pub actual: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssertionResult {
+    pub id: Uuid,
+    pub contract_id: Uuid,
+    pub interaction_id: Uuid,
+    pub passed: bool,
+    pub mismatches: Vec<Mismatch>,
+}
