@@ -84,10 +84,21 @@ impl HttpExecutionProvider {
         workspace_id: Uuid,
         request: HttpExecutionRequest,
     ) -> Result<ExecutionEvidence, ExecutionError> {
+        self.execute_inner(workspace_id, request, true).await
+    }
+
+    async fn execute_inner(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+        enforce_public_destination: bool,
+    ) -> Result<ExecutionEvidence, ExecutionError> {
         let method = Method::from_bytes(request.method.as_bytes())
             .map_err(|_| ExecutionError::InvalidRequest)?;
         let url = Url::parse(&request.url).map_err(|_| ExecutionError::InvalidRequest)?;
-        validate_public_destination(&url).await?;
+        if enforce_public_destination {
+            validate_public_destination(&url).await?;
+        }
 
         let body = request
             .body
@@ -178,6 +189,15 @@ impl HttpExecutionProvider {
             duration_ms: started.elapsed().as_millis() as u64,
             captured_secrets,
         })
+    }
+
+    #[doc(hidden)]
+    pub async fn execute_for_test(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+    ) -> Result<ExecutionEvidence, ExecutionError> {
+        self.execute_inner(workspace_id, request, false).await
     }
 
     pub fn secret_store(&self) -> &SecretStore {
