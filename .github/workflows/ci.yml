@@ -34,6 +34,13 @@ jobs:
         with:
           cache-on-failure: true
 
+      - name: Generate dependency lock
+        run: |
+          cargo generate-lockfile
+          echo "ORTYO_LOCKFILE_BEGIN"
+          cat Cargo.lock
+          echo "ORTYO_LOCKFILE_END"
+
       - name: Formatting
         run: cargo fmt --check
 
