@@ -53,6 +53,11 @@ impl HostedClient {
     }
 
     pub async fn get_approval(&self, approval_id: Uuid) -> Result<Value, String> {
+        if self.execute_token.is_none() && self.approver_token.is_none() {
+            return Err(
+                "ORTYO_TOKEN or ORTYO_APPROVER_TOKEN is required to inspect approvals".to_owned(),
+            );
+        }
         let credential = if self.execute_token.is_some() {
             CredentialKind::Execute
         } else {
