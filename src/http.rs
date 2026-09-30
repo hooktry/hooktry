@@ -20,7 +20,8 @@ use crate::{
     context::from_http_headers,
     contract::assert_interaction,
     domain::{
-        AssertionResult, Contract, Direction, Exposure, ExposureAccess, ExposureMode,
+        AssertionResult, Contract, CorrelationContext, Direction, Exposure, ExposureAccess,
+        ExposureMode,
         ExposureTarget, Interaction, Origin, Protocol, Recording, Scenario, ScenarioOutcome,
         ScenarioRun, Session,
     },
@@ -74,6 +75,7 @@ struct CreateContractRequest {
     operation: Option<Value>,
     request: Option<Value>,
     response: Option<Value>,
+    context: Option<CorrelationContext>,
 }
 
 struct ForwardHttpRequest {
@@ -190,6 +192,7 @@ async fn create_contract(
         operation: request.operation,
         request: request.request,
         response: request.response,
+        context: request.context,
     };
     state.store.save_contract(&contract);
     (StatusCode::CREATED, Json(contract))
