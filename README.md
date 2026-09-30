@@ -142,7 +142,9 @@ Scenarios can also assert the observed order of their contract definitions:
 
 `declared` means every matching source interaction for an earlier contract must be persisted before every matching source interaction for each later contract. Ordering is evaluated independently from cardinality: both contracts can individually pass and the Scenario can still fail because their observed order is reversed. Missing optional/zero-match groups do not create an order edge.
 
-ORTYO does not use wall-clock timestamps to decide order. The local evidence store maintains a durable monotonic persistence sequence in `interaction_order`; existing databases are backfilled once from their SQLite insertion order. `ScenarioOutcome.order` records the observed source interaction IDs and machine-readable violating contract/interaction pairs.
+ORTYO does not use wall-clock timestamps or UUID ordering to decide order. Every persisted Interaction exposes `observed_sequence`: the durable local order in which this ORTYO evidence store committed it. The internal `interaction_order` table owns the monotonic sequence; existing databases are backfilled once from SQLite insertion order, and old payloads are hydrated with the sequence when read.
+
+`Interaction.id` remains UUIDv7 and answers identity / approximate time locality. `observed_sequence` answers a different question: which interaction this ORTYO store committed first. Replayed interactions receive their own later observed sequence while preserving `source_interaction_id`. `ScenarioOutcome.order` records source interaction IDs and machine-readable violating contract/interaction pairs.
 
 Scenario definitions can live in the repository as portable JSON manifests:
 

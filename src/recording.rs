@@ -49,13 +49,13 @@ pub fn replay(
             operation: source.operation,
             started_at: Utc::now(),
             duration_ms: 0,
+            observed_sequence: None,
             request: source.request,
             response: source.response,
             source_interaction_id: Some(source.id),
             context: source.context,
         };
-        store.record(interaction.clone());
-        replayed.push(interaction);
+        replayed.push(store.record(interaction));
     }
 
     Ok(replayed)

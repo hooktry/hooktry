@@ -54,6 +54,7 @@ async fn recording_replays_captured_interactions_with_provenance() {
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
     let source: Vec<Interaction> = serde_json::from_slice(&bytes).unwrap();
     let source_context = source[0].context.clone();
+    let source_sequence = source[0].observed_sequence.unwrap();
 
     let response = router
         .oneshot(
@@ -68,6 +69,7 @@ async fn recording_replays_captured_interactions_with_provenance() {
 
     assert_eq!(replayed.len(), 1);
     assert_eq!(replayed[0].origin, Origin::Replayed);
+    assert!(replayed[0].observed_sequence.unwrap() > source_sequence);
     assert_eq!(replayed[0].source_interaction_id, Some(source_id));
     assert_eq!(replayed[0].operation, "POST /github/webhook");
     assert_eq!(replayed[0].request["body"], r#"{"action":"opened"}"#);

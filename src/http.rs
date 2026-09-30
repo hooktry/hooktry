@@ -159,6 +159,7 @@ async fn capture(
         operation: format!("{} /{}", method, path),
         started_at,
         duration_ms: started.elapsed().as_millis() as u64,
+        observed_sequence: None,
         request,
         response,
         source_interaction_id: None,
@@ -464,6 +465,7 @@ async fn forward_and_record(
         operation: format!("{} {}", request.method, request.path),
         started_at,
         duration_ms: started.elapsed().as_millis() as u64,
+        observed_sequence: None,
         request: json!({
             "exposure_id": exposure.id,
             "relay_request_id": request.relay_request_id,

@@ -81,6 +81,8 @@ pub struct Interaction {
     pub operation: String,
     pub started_at: DateTime<Utc>,
     pub duration_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub observed_sequence: Option<u64>,
     pub request: serde_json::Value,
     pub response: serde_json::Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
