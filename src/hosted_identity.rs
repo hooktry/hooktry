@@ -87,6 +87,7 @@ pub enum IdentityError {
     InvalidCredential,
     RevokedCredential,
     Forbidden,
+    BootstrapAlreadyCompleted,
     Storage(String),
 }
 
@@ -170,6 +171,149 @@ impl HostedIdentityStore {
         Ok(Self {
             backend: IdentityBackend::Postgres(Arc::new(Mutex::new(client))),
         })
+    }
+
+    pub async fn bootstrap_first_workspace_async(
+        &self,
+        slug: String,
+        credential_name: String,
+    ) -> Result<(Workspace, IssuedApiCredential), IdentityError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.bootstrap_first_workspace(&slug, &credential_name)
+        })
+        .await
+        .map_err(|error| IdentityError::Storage(error.to_string()))?
+    }
+
+    pub fn bootstrap_first_workspace(
+        &self,
+        slug: &str,
+        credential_name: &str,
+    ) -> Result<(Workspace, IssuedApiCredential), IdentityError> {
+        let slug = normalize_slug(slug)?;
+        if credential_name.trim().is_empty() {
+            return Err(IdentityError::InvalidCredential);
+        }
+
+        let workspace = Workspace {
+            id: Uuid::now_v7(),
+            slug,
+            status: WorkspaceStatus::Active,
+        };
+        let token = api_token();
+        let credential = ApiCredential {
+            credential_id: Uuid::now_v7(),
+            workspace_id: workspace.id,
+            name: credential_name.trim().to_owned(),
+            scopes: vec![
+                ApiScope::ExposuresCreate,
+                ApiScope::ExposuresRead,
+                ApiScope::ExposuresRevoke,
+            ],
+            revoked: false,
+        };
+        let digest = token_digest(&token);
+        let scopes = encode_scopes(&credential.scopes);
+
+        match &self.backend {
+            IdentityBackend::Memory(inner) => {
+                let mut inner = inner.write().expect("identity store poisoned");
+                if !inner.workspaces.is_empty() {
+                    return Err(IdentityError::BootstrapAlreadyCompleted);
+                }
+                inner.slugs.insert(workspace.slug.clone(), workspace.id);
+                inner.workspaces.insert(workspace.id, workspace.clone());
+                inner.credentials.insert(digest, credential.clone());
+            }
+            IdentityBackend::Sqlite(connection) => {
+                let mut connection = connection.lock().expect("identity store poisoned");
+                let transaction = connection
+                    .transaction()
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                let count: i64 = transaction
+                    .query_row("SELECT COUNT(*) FROM hosted_workspaces", [], |row| {
+                        row.get(0)
+                    })
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                if count != 0 {
+                    return Err(IdentityError::BootstrapAlreadyCompleted);
+                }
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_workspaces (id, slug, status) VALUES (?1, ?2, 'active')",
+                        params![workspace.id.to_string(), &workspace.slug],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_api_credentials
+                            (token_digest, credential_id, workspace_id, name, scopes, revoked)
+                         VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+                        params![
+                            digest.as_slice(),
+                            credential.credential_id.to_string(),
+                            workspace.id.to_string(),
+                            &credential.name,
+                            &scopes
+                        ],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                transaction
+                    .commit()
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+            }
+            IdentityBackend::Postgres(client) => {
+                let mut client = client.lock().expect("identity store poisoned");
+                let mut transaction = client
+                    .transaction()
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                transaction
+                    .batch_execute("LOCK TABLE hosted_workspaces IN ACCESS EXCLUSIVE MODE")
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                let count: i64 = transaction
+                    .query_one("SELECT COUNT(*) FROM hosted_workspaces", &[])
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?
+                    .get(0);
+                if count != 0 {
+                    return Err(IdentityError::BootstrapAlreadyCompleted);
+                }
+                let workspace_id = workspace.id.to_string();
+                let credential_id = credential.credential_id.to_string();
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_workspaces (id, slug, status) VALUES ($1, $2, 'active')",
+                        &[&workspace_id, &workspace.slug],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_api_credentials
+                            (token_digest, credential_id, workspace_id, name, scopes, revoked)
+                         VALUES ($1, $2, $3, $4, $5, FALSE)",
+                        &[
+                            &digest.as_slice(),
+                            &credential_id,
+                            &workspace_id,
+                            &credential.name,
+                            &scopes,
+                        ],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                transaction
+                    .commit()
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+            }
+        }
+
+        let issued = IssuedApiCredential {
+            credential_id: credential.credential_id,
+            workspace_id: workspace.id,
+            name: credential.name,
+            scopes: credential.scopes,
+            token,
+        };
+        Ok((workspace, issued))
     }
 
     pub async fn create_workspace_async(&self, slug: String) -> Result<Workspace, IdentityError> {

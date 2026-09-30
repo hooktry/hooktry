@@ -130,3 +130,27 @@ AUTH1 does not add:
 - arbitrary permission expressions
 
 Those can layer over the stable Workspace + scoped credential model later.
+
+
+## ONBOARD1: first workspace exchange
+
+A fresh hosted installation can create its first Workspace without exposing the server-side control token:
+
+```http
+POST /_ortyo/bootstrap
+Content-Type: application/json
+
+{"slug":"serhii"}
+```
+
+The successful response is `201` and contains the Workspace plus one full-scope `initial-cli` credential. The raw `ortyo_...` token is returned in that response only; only its digest is persisted.
+
+Bootstrap is atomic. Exactly one request can win, including under concurrent requests. After a Workspace exists, the endpoint permanently returns:
+
+```json
+{"error":{"code":"bootstrap_already_completed"}}
+```
+
+with HTTP `409 Conflict`.
+
+This endpoint is intentionally only a fresh-install bridge. Subsequent workspace and credential creation remains an authenticated admin operation. A future OAuth/UI onboarding flow can replace the bootstrap transport without changing Workspace, scope, Exposure ownership, or runtime-capability semantics.
