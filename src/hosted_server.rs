@@ -5,7 +5,7 @@ use tokio::net::TcpListener;
 
 use crate::{
     hosted::{HostedRelayState, hosted_relay_app},
-    hosted_identity::HostedIdentityStore,
+    hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::HostedExposureStore,
     relay::RelayBroker,
     relay_auth::CapabilityStore,
@@ -20,6 +20,7 @@ pub struct HostedServerConfig {
     pub database_url: Option<String>,
     pub db_path: String,
     pub secrets_key: [u8; 32],
+    pub bootstrap_workspace: Option<String>,
 }
 
 impl std::fmt::Debug for HostedServerConfig {
@@ -34,6 +35,7 @@ impl std::fmt::Debug for HostedServerConfig {
             )
             .field("db_path", &self.db_path)
             .field("secrets_key", &"[REDACTED]")
+            .field("bootstrap_workspace", &self.bootstrap_workspace)
             .finish()
     }
 }
@@ -76,6 +78,8 @@ impl HostedServerConfig {
                     "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
                 })
             })?;
+        let bootstrap_workspace = lookup("ORTYO_BOOTSTRAP_WORKSPACE")
+            .filter(|value| !value.trim().is_empty());
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -87,6 +91,7 @@ impl HostedServerConfig {
             database_url,
             db_path,
             secrets_key,
+            bootstrap_workspace,
         })
     }
 }
@@ -107,6 +112,9 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
 
     let (capabilities, exposures, identities, secrets, storage) =
         open_hosted_stores(&config).await?;
+    if let Some(slug) = config.bootstrap_workspace.as_deref() {
+        ensure_operator_bootstrap(&identities, &secrets, slug)?;
+    }
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
@@ -181,6 +189,52 @@ async fn open_hosted_stores(
     }
 }
 
+fn ensure_operator_bootstrap(
+    identities: &HostedIdentityStore,
+    secrets: &SecretStore,
+    slug: &str,
+) -> Result<(), String> {
+    const SECRET_NAME: &str = "default-api-token";
+    if let Some(workspace) = identities
+        .find_workspace_by_slug(slug)
+        .map_err(|error| format!("find bootstrap workspace: {error:?}"))?
+    {
+        if secrets.get_ref(workspace.id, SECRET_NAME).is_some() {
+            return Ok(());
+        }
+        let credential = identities
+            .issue_credential(
+                workspace.id,
+                "operator-bootstrap-recovery",
+                &[
+                    crate::hosted_identity::ApiScope::ExposuresCreate,
+                    crate::hosted_identity::ApiScope::ExposuresRead,
+                    crate::hosted_identity::ApiScope::ExposuresRevoke,
+                    crate::hosted_identity::ApiScope::RequestsExecute,
+                ],
+            )
+            .map_err(|error| format!("issue bootstrap recovery credential: {error:?}"))?;
+        secrets
+            .put(workspace.id, SECRET_NAME, credential.token)
+            .map_err(|error| format!("persist bootstrap recovery credential: {error:?}"))?;
+        return Ok(());
+    }
+
+    match identities.bootstrap_first_workspace(slug, "operator-bootstrap") {
+        Ok((workspace, credential)) => {
+            secrets
+                .put(workspace.id, SECRET_NAME, credential.token)
+                .map_err(|error| format!("persist bootstrap credential: {error:?}"))?;
+            Ok(())
+        }
+        Err(IdentityError::BootstrapAlreadyCompleted) => Err(
+            "bootstrap workspace does not match the already initialized hosted identity store"
+                .to_owned(),
+        ),
+        Err(error) => Err(format!("bootstrap first workspace: {error:?}")),
+    }
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -212,6 +266,7 @@ mod tests {
             database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
             db_path: "unused.db".to_owned(),
             secrets_key: [7; 32],
+            bootstrap_workspace: None,
         };
 
         let error = match open_hosted_stores(&config).await {
