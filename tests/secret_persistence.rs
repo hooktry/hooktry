@@ -73,7 +73,6 @@ fn overwrite_rotates_ciphertext_and_reference() {
     let _ = fs::remove_file(path);
 }
 
-
 #[test]
 fn bound_secret_origin_survives_restart_and_fails_closed_elsewhere() {
     let path = std::env::temp_dir().join(format!("ortyo-secret-bound-{}.db", Uuid::now_v7()));
@@ -99,11 +98,7 @@ fn bound_secret_origin_survives_restart_and_fails_closed_elsewhere() {
         "hidden-value"
     );
     assert_eq!(
-        store.resolve_for_origin(
-            workspace,
-            "provider-token",
-            "https://other.example.com"
-        ),
+        store.resolve_for_origin(workspace, "provider-token", "https://other.example.com"),
         Err(SecretError::DestinationDenied)
     );
 
@@ -149,7 +144,8 @@ fn rotation_preserves_secret_origin_binding() {
 
 #[test]
 fn delete_clears_secret_origin_binding() {
-    let path = std::env::temp_dir().join(format!("ortyo-secret-delete-bound-{}.db", Uuid::now_v7()));
+    let path =
+        std::env::temp_dir().join(format!("ortyo-secret-delete-bound-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let store = SecretStore::open(&path, [61u8; 32]).unwrap();
 
