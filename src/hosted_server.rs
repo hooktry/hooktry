@@ -113,7 +113,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     let (capabilities, exposures, identities, secrets, storage) =
         open_hosted_stores(&config).await?;
     if let Some(slug) = config.bootstrap_workspace.as_deref() {
-        ensure_operator_bootstrap(&identities, &secrets, slug)?;
+        ensure_operator_bootstrap_async(&identities, &secrets, slug).await?;
     }
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
@@ -189,6 +189,19 @@ async fn open_hosted_stores(
     }
 }
 
+async fn ensure_operator_bootstrap_async(
+    identities: &HostedIdentityStore,
+    secrets: &SecretStore,
+    slug: &str,
+) -> Result<(), String> {
+    let identities = identities.clone();
+    let secrets = secrets.clone();
+    let slug = slug.to_owned();
+    tokio::task::spawn_blocking(move || ensure_operator_bootstrap(&identities, &secrets, &slug))
+        .await
+        .map_err(|error| format!("join operator bootstrap: {error}"))?
+}
+
 fn ensure_operator_bootstrap(
     identities: &HostedIdentityStore,
     secrets: &SecretStore,
@@ -255,20 +268,22 @@ fn local_public_base_url(socket: SocketAddr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{HostedServerConfig, ensure_operator_bootstrap, open_hosted_stores};
+    use super::{HostedServerConfig, ensure_operator_bootstrap_async, open_hosted_stores};
     use crate::{
         hosted_identity::{ApiScope, HostedIdentityStore},
         secret::SecretStore,
     };
     use uuid::Uuid;
 
-    #[test]
-    fn operator_bootstrap_captures_token_and_is_idempotent() {
+    #[tokio::test]
+    async fn operator_bootstrap_captures_token_and_is_idempotent() {
         let path = std::env::temp_dir().join(format!("ortyo-bootstrap-{}.db", Uuid::now_v7()));
         let identities = HostedIdentityStore::open(&path).unwrap();
         let secrets = SecretStore::open(&path, [41; 32]).unwrap();
 
-        ensure_operator_bootstrap(&identities, &secrets, "serhii").unwrap();
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii")
+            .await
+            .unwrap();
         let workspace = identities
             .find_workspace_by_slug("serhii")
             .unwrap()
@@ -279,7 +294,9 @@ mod tests {
             .unwrap();
 
         let first_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
-        ensure_operator_bootstrap(&identities, &secrets, "serhii").unwrap();
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii")
+            .await
+            .unwrap();
         let second_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
         assert_eq!(first_ref.id, second_ref.id);
 

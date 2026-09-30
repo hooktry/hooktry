@@ -149,6 +149,29 @@ impl SecretStore {
         String::from_utf8(bytes).map_err(|_| SecretError::Crypto)
     }
 
+    pub async fn put_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        value: String,
+    ) -> Result<SecretRef, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.put(workspace_id, name, value))
+            .await
+            .map_err(|error| SecretError::Storage(format!("join secret put: {error}")))?
+    }
+
+    pub async fn resolve_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+    ) -> Result<String, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.resolve(workspace_id, &name))
+            .await
+            .map_err(|error| SecretError::Storage(format!("join secret resolve: {error}")))?
+    }
+
     pub fn get_ref(&self, workspace_id: Uuid, name: &str) -> Option<SecretRef> {
         self.find(workspace_id, name)
             .ok()

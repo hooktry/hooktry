@@ -129,7 +129,8 @@ impl HttpExecutionProvider {
         for (name, secret_name) in request.secret_headers {
             let value = self
                 .secrets
-                .resolve(workspace_id, &secret_name)
+                .resolve_async(workspace_id, secret_name)
+                .await
                 .map_err(|_| ExecutionError::SecretNotFound)?;
             builder = builder.header(&name, value);
         }
@@ -181,7 +182,8 @@ impl HttpExecutionProvider {
                 .to_owned();
             let secret_ref = self
                 .secrets
-                .put(workspace_id, capture.secret_name.clone(), value)
+                .put_async(workspace_id, capture.secret_name.clone(), value)
+                .await
                 .map_err(|_| ExecutionError::CaptureFailed)?;
             redact_pointer(&mut body, &capture.json_pointer)?;
             captured_secrets.push(CapturedSecret {
