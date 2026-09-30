@@ -1,9 +1,18 @@
-use std::net::{IpAddr, SocketAddr};
+use std::{
+    collections::BTreeMap,
+    net::{IpAddr, SocketAddr},
+    time::Duration,
+};
 
 use serde::Serialize;
-use tokio::net::TcpListener;
+use serde_json::json;
+use tokio::{net::TcpListener, time::sleep};
+use uuid::Uuid;
 
 use crate::{
+    execution::{
+        ExecutionError, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
+    },
     hosted::{HostedRelayState, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::HostedExposureStore,
@@ -96,6 +105,12 @@ impl HostedServerConfig {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DogfoodExposureConfig {
+    name: String,
+    target_port: u16,
+}
+
 #[derive(Debug, Serialize)]
 struct HostedStartup {
     service: &'static str,
@@ -103,6 +118,16 @@ struct HostedStartup {
     public_base_url: String,
     runtime_transport: &'static str,
     storage: &'static str,
+    dogfood_exposure: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct DogfoodExposureEvent<'a> {
+    event: &'static str,
+    exposure_id: Uuid,
+    public_url: &'a str,
+    target_port: u16,
+    created: bool,
 }
 
 pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String> {
@@ -112,8 +137,16 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
 
     let (capabilities, exposures, identities, secrets, storage) =
         open_hosted_stores(&config).await?;
-    if let Some(slug) = config.bootstrap_workspace.as_deref() {
-        ensure_operator_bootstrap_async(&identities, &secrets, slug).await?;
+    let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
+        Some(ensure_operator_bootstrap_async(&identities, &secrets, slug).await?)
+    } else {
+        None
+    };
+    let dogfood = dogfood_exposure_config(|key| std::env::var(key).ok())?;
+    if dogfood.is_some() && bootstrap_workspace_id.is_none() {
+        return Err(
+            "ORTYO_DOGFOOD_EXPOSURE_PORT requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned(),
+        );
     }
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
@@ -125,12 +158,29 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         &config.control_token,
     );
 
+    if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
+        let dogfood_state = state.clone();
+        tokio::spawn(async move {
+            if let Err(error) = provision_dogfood_exposure(dogfood_state, workspace_id, dogfood).await
+            {
+                eprintln!(
+                    "{}",
+                    json!({
+                        "event": "dogfood_exposure_failed",
+                        "error": error
+                    })
+                );
+            }
+        });
+    }
+
     let startup = HostedStartup {
         service: "hosted_relay",
         bind: config.bind,
         public_base_url: config.public_base_url,
         runtime_transport: "websocket",
         storage,
+        dogfood_exposure: dogfood.is_some(),
     };
     println!(
         "{}",
@@ -193,13 +243,20 @@ async fn ensure_operator_bootstrap_async(
     identities: &HostedIdentityStore,
     secrets: &SecretStore,
     slug: &str,
-) -> Result<(), String> {
+) -> Result<Uuid, String> {
     let identities = identities.clone();
     let secrets = secrets.clone();
     let slug = slug.to_owned();
-    tokio::task::spawn_blocking(move || ensure_operator_bootstrap(&identities, &secrets, &slug))
-        .await
-        .map_err(|error| format!("join operator bootstrap: {error}"))?
+    tokio::task::spawn_blocking(move || {
+        ensure_operator_bootstrap(&identities, &secrets, &slug)?;
+        identities
+            .find_workspace_by_slug(&slug)
+            .map_err(|error| format!("find bootstrapped workspace: {error:?}"))?
+            .map(|workspace| workspace.id)
+            .ok_or_else(|| "bootstrapped workspace disappeared".to_owned())
+    })
+    .await
+    .map_err(|error| format!("join operator bootstrap: {error}"))?
 }
 
 fn ensure_operator_bootstrap(
@@ -248,6 +305,138 @@ fn ensure_operator_bootstrap(
     }
 }
 
+fn dogfood_exposure_config(
+    mut lookup: impl FnMut(&str) -> Option<String>,
+) -> Result<Option<DogfoodExposureConfig>, String> {
+    let Some(port) = lookup("ORTYO_DOGFOOD_EXPOSURE_PORT").filter(|value| !value.trim().is_empty())
+    else {
+        return Ok(None);
+    };
+    let target_port = parse_port(&port)
+        .map_err(|_| format!("invalid ORTYO_DOGFOOD_EXPOSURE_PORT: {port}"))?;
+    let name = lookup("ORTYO_DOGFOOD_EXPOSURE_NAME")
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "ortyo-dogfood".to_owned());
+    Ok(Some(DogfoodExposureConfig { name, target_port }))
+}
+
+async fn provision_dogfood_exposure(
+    state: HostedRelayState,
+    workspace_id: Uuid,
+    config: DogfoodExposureConfig,
+) -> Result<(), String> {
+    const ATTEMPTS: usize = 20;
+    const API_TOKEN_REF: &str = "ortyo://secrets/default-api-token";
+    const RUNTIME_CAPABILITY_SECRET: &str = "dogfood-runtime-capability";
+
+    for attempt in 0..ATTEMPTS {
+        let existing = state
+            .exposures
+            .list_for_workspace_async(workspace_id)
+            .await
+            .map_err(|error| format!("list dogfood exposures: {error:?}"))?
+            .into_iter()
+            .find(|exposure| {
+                !exposure.revoked
+                    && exposure.name == config.name
+                    && exposure.target_port == config.target_port
+            });
+        if let Some(exposure) = existing {
+            log_dogfood_exposure(&exposure, false);
+            return Ok(());
+        }
+
+        let mut secret_headers = BTreeMap::new();
+        secret_headers.insert(
+            "authorization".to_owned(),
+            SecretHeaderBinding::SecretRef {
+                secret_ref: API_TOKEN_REF.to_owned(),
+                prefix: "Bearer ".to_owned(),
+                suffix: String::new(),
+            },
+        );
+        let request = HttpExecutionRequest {
+            method: "POST".to_owned(),
+            url: format!("{}/_ortyo/hosted/exposures", state.public_base_url),
+            headers: BTreeMap::new(),
+            body: Some(json!({
+                "name": config.name,
+                "target_port": config.target_port
+            })),
+            secret_headers,
+            capture: vec![SecretCapture {
+                json_pointer: "/runtime_capability".to_owned(),
+                secret_name: RUNTIME_CAPABILITY_SECRET.to_owned(),
+            }],
+            timeout_ms: 5_000,
+        };
+
+        match state.executor.execute(workspace_id, request).await {
+            Ok(evidence) if evidence.status == 201 => {
+                if evidence.body["runtime_capability"] != "[REDACTED]" {
+                    return Err("dogfood runtime capability was not redacted".to_owned());
+                }
+                let exposure_id = evidence.body["exposure_id"]
+                    .as_str()
+                    .ok_or_else(|| "dogfood response missing exposure_id".to_owned())?
+                    .parse::<Uuid>()
+                    .map_err(|_| "dogfood response has invalid exposure_id".to_owned())?;
+                let public_url = evidence.body["public_url"]
+                    .as_str()
+                    .ok_or_else(|| "dogfood response missing public_url".to_owned())?;
+                let captured = evidence.captured_secrets.iter().any(|secret| {
+                    secret.secret_ref
+                        == format!("ortyo://secrets/{RUNTIME_CAPABILITY_SECRET}")
+                });
+                if !captured {
+                    return Err("dogfood runtime capability was not captured".to_owned());
+                }
+                println!(
+                    "{}",
+                    serde_json::to_string(&DogfoodExposureEvent {
+                        event: "dogfood_exposure_ready",
+                        exposure_id,
+                        public_url,
+                        target_port: config.target_port,
+                        created: true,
+                    })
+                    .map_err(|error| error.to_string())?
+                );
+                return Ok(());
+            }
+            Ok(evidence) => {
+                if attempt + 1 == ATTEMPTS {
+                    return Err(format!("dogfood exposure returned HTTP {}", evidence.status));
+                }
+            }
+            Err(ExecutionError::RequestFailed) => {
+                if attempt + 1 == ATTEMPTS {
+                    return Err("dogfood exposure request failed".to_owned());
+                }
+            }
+            Err(error) => return Err(format!("dogfood exposure execution failed: {error:?}")),
+        }
+
+        sleep(Duration::from_millis(500)).await;
+    }
+
+    Err("dogfood exposure attempts exhausted".to_owned())
+}
+
+fn log_dogfood_exposure(exposure: &crate::hosted_state::HostedExposureRecord, created: bool) {
+    println!(
+        "{}",
+        serde_json::to_string(&DogfoodExposureEvent {
+            event: "dogfood_exposure_ready",
+            exposure_id: exposure.exposure_id,
+            public_url: &exposure.public_url,
+            target_port: exposure.target_port,
+            created,
+        })
+        .expect("dogfood event is serializable")
+    );
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -268,7 +457,10 @@ fn local_public_base_url(socket: SocketAddr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{HostedServerConfig, ensure_operator_bootstrap_async, open_hosted_stores};
+    use super::{
+        DogfoodExposureConfig, HostedServerConfig, dogfood_exposure_config,
+        ensure_operator_bootstrap_async, open_hosted_stores,
+    };
     use crate::{
         hosted_identity::{ApiScope, HostedIdentityStore},
         secret::SecretStore,
@@ -308,6 +500,34 @@ mod tests {
             token
         );
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn dogfood_exposure_is_opt_in_and_has_a_stable_default_name() {
+        assert_eq!(dogfood_exposure_config(|_| None).unwrap(), None);
+
+        let config = dogfood_exposure_config(|key| match key {
+            "ORTYO_DOGFOOD_EXPOSURE_PORT" => Some("3000".to_owned()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(
+            config,
+            Some(DogfoodExposureConfig {
+                name: "ortyo-dogfood".to_owned(),
+                target_port: 3000,
+            })
+        );
+    }
+
+    #[test]
+    fn dogfood_exposure_rejects_invalid_port() {
+        let error = dogfood_exposure_config(|key| match key {
+            "ORTYO_DOGFOOD_EXPOSURE_PORT" => Some("0".to_owned()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(error, "invalid ORTYO_DOGFOOD_EXPOSURE_PORT: 0");
     }
 
     #[tokio::test]
