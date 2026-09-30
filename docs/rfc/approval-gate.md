@@ -72,7 +72,7 @@ scope: requests:execute
 body: the exact HttpExecutionRequest that was approved
 ```
 
-The execution endpoint returns an `ApprovedExecution` containing the consumed `ApprovalRecord` and the full EXEC4 `ExecutionRecord`.
+The execution endpoint returns an `ApprovedExecution` containing the consumed `ApprovalRecord` and the full EXEC4 `ExecutionRecord`. The consumed approval persists the same `execution_id` for durable correlation.
 
 ## Exact-action binding
 
@@ -122,7 +122,9 @@ Only `pending` can be decided.
 
 Only `approved` can be consumed.
 
-Consumption happens atomically before outbound execution. Therefore one approval permits at most one execution attempt, even when the execution later returns `rejected` or `failed`.
+The act endpoint allocates an EXEC4 `execution_id` before consumption. Consumption atomically stores that `execution_id` while transitioning `approved -> consumed`, then the executor uses the same identity for the attempt.
+
+Therefore one approval permits at most one execution attempt, even when the execution later returns `rejected` or `failed`. If the process crashes after consumption but before the provider completes, the durable approval still retains the reserved execution identity rather than becoming an uncorrelated consumed grant.
 
 This is intentional: retrying an external side effect requires a new approval.
 
