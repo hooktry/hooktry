@@ -30,6 +30,18 @@ ortyo exposure-revoke <exposure-id>
 ortyo interactions
 ortyo assert <contract-id> <interaction-id>
 ortyo --base-url http://127.0.0.1:7777 interactions
+
+# Hosted ask -> approve -> act -> prove
+ORTYO_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example approval create request.json
+ORTYO_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example approval get <approval-id>
+ORTYO_APPROVER_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example approval approve <approval-id>
+ORTYO_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example approval execute <approval-id> request.json
+ORTYO_TOKEN='ortyo_...' \
+  ortyo --base-url https://relay.example execution get <execution-id>
 ```
 
 Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling. `ortyo expose 3000` creates a private local exposure. `ortyo expose 3000 web --public` provisions the hosted relay, attaches the exact Exposure to the local daemon, waits for authenticated WebSocket registration, and returns a public URL while `ortyo serve` keeps the tunnel alive.
@@ -50,7 +62,9 @@ Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted proc
 
 ### MCP
 
-`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, and create/assert Contracts without bypassing ORTYO's HTTP boundary.
+`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, create/assert Contracts, and use the hosted approval/execution lifecycle without bypassing ORTYO's HTTP boundary.
+
+For hosted CONTROL1 + EXEC5 tools, configure the MCP process with `ORTYO_TOKEN` for ask/act/query authority. Configure `ORTYO_APPROVER_TOKEN` only when that process is intentionally allowed to approve or deny. `approval_decide` never falls back to `ORTYO_TOKEN`. Credentials are environment configuration, not MCP tool arguments.
 
 ### Agent discovery
 

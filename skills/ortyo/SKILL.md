@@ -79,15 +79,23 @@ Captured secret values must appear as `[REDACTED]` in Evidence. Raw values belon
 
 ## Approval-gated execution
 
-When an action requires explicit approval:
+When an action requires explicit approval, prefer the agent-native sequence:
 
-1. Create an approval with the exact `HttpExecutionRequest` using a `requests:execute` credential.
+```text
+approval_create
+  -> approval_get
+  -> approval_decide
+  -> approval_execute
+  -> execution_get
+```
+
+1. Create an approval with the exact `HttpExecutionRequest` using `ORTYO_TOKEN` / `requests:execute`.
 2. Present or inspect the returned redacted summary. Do not reconstruct hidden query, body, header, or secret values from hashes.
-3. Decide with a distinct `requests:approve` credential.
-4. Execute by resubmitting the exact original request to the approval's execute endpoint.
-5. Treat the returned `ApprovedExecution` as the immediate proof tying the consumed approval to the EXEC4 lifecycle record.
+3. Approval or denial requires the MCP/CLI process to have a distinct `ORTYO_APPROVER_TOKEN`. Discovery of `approval_decide` is not approval authority.
+4. Execute by resubmitting the exact original request with `ORTYO_TOKEN`.
+5. Query `execution_get` and use the durable EXEC5 record as the post-response proof.
 
-Never modify an approved request before execution. A digest mismatch is a failed-closed condition, not a reason to bypass the gate. Never reuse a consumed approval. Retries require a new approval.
+Never modify an approved request before execution. A digest mismatch is a failed-closed condition, not a reason to bypass the gate. Never reuse a consumed approval. Retries require a new approval. Never assume `ORTYO_TOKEN` can approve: the client intentionally does not fall back when `ORTYO_APPROVER_TOKEN` is absent.
 
 ## Execution lifecycle
 

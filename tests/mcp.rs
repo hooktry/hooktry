@@ -40,6 +40,11 @@ async fn tools_list_exposes_complete_evidence_workflow() {
             "exposure_create",
             "exposure_get",
             "exposure_revoke",
+            "approval_create",
+            "approval_get",
+            "approval_decide",
+            "approval_execute",
+            "execution_get",
             "scenario_create",
             "scenario_get",
             "scenario_start",
@@ -72,6 +77,54 @@ async fn tool_schemas_require_identity_arguments() {
         .find(|tool| tool["name"] == "exposure_create")
         .unwrap();
     assert_eq!(exposure["inputSchema"]["required"], json!(["name", "port"]));
+
+    let approval_create = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_create")
+        .unwrap();
+    assert_eq!(
+        approval_create["inputSchema"]["required"],
+        json!(["request"])
+    );
+    let request = &approval_create["inputSchema"]["properties"]["request"];
+    assert_eq!(request["required"], json!(["method", "url"]));
+    assert!(
+        request["properties"]["secret_headers"]["additionalProperties"]["properties"]["secret_ref"]
+            .is_object()
+    );
+    assert!(approval_create["inputSchema"]["properties"]["token"].is_null());
+
+    let approval_decide = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_decide")
+        .unwrap();
+    assert_eq!(
+        approval_decide["inputSchema"]["required"],
+        json!(["approval_id", "decision"])
+    );
+    assert_eq!(
+        approval_decide["inputSchema"]["properties"]["decision"]["enum"],
+        json!(["approve", "deny"])
+    );
+    assert!(approval_decide["inputSchema"]["properties"]["token"].is_null());
+
+    let approval_execute = tools
+        .iter()
+        .find(|tool| tool["name"] == "approval_execute")
+        .unwrap();
+    assert_eq!(
+        approval_execute["inputSchema"]["required"],
+        json!(["approval_id", "request"])
+    );
+
+    let execution_get = tools
+        .iter()
+        .find(|tool| tool["name"] == "execution_get")
+        .unwrap();
+    assert_eq!(
+        execution_get["inputSchema"]["required"],
+        json!(["execution_id"])
+    );
 
     let scenario = tools
         .iter()

@@ -8,6 +8,7 @@ pub mod execution;
 pub mod execution_store;
 pub mod exposure;
 pub mod hosted;
+pub mod hosted_client;
 pub mod hosted_identity;
 pub mod hosted_runtime;
 pub mod hosted_server;
