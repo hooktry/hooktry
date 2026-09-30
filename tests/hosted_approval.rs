@@ -126,7 +126,10 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
         .send()
         .await
         .unwrap();
-    assert_eq!(agent_cannot_approve.status(), reqwest::StatusCode::FORBIDDEN);
+    assert_eq!(
+        agent_cannot_approve.status(),
+        reqwest::StatusCode::FORBIDDEN
+    );
 
     let approved: ApprovalRecord = client
         .post(format!(
@@ -163,10 +166,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
         .unwrap();
     assert_eq!(mismatch.status(), reqwest::StatusCode::CONFLICT);
     let mismatch_body: serde_json::Value = mismatch.json().await.unwrap();
-    assert_eq!(
-        mismatch_body["error"]["code"],
-        "approval_request_mismatch"
-    );
+    assert_eq!(mismatch_body["error"]["code"], "approval_request_mismatch");
 
     let approver_cannot_execute = client
         .post(format!(
@@ -266,10 +266,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
         .send()
         .await
         .unwrap();
-    assert_eq!(
-        denied_execution.status(),
-        reqwest::StatusCode::FORBIDDEN
-    );
+    assert_eq!(denied_execution.status(), reqwest::StatusCode::FORBIDDEN);
     let denied_body: serde_json::Value = denied_execution.json().await.unwrap();
     assert_eq!(denied_body["error"]["code"], "approval_denied");
 }
