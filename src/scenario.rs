@@ -1,13 +1,16 @@
+use std::time::Duration;
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use tokio::time::{Instant, sleep_until};
 use uuid::Uuid;
 
 use crate::{
     contract::assert_interaction,
     domain::{
-        Contract, InteractionCardinality, Origin, Scenario, ScenarioCheckOutcome,
-        ScenarioExpectation, ScenarioOutcome, ScenarioRun, ScenarioRunState,
+        Contract, Interaction, InteractionCardinality, Origin, Scenario, ScenarioCheckOutcome,
+        ScenarioExpectation, ScenarioObservation, ScenarioOutcome, ScenarioRun, ScenarioRunState,
     },
     exposure::{ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot},
@@ -32,6 +35,8 @@ pub struct ScenarioContractSpec {
 pub struct ScenarioManifest {
     pub name: String,
     pub target: ScenarioTarget,
+    #[serde(default)]
+    pub observation: ScenarioObservation,
     pub contracts: Vec<ScenarioContractSpec>,
 }
 
@@ -45,6 +50,7 @@ impl From<ScenarioManifest> for CreateScenario {
         Self {
             name: manifest.name,
             port: manifest.target.port,
+            observation: manifest.observation,
             contracts: manifest.contracts,
         }
     }
@@ -54,6 +60,8 @@ impl From<ScenarioManifest> for CreateScenario {
 pub struct CreateScenario {
     pub name: String,
     pub port: u16,
+    #[serde(default)]
+    pub observation: ScenarioObservation,
     pub contracts: Vec<ScenarioContractSpec>,
 }
 
@@ -65,11 +73,18 @@ pub enum ScenarioError {
     InvalidContractName,
     InvalidOperation,
     InvalidCardinality,
+    InvalidObservation,
     ScenarioNotFound,
     RunNotFound,
     ContractNotFound(Uuid),
     Exposure(ExposureError),
     Replay(ReplayError),
+}
+
+struct ObservationState {
+    satisfied: bool,
+    exceeded: bool,
+    requires_full_window: bool,
 }
 
 pub fn outcome_exit_code(outcome: &ScenarioOutcome) -> i32 {
@@ -89,6 +104,7 @@ pub fn create(
     if request.contracts.is_empty() {
         return Err(ScenarioError::ContractRequired);
     }
+    validate_observation(&request.observation)?;
 
     for spec in &request.contracts {
         if spec.name.trim().is_empty() {
@@ -128,6 +144,7 @@ pub fn create(
         port: request.port,
         contract_ids,
         expectations,
+        observation: request.observation,
         created_at: Utc::now(),
     };
     store.save_scenario(&scenario);
@@ -163,7 +180,7 @@ pub fn start(
     Ok(run)
 }
 
-pub fn complete(
+pub async fn complete(
     store: &InteractionStore,
     exposures: &ExposureService,
     session_id: Uuid,
@@ -179,16 +196,16 @@ pub fn complete(
     let scenario = store
         .scenario(run.scenario_id)
         .ok_or(ScenarioError::ScenarioNotFound)?;
-    let exposure_id = run.exposure_id.to_string();
-
-    let sources = store
-        .all()
-        .into_iter()
-        .filter(|interaction| {
-            interaction.origin == Origin::Proxied
-                && interaction.request["exposure_id"].as_str() == Some(exposure_id.as_str())
-        })
-        .collect::<Vec<_>>();
+    let definitions = expectation_contracts(store, &scenario)?;
+    let observation_started = Instant::now();
+    let sources = observe_sources(
+        store,
+        run.exposure_id,
+        &scenario.observation,
+        &definitions,
+    )
+    .await;
+    let observation_elapsed_ms = observation_started.elapsed().as_millis() as u64;
 
     let (recording_id, replayed) = if sources.is_empty() {
         (None, Vec::new())
@@ -198,12 +215,8 @@ pub fn complete(
         (Some(recording.id), replayed)
     };
 
-    let expectations = scenario_expectations(&scenario);
-    let mut checks = Vec::with_capacity(expectations.len());
-    for expectation in expectations {
-        let contract = store
-            .contract(expectation.contract_id)
-            .ok_or(ScenarioError::ContractNotFound(expectation.contract_id))?;
+    let mut checks = Vec::with_capacity(definitions.len());
+    for (expectation, contract) in definitions {
         let operation = contract
             .operation
             .as_ref()
@@ -259,6 +272,8 @@ pub fn complete(
         scenario_id: scenario.id,
         completed_at: Utc::now(),
         passed,
+        observation: scenario.observation,
+        observation_elapsed_ms,
         recording_id,
         replayed_interaction_ids: replayed.iter().map(|item| item.id).collect(),
         checks,
@@ -268,6 +283,134 @@ pub fn complete(
     let _ = exposures.revoke(run.exposure_id);
 
     Ok(outcome)
+}
+
+async fn observe_sources(
+    store: &InteractionStore,
+    exposure_id: Uuid,
+    observation: &ScenarioObservation,
+    definitions: &[(ScenarioExpectation, Contract)],
+) -> Vec<Interaction> {
+    let mut revision = store.subscribe_interactions();
+    let mut sources = source_interactions(store, exposure_id);
+    if observation.within_ms == 0 {
+        return sources;
+    }
+
+    let started = Instant::now();
+    let deadline = started + Duration::from_millis(observation.within_ms);
+    let settle = Duration::from_millis(observation.settle_ms);
+    let mut last_relevant_activity = started;
+    let mut seen_relevant = sources.len();
+
+    loop {
+        let state = observation_state(definitions, &sources);
+        if state.exceeded {
+            return sources;
+        }
+
+        let now = Instant::now();
+        if now >= deadline {
+            return source_interactions(store, exposure_id);
+        }
+
+        let can_settle_early = observation.settle_ms > 0
+            && state.satisfied
+            && !state.requires_full_window;
+        let wake_at = if can_settle_early {
+            let settle_deadline = last_relevant_activity + settle;
+            if now >= settle_deadline {
+                return sources;
+            }
+            settle_deadline.min(deadline)
+        } else {
+            deadline
+        };
+
+        tokio::select! {
+            changed = revision.changed() => {
+                if changed.is_err() {
+                    return sources;
+                }
+
+                let updated = source_interactions(store, exposure_id);
+                if updated.len() != seen_relevant {
+                    seen_relevant = updated.len();
+                    last_relevant_activity = Instant::now();
+                }
+                sources = updated;
+            }
+            _ = sleep_until(wake_at) => {
+                let updated = source_interactions(store, exposure_id);
+                if updated.len() != seen_relevant {
+                    seen_relevant = updated.len();
+                    last_relevant_activity = Instant::now();
+                    sources = updated;
+                    continue;
+                }
+
+                if Instant::now() >= deadline {
+                    return updated;
+                }
+                return updated;
+            }
+        }
+    }
+}
+
+fn source_interactions(store: &InteractionStore, exposure_id: Uuid) -> Vec<Interaction> {
+    let exposure_id = exposure_id.to_string();
+    store
+        .all()
+        .into_iter()
+        .filter(|interaction| {
+            interaction.origin == Origin::Proxied
+                && interaction.request["exposure_id"].as_str() == Some(exposure_id.as_str())
+        })
+        .collect()
+}
+
+fn expectation_contracts(
+    store: &InteractionStore,
+    scenario: &Scenario,
+) -> Result<Vec<(ScenarioExpectation, Contract)>, ScenarioError> {
+    scenario_expectations(scenario)
+        .into_iter()
+        .map(|expectation| {
+            let contract = store
+                .contract(expectation.contract_id)
+                .ok_or(ScenarioError::ContractNotFound(expectation.contract_id))?;
+            Ok((expectation, contract))
+        })
+        .collect()
+}
+
+fn observation_state(
+    definitions: &[(ScenarioExpectation, Contract)],
+    interactions: &[Interaction],
+) -> ObservationState {
+    let mut satisfied = true;
+    let mut exceeded = false;
+    let mut requires_full_window = false;
+
+    for (expectation, contract) in definitions {
+        let operation = contract.operation.as_ref().and_then(Value::as_str);
+        let matched = interactions
+            .iter()
+            .filter(|interaction| Some(interaction.operation.as_str()) == operation)
+            .filter(|interaction| assert_interaction(contract, interaction).passed)
+            .count();
+
+        satisfied &= cardinality_matches(&expectation.cardinality, matched);
+        exceeded |= maximum_allowed(&expectation.cardinality).is_some_and(|max| matched > max);
+        requires_full_window |= minimum_required(&expectation.cardinality) == 0;
+    }
+
+    ObservationState {
+        satisfied,
+        exceeded,
+        requires_full_window,
+    }
 }
 
 fn cardinality(spec: &ScenarioContractSpec) -> InteractionCardinality {
@@ -286,6 +429,16 @@ fn validate_cardinality(cardinality: &InteractionCardinality) -> Result<(), Scen
         && min > max
     {
         return Err(ScenarioError::InvalidCardinality);
+    }
+    Ok(())
+}
+
+fn validate_observation(observation: &ScenarioObservation) -> Result<(), ScenarioError> {
+    if observation.within_ms == 0 && observation.settle_ms > 0 {
+        return Err(ScenarioError::InvalidObservation);
+    }
+    if observation.within_ms > 0 && observation.settle_ms > observation.within_ms {
+        return Err(ScenarioError::InvalidObservation);
     }
     Ok(())
 }
@@ -316,6 +469,26 @@ fn cardinality_matches(cardinality: &InteractionCardinality, observed: usize) ->
     let min = cardinality.min.unwrap_or(0);
     let max = cardinality.max.unwrap_or(usize::MAX);
     observed >= min && observed <= max
+}
+
+fn minimum_required(cardinality: &InteractionCardinality) -> usize {
+    if let Some(count) = cardinality.count {
+        return count;
+    }
+    if cardinality.is_default() {
+        return 1;
+    }
+    cardinality.min.unwrap_or(0)
+}
+
+fn maximum_allowed(cardinality: &InteractionCardinality) -> Option<usize> {
+    if let Some(count) = cardinality.count {
+        return Some(count);
+    }
+    if cardinality.is_default() {
+        return Some(1);
+    }
+    cardinality.max
 }
 
 fn cardinality_description(cardinality: &InteractionCardinality) -> String {
