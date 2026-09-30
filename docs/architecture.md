@@ -25,6 +25,13 @@ A portable collection of captured interactions suitable for deterministic replay
 ### Contract
 Selectors and assertions over interactions and their temporal relationships.
 
+### Exposure
+A routable access path into a Boundary. Exposure makes a local or isolated service reachable while preserving access policy and ensuring that traffic still crosses an ORTYO Boundary and becomes Interaction evidence.
+
+Exposure is deliberately not a generic tunneling primitive. Reachability belongs in ORTYO only when it participates in the same Observe -> Control -> Replay -> Assert lifecycle.
+
+See [Service Access and Exposures](rfc/service-access.md).
+
 ## First vertical slice
 
     ortyo
@@ -46,6 +53,8 @@ This proves the canonical evidence path before persistence, UI, replay, assertio
 An adapter belongs in ORTYO when it meaningfully supports the same lifecycle: Observe -> Control -> Replay -> Assert.
 
 Candidate semantic boundaries include HTTP, SMTP, gRPC, feature flags via OpenFeature/provider hooks, queues, object storage, identity, notifications, and LLM calls.
+
+Infrastructure helpers such as service exposure belong only when they route traffic through a Boundary rather than bypassing the evidence model.
 
 ## OpenTelemetry
 
