@@ -170,19 +170,42 @@ impl ExposureService {
             ExposureMode::Relay => &self.relay_provider,
         };
         let url = provider.provision(id, &request.target)?;
-        let exposure = Exposure {
-            id,
-            session_id,
-            name: request.name,
-            protocol: Protocol::Http,
-            mode: request.mode,
-            access: request.access,
-            target: request.target,
-            url,
-            state: ExposureState::Active,
-            created_at: Utc::now(),
-            revoked_at: None,
-        };
+        let exposure = exposure_from_request(session_id, id, request, url);
+        exposures.push(exposure.clone());
+        Ok(exposure)
+    }
+
+    pub fn adopt_with_url(
+        &self,
+        session_id: Uuid,
+        id: Uuid,
+        request: CreateExposure,
+        url: impl Into<String>,
+    ) -> Result<Exposure, ExposureError> {
+        if request.name.trim().is_empty() {
+            return Err(ExposureError::InvalidName);
+        }
+        if request.target.port == 0 {
+            return Err(ExposureError::InvalidPort);
+        }
+
+        let mut exposures = self.inner.write().expect("exposure store poisoned");
+        if exposures
+            .iter()
+            .any(|item| item.name == request.name && item.state == ExposureState::Active)
+        {
+            return Err(ExposureError::DuplicateName);
+        }
+        if exposures.iter().any(|item| item.id == id) {
+            return Err(ExposureError::DuplicateId);
+        }
+
+        let url = url.into();
+        if url.trim().is_empty() {
+            return Err(ExposureError::Provider("empty exposure URL".to_owned()));
+        }
+
+        let exposure = exposure_from_request(session_id, id, request, url);
         exposures.push(exposure.clone());
         Ok(exposure)
     }
@@ -227,5 +250,27 @@ impl ExposureService {
         exposure.state = ExposureState::Revoked;
         exposure.revoked_at = Some(Utc::now());
         Ok(exposure.clone())
+    }
+}
+
+
+fn exposure_from_request(
+    session_id: Uuid,
+    id: Uuid,
+    request: CreateExposure,
+    url: String,
+) -> Exposure {
+    Exposure {
+        id,
+        session_id,
+        name: request.name,
+        protocol: Protocol::Http,
+        mode: request.mode,
+        access: request.access,
+        target: request.target,
+        url,
+        state: ExposureState::Active,
+        created_at: Utc::now(),
+        revoked_at: None,
     }
 }
