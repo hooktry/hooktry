@@ -11,6 +11,7 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
         r#"{
             "name": "stripe webhook",
             "target": {"port": 3000},
+            "observation": {"within_ms": 5000, "settle_ms": 500},
             "contracts": [
                 {
                     "name": "payment accepted",
@@ -28,6 +29,8 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
 
     assert_eq!(request.name, "stripe webhook");
     assert_eq!(request.port, 3000);
+    assert_eq!(request.observation.within_ms, 5000);
+    assert_eq!(request.observation.settle_ms, 500);
     assert_eq!(request.contracts.len(), 1);
     assert_eq!(request.contracts[0].operation, "POST /webhook");
     assert_eq!(request.contracts[0].count, Some(1));
@@ -52,6 +55,8 @@ fn outcome(passed: bool) -> ScenarioOutcome {
         scenario_id: Uuid::now_v7(),
         completed_at: Utc::now(),
         passed,
+        observation: Default::default(),
+        observation_elapsed_ms: 0,
         recording_id: None,
         replayed_interaction_ids: Vec::new(),
         checks: vec![ScenarioCheckOutcome {
