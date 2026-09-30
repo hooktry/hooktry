@@ -10,10 +10,13 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
-    approval::ApprovalStore,
+    approval::{ApprovalRecord, ApprovalState, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
-    execution::{ExecutionError, HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
-    hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
+    execution::{
+        ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture,
+        SecretHeaderBinding,
+    },
+    hosted::{ApprovedExecution, HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::{HostedExposureRecord, HostedExposureStore},
     http::AppState,
@@ -131,6 +134,13 @@ struct DogfoodExposureEvent<'a> {
     created: bool,
 }
 
+#[derive(Debug, Serialize)]
+struct DogfoodApprovalEvent {
+    event: &'static str,
+    approval_id: Uuid,
+    execution_id: Uuid,
+}
+
 pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String> {
     let listener = TcpListener::bind(&config.bind)
         .await
@@ -170,13 +180,29 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         let dogfood_state = state.clone();
         tokio::spawn(async move {
             if let Err(error) =
-                run_dogfood_exposure(dogfood_state, workspace_id, dogfood, local_runtime_base_url)
-                    .await
+                run_dogfood_exposure(
+                    &dogfood_state,
+                    workspace_id,
+                    dogfood,
+                    local_runtime_base_url,
+                )
+                .await
             {
                 eprintln!(
                     "{}",
                     json!({
                         "event": "dogfood_data_plane_failed",
+                        "error": error
+                    })
+                );
+                return;
+            }
+
+            if let Err(error) = run_dogfood_approval_gate(&dogfood_state, workspace_id).await {
+                eprintln!(
+                    "{}",
+                    json!({
+                        "event": "dogfood_control_plane_failed",
                         "error": error
                     })
                 );
@@ -369,16 +395,231 @@ fn dogfood_exposure_config(
 }
 
 async fn run_dogfood_exposure(
-    state: HostedRelayState,
+    state: &HostedRelayState,
     workspace_id: Uuid,
     config: DogfoodExposureConfig,
     local_runtime_base_url: String,
 ) -> Result<(), String> {
-    let (exposure, created) = provision_dogfood_exposure(&state, workspace_id, &config).await?;
-    attach_dogfood_runtime(&state, workspace_id, &exposure, &local_runtime_base_url).await?;
+    let (exposure, created) = provision_dogfood_exposure(state, workspace_id, &config).await?;
+    attach_dogfood_runtime(state, workspace_id, &exposure, &local_runtime_base_url).await?;
     verify_dogfood_data_plane(&exposure).await?;
     log_dogfood_exposure(&exposure, created, "dogfood_data_plane_ready");
     Ok(())
+}
+
+async fn run_dogfood_approval_gate(
+    state: &HostedRelayState,
+    workspace_id: Uuid,
+) -> Result<(), String> {
+    const ATTEMPTS: usize = 20;
+    let inner_request = HttpExecutionRequest {
+        method: "GET".to_owned(),
+        url: format!("{}/healthz", state.public_base_url),
+        headers: BTreeMap::new(),
+        body: None,
+        secret_headers: BTreeMap::new(),
+        capture: vec![],
+        timeout_ms: 5_000,
+    };
+
+    let approval = {
+        let mut approval = None;
+        for attempt in 0..ATTEMPTS {
+            let evidence = execute_dogfood_control_request(
+                state,
+                workspace_id,
+                "POST",
+                "/_ortyo/hosted/approvals",
+                serde_json::to_value(&inner_request)
+                    .map_err(|error| format!("serialize dogfood approval request: {error}"))?,
+            )
+            .await?;
+
+            if evidence.status == 201 {
+                approval = Some(
+                    serde_json::from_value::<ApprovalRecord>(evidence.body)
+                        .map_err(|error| format!("parse dogfood approval response: {error}"))?,
+                );
+                break;
+            }
+
+            if attempt + 1 == ATTEMPTS {
+                return Err(format!(
+                    "dogfood approval ask returned HTTP {}: {}",
+                    evidence.status, evidence.body
+                ));
+            }
+            sleep(Duration::from_millis(500)).await;
+        }
+        approval.ok_or_else(|| "dogfood approval ask exhausted attempts".to_owned())?
+    };
+
+    if approval.state != ApprovalState::Pending {
+        return Err(format!(
+            "dogfood approval was not pending: {:?}",
+            approval.state
+        ));
+    }
+    if approval.summary.method != "GET"
+        || approval.summary.path != "/healthz"
+        || approval.summary.origin != state.public_base_url
+        || approval.summary.body_sha256.is_some()
+        || !approval.summary.header_names.is_empty()
+        || !approval.summary.secret_header_names.is_empty()
+    {
+        return Err("dogfood approval summary was not the expected redacted health action".to_owned());
+    }
+
+    let decision = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        &format!(
+            "/_ortyo/hosted/approvals/{}/decision",
+            approval.approval_id
+        ),
+        json!({"decision": "approve"}),
+    )
+    .await?;
+    if decision.status != 200 {
+        return Err(format!(
+            "dogfood approval decision returned HTTP {}: {}",
+            decision.status, decision.body
+        ));
+    }
+    let approved: ApprovalRecord = serde_json::from_value(decision.body)
+        .map_err(|error| format!("parse dogfood approved record: {error}"))?;
+    if approved.state != ApprovalState::Approved {
+        return Err(format!(
+            "dogfood approval was not approved: {:?}",
+            approved.state
+        ));
+    }
+
+    let mut mismatched = inner_request.clone();
+    mismatched.url = format!("{}/llms.txt", state.public_base_url);
+    let mismatch = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        &format!(
+            "/_ortyo/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
+        serde_json::to_value(mismatched)
+            .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
+    )
+    .await?;
+    if mismatch.status != 409 || mismatch.body["error"]["code"] != "approval_request_mismatch" {
+        return Err(format!(
+            "dogfood approval mismatch did not fail closed: HTTP {} {}",
+            mismatch.status, mismatch.body
+        ));
+    }
+
+    let act = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        &format!(
+            "/_ortyo/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
+        serde_json::to_value(&inner_request)
+            .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
+    )
+    .await?;
+    if act.status != 200 {
+        return Err(format!(
+            "dogfood approved execution returned HTTP {}: {}",
+            act.status, act.body
+        ));
+    }
+    let proof: ApprovedExecution = serde_json::from_value(act.body)
+        .map_err(|error| format!("parse dogfood approved execution: {error}"))?;
+    if proof.approval.state != ApprovalState::Consumed {
+        return Err("dogfood approval was not consumed".to_owned());
+    }
+    if proof.approval.execution_id != Some(proof.execution.execution_id) {
+        return Err("dogfood approval and execution identities differ".to_owned());
+    }
+    match &proof.execution.outcome {
+        ExecutionOutcome::Succeeded { evidence }
+            if evidence.status == 200
+                && evidence.body["ok"] == true
+                && evidence.body["service"] == "hosted_relay" => {}
+        outcome => {
+            return Err(format!(
+                "dogfood approved health execution did not succeed: {outcome:?}"
+            ));
+        }
+    }
+
+    let replay = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        &format!(
+            "/_ortyo/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
+        serde_json::to_value(&inner_request)
+            .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
+    )
+    .await?;
+    if replay.status != 409 || replay.body["error"]["code"] != "approval_consumed" {
+        return Err(format!(
+            "dogfood consumed approval replay did not fail closed: HTTP {} {}",
+            replay.status, replay.body
+        ));
+    }
+
+    println!(
+        "{}",
+        serde_json::to_string(&DogfoodApprovalEvent {
+            event: "dogfood_control_plane_ready",
+            approval_id: approval.approval_id,
+            execution_id: proof.execution.execution_id,
+        })
+        .expect("dogfood approval event is serializable")
+    );
+
+    Ok(())
+}
+
+async fn execute_dogfood_control_request(
+    state: &HostedRelayState,
+    workspace_id: Uuid,
+    method: &str,
+    path: &str,
+    body: serde_json::Value,
+) -> Result<crate::execution::ExecutionEvidence, String> {
+    let mut secret_headers = BTreeMap::new();
+    secret_headers.insert(
+        "authorization".to_owned(),
+        SecretHeaderBinding::SecretRef {
+            secret_ref: "ortyo://secrets/default-api-token".to_owned(),
+            prefix: "Bearer ".to_owned(),
+            suffix: String::new(),
+        },
+    );
+
+    state
+        .executor
+        .execute(
+            workspace_id,
+            HttpExecutionRequest {
+                method: method.to_owned(),
+                url: format!("{}{}", state.public_base_url, path),
+                headers: BTreeMap::new(),
+                body: Some(body),
+                secret_headers,
+                capture: vec![],
+                timeout_ms: 5_000,
+            },
+        )
+        .await
+        .map_err(|error| format!("dogfood control request failed: {error:?}"))
 }
 
 async fn provision_dogfood_exposure(
