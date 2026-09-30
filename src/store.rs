@@ -6,7 +6,7 @@ use std::{
 use rusqlite::{Connection, params};
 use uuid::Uuid;
 
-use crate::domain::{Interaction, Recording};
+use crate::domain::{AssertionResult, Contract, Interaction, Recording};
 
 #[derive(Clone)]
 pub struct InteractionStore {
@@ -42,7 +42,20 @@ impl InteractionStore {
                 id TEXT PRIMARY KEY,
                 created_at TEXT NOT NULL,
                 payload TEXT NOT NULL
-            );",
+            );
+            CREATE TABLE IF NOT EXISTS contracts (
+                id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS assertion_results (
+                id TEXT PRIMARY KEY,
+                contract_id TEXT NOT NULL,
+                interaction_id TEXT NOT NULL,
+                passed INTEGER NOT NULL,
+                payload TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS assertion_results_contract_interaction
+                ON assertion_results(contract_id, interaction_id);",
         )?;
 
         Ok(Self {
@@ -106,6 +119,62 @@ impl InteractionStore {
             )
             .ok()
             .map(|payload| serde_json::from_str(&payload).expect("deserialize recording"))
+    }
+
+    pub fn save_contract(&self, contract: &Contract) {
+        let payload = serde_json::to_string(contract).expect("serialize contract");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO contracts (id, payload) VALUES (?1, ?2)",
+                params![contract.id.to_string(), payload],
+            )
+            .expect("persist contract");
+    }
+
+    pub fn contract(&self, id: Uuid) -> Option<Contract> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM contracts WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize contract"))
+    }
+
+    pub fn save_assertion(&self, assertion: &AssertionResult) {
+        let payload = serde_json::to_string(assertion).expect("serialize assertion result");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO assertion_results
+                    (id, contract_id, interaction_id, passed, payload)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    assertion.id.to_string(),
+                    assertion.contract_id.to_string(),
+                    assertion.interaction_id.to_string(),
+                    assertion.passed,
+                    payload
+                ],
+            )
+            .expect("persist assertion result");
+    }
+
+    pub fn assertion(&self, id: Uuid) -> Option<AssertionResult> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM assertion_results WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize assertion result"))
     }
 
     pub fn all(&self) -> Vec<Interaction> {
