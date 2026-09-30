@@ -4,7 +4,10 @@ use ortyo::{
     hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
-    scenario_run::{environment as scenario_environment, exit_code as scenario_run_exit_code, report as scenario_run_report},
+    scenario_run::{
+        environment as scenario_environment, exit_code as scenario_run_exit_code,
+        report as scenario_run_report,
+    },
     store::InteractionStore,
 };
 
@@ -40,9 +43,7 @@ async fn main() {
         }
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
-        Command::ScenarioRun { path, command } => {
-            scenario_run(&cli.base_url, &path, command).await
-        }
+        Command::ScenarioRun { path, command } => scenario_run(&cli.base_url, &path, command).await,
         Command::ScenarioGet { id } => get_json(&format!("{}/_ortyo/scenarios/{id}", cli.base_url))
             .await
             .map(|_| 0),
@@ -208,11 +209,7 @@ async fn scenario_complete(base_url: &str, id: uuid::Uuid) -> Result<i32, String
     Ok(outcome_exit_code(&outcome))
 }
 
-async fn scenario_run(
-    base_url: &str,
-    path: &str,
-    command: Vec<String>,
-) -> Result<i32, String> {
+async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Result<i32, String> {
     let scenario = scenario_create_request(base_url, path).await?;
     let run = scenario_start_request(base_url, scenario.id).await?;
     let program = command
