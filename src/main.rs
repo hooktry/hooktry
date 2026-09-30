@@ -167,14 +167,14 @@ async fn expose_public(base_url: &str, name: &str, port: u16) -> Result<(), Stri
         .unwrap_or_else(|_| "https://ortyo.onrender.com".to_owned())
         .trim_end_matches('/')
         .to_owned();
-    let control_token = std::env::var("ORTYO_CONTROL_TOKEN")
+    let api_token = std::env::var("ORTYO_TOKEN")
         .ok()
         .filter(|token| !token.trim().is_empty())
-        .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required for --public".to_owned())?;
+        .ok_or_else(|| "ORTYO_TOKEN is required for --public".to_owned())?;
 
     let provision_response = reqwest::Client::new()
         .post(format!("{hosted_url}/_ortyo/hosted/exposures"))
-        .bearer_auth(control_token)
+        .bearer_auth(api_token)
         .json(&serde_json::json!({
             "name": name,
             "target_port": port
