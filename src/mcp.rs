@@ -354,11 +354,7 @@ fn uuid_schema(name: &str) -> Value {
     json!({name: {"type": "string", "format": "uuid"}})
 }
 
-async fn call_tool(
-    base_url: &str,
-    hosted: &HostedClient,
-    params: Value,
-) -> Result<Value, String> {
+async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Result<Value, String> {
     let name = params
         .get("name")
         .and_then(Value::as_str)
@@ -371,10 +367,7 @@ async fn call_tool(
     let value = match name {
         "approval_create" => {
             let request = http_execution_request_argument(&arguments)?;
-            return hosted_tool_result(
-                hosted.create_approval(&request)
-                    .await,
-            );
+            return hosted_tool_result(hosted.create_approval(&request).await);
         }
         "approval_get" => {
             let id = uuid_argument(&arguments, "approval_id")?;
@@ -383,18 +376,12 @@ async fn call_tool(
         "approval_decide" => {
             let id = uuid_argument(&arguments, "approval_id")?;
             let decision = approval_decision_argument(&arguments)?;
-            return hosted_tool_result(
-                hosted.decide_approval(id, decision)
-                    .await,
-            );
+            return hosted_tool_result(hosted.decide_approval(id, decision).await);
         }
         "approval_execute" => {
             let id = uuid_argument(&arguments, "approval_id")?;
             let request = http_execution_request_argument(&arguments)?;
-            return hosted_tool_result(
-                hosted.execute_approved(id, &request)
-                    .await,
-            );
+            return hosted_tool_result(hosted.execute_approved(id, &request).await);
         }
         "execution_get" => {
             let id = uuid_argument(&arguments, "execution_id")?;
