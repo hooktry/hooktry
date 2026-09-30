@@ -30,9 +30,7 @@ async fn local_exposure_proxies_http_and_records_interaction_evidence() {
             )
         }),
     );
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let target_port = listener.local_addr().unwrap().port();
     tokio::spawn(async move {
         axum::serve(listener, target).await.unwrap();
