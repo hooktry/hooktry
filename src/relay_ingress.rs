@@ -45,7 +45,16 @@ async fn ingress_root(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Response, StatusCode> {
-    ingress(state, exposure_id, "/".to_owned(), uri.query(), method, headers, body).await
+    ingress(
+        state,
+        exposure_id,
+        "/".to_owned(),
+        uri.query(),
+        method,
+        headers,
+        body,
+    )
+    .await
 }
 
 async fn ingress_path(
