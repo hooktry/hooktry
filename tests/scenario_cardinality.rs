@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    body::Bytes,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
 use ortyo::{
     domain::{AssertionResult, Scenario, ScenarioOutcome, ScenarioRun},
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
@@ -105,9 +100,10 @@ async fn payload_mismatch_keeps_candidate_and_assertion_evidence() {
     assert!(check.matched_interaction_ids.is_empty());
     assert_eq!(check.assertion_ids.len(), 1);
 
-    let assertion: AssertionResult = get_json(
-        &format!("{base_url}/_ortyo/assertions/{}", check.assertion_ids[0]),
-    )
+    let assertion: AssertionResult = get_json(&format!(
+        "{base_url}/_ortyo/assertions/{}",
+        check.assertion_ids[0]
+    ))
     .await;
     assert!(!assertion.passed);
     assert!(!assertion.mismatches.is_empty());
