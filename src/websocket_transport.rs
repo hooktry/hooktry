@@ -5,7 +5,10 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use tokio::{net::TcpStream, sync::{Mutex, oneshot}};
+use tokio::{
+    net::TcpStream,
+    sync::{Mutex, oneshot},
+};
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream, connect_async,
     tungstenite::{
@@ -239,12 +242,8 @@ impl ConnectedWebSocketRuntime {
                     .await?;
                 }
                 TungsteniteMessage::Binary(data) => {
-                    handle_runtime_frame(
-                        serde_json::from_slice(&data)?,
-                        &self.writer,
-                        &self.state,
-                    )
-                    .await?;
+                    handle_runtime_frame(serde_json::from_slice(&data)?, &self.writer, &self.state)
+                        .await?;
                 }
                 TungsteniteMessage::Ping(data) => {
                     self.writer
@@ -294,13 +293,7 @@ pub async fn maintain_websocket_runtime(
 
         tokio::time::sleep(delay).await;
 
-        match connect_websocket_runtime(
-            &runtime_url,
-            exposure_id,
-            &capability,
-            state.clone(),
-        )
-        .await
+        match connect_websocket_runtime(&runtime_url, exposure_id, &capability, state.clone()).await
         {
             Ok(next) => {
                 connection = Some(next);
