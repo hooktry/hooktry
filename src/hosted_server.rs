@@ -15,6 +15,7 @@ pub struct HostedServerConfig {
     pub bind: String,
     pub public_base_url: String,
     pub control_token: String,
+    pub database_url: Option<String>,
     pub db_path: String,
 }
 
@@ -24,6 +25,10 @@ impl std::fmt::Debug for HostedServerConfig {
             .field("bind", &self.bind)
             .field("public_base_url", &self.public_base_url)
             .field("control_token", &"[REDACTED]")
+            .field(
+                "database_url",
+                &self.database_url.as_ref().map(|_| "[REDACTED]"),
+            )
             .field("db_path", &self.db_path)
             .finish()
     }
@@ -52,6 +57,12 @@ impl HostedServerConfig {
         let control_token = lookup("ORTYO_CONTROL_TOKEN")
             .filter(|token| !token.trim().is_empty())
             .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required".to_owned())?;
+        let database_url = lookup("ORTYO_DATABASE_URL").filter(|url| !url.trim().is_empty());
+        if database_url.as_ref().is_some_and(|url| {
+            !url.starts_with("postgres://") && !url.starts_with("postgresql://")
+        }) {
+            return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
+        }
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
             .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
@@ -60,6 +71,7 @@ impl HostedServerConfig {
             bind,
             public_base_url: public_base_url.trim_end_matches('/').to_owned(),
             control_token,
+            database_url,
             db_path,
         })
     }
@@ -71,6 +83,7 @@ struct HostedStartup {
     bind: String,
     public_base_url: String,
     runtime_transport: &'static str,
+    storage: &'static str,
 }
 
 pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String> {
@@ -78,10 +91,19 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let capabilities = CapabilityStore::open(&config.db_path)
-        .map_err(|error| format!("open hosted capability store: {error:?}"))?;
-    let exposures = HostedExposureStore::open(&config.db_path)
-        .map_err(|error| format!("open hosted exposure store: {error:?}"))?;
+    let (capabilities, exposures, storage) = if let Some(database_url) = &config.database_url {
+        let capabilities = CapabilityStore::open_postgres(database_url)
+            .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
+        let exposures = HostedExposureStore::open_postgres(database_url)
+            .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
+        (capabilities, exposures, "postgres")
+    } else {
+        let capabilities = CapabilityStore::open(&config.db_path)
+            .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
+        let exposures = HostedExposureStore::open(&config.db_path)
+            .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
+        (capabilities, exposures, "sqlite")
+    };
     let state = HostedRelayState::websocket_only_with_store(
         RelayBroker::default(),
         capabilities,
@@ -95,6 +117,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         bind: config.bind,
         public_base_url: config.public_base_url,
         runtime_transport: "websocket",
+        storage,
     };
     println!(
         "{}",
