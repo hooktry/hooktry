@@ -37,6 +37,15 @@ pub struct Interaction {
     pub duration_ms: u64,
     pub request: serde_json::Value,
     pub response: serde_json::Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_interaction_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Recording {
+    pub id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub interaction_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
