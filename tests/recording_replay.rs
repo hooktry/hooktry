@@ -1,7 +1,4 @@
-use axum::{
-    body::Body,
-    http::Request,
-};
+use axum::{body::Body, http::Request};
 use http_body_util::BodyExt;
 use ortyo::{
     domain::{Interaction, Origin, Recording},
