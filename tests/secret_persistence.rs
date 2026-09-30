@@ -24,7 +24,10 @@ fn sqlite_secret_survives_restart_and_plaintext_is_absent() {
 
     let reopened = SecretStore::open(&path, key).unwrap();
     assert_eq!(reopened.resolve(workspace, "api-token").unwrap(), plaintext);
-    assert_eq!(reopened.get_ref(workspace, "api-token").unwrap().id, first.id);
+    assert_eq!(
+        reopened.get_ref(workspace, "api-token").unwrap().id,
+        first.id
+    );
 
     let wrong_workspace = Uuid::now_v7();
     assert_eq!(
@@ -52,7 +55,10 @@ fn overwrite_rotates_ciphertext_and_reference() {
     let second = store.put(workspace, "api-token", "second-value").unwrap();
 
     assert_ne!(first.id, second.id);
-    assert_eq!(store.resolve(workspace, "api-token").unwrap(), "second-value");
+    assert_eq!(
+        store.resolve(workspace, "api-token").unwrap(),
+        "second-value"
+    );
     assert_eq!(store.get_ref(workspace, "api-token").unwrap().id, second.id);
 
     let bytes = fs::read(&path).unwrap();
