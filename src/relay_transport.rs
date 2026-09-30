@@ -105,7 +105,7 @@ pub async fn serve_connection(
     let read_pending = pending.clone();
     let read_writer = writer.clone();
 
-    let reader_task = tokio::spawn(async move {
+    let mut reader_task = tokio::spawn(async move {
         while let Some(frame) = read_frame::<RelayFrame, _>(&mut reader).await? {
             match frame {
                 RelayFrame::Response { response } => {
@@ -123,34 +123,49 @@ pub async fn serve_connection(
         Ok::<(), TransportError>(())
     });
 
-    while let Some(work) = runtime.recv().await {
-        let request_id = work.request.id;
-        let (response_tx, response_rx) = tokio::sync::oneshot::channel();
-        pending.lock().await.insert(request_id, response_tx);
-        write_frame(
-            &mut *writer.lock().await,
-            &RelayFrame::Request {
-                request: work.request.clone(),
-            },
-        )
-        .await?;
-
-        let pending = pending.clone();
-        tokio::spawn(async move {
-            match response_rx.await {
-                Ok(response) => {
-                    let _ = work.complete(response);
+    let result = async {
+        loop {
+            tokio::select! {
+                reader_result = &mut reader_task => {
+                    return reader_result
+                        .map_err(|error| TransportError::Protocol(format!("relay reader task failed: {error}")))?;
                 }
-                Err(_) => {
-                    pending.lock().await.remove(&request_id);
+                work = runtime.recv() => {
+                    let Some(work) = work else {
+                        return Ok(());
+                    };
+                    let request_id = work.request.id;
+                    let (response_tx, response_rx) = tokio::sync::oneshot::channel();
+                    pending.lock().await.insert(request_id, response_tx);
+                    write_frame(
+                        &mut *writer.lock().await,
+                        &RelayFrame::Request {
+                            request: work.request.clone(),
+                        },
+                    )
+                    .await?;
+
+                    let pending = pending.clone();
+                    tokio::spawn(async move {
+                        match response_rx.await {
+                            Ok(response) => {
+                                let _ = work.complete(response);
+                            }
+                            Err(_) => {
+                                pending.lock().await.remove(&request_id);
+                            }
+                        }
+                    });
                 }
             }
-        });
+        }
     }
+    .await;
 
     reader_task.abort();
+    pending.lock().await.clear();
     broker.unregister(exposure_id, registration_id).await;
-    Ok(())
+    result
 }
 
 pub async fn run_runtime_connection(
