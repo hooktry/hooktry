@@ -2,10 +2,7 @@ use reqwest::Method;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{
-    approval::ApprovalDecision,
-    execution::HttpExecutionRequest,
-};
+use crate::{approval::ApprovalDecision, execution::HttpExecutionRequest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CredentialKind {
@@ -34,15 +31,11 @@ impl HostedClient {
             base_url: base_url.into().trim_end_matches('/').to_owned(),
             http: reqwest::Client::new(),
             execute_token: lookup("ORTYO_TOKEN").filter(|value| !value.trim().is_empty()),
-            approver_token: lookup("ORTYO_APPROVER_TOKEN")
-                .filter(|value| !value.trim().is_empty()),
+            approver_token: lookup("ORTYO_APPROVER_TOKEN").filter(|value| !value.trim().is_empty()),
         }
     }
 
-    pub async fn create_approval(
-        &self,
-        request: &HttpExecutionRequest,
-    ) -> Result<Value, String> {
+    pub async fn create_approval(&self, request: &HttpExecutionRequest) -> Result<Value, String> {
         self.request_json(
             Method::POST,
             "/_ortyo/hosted/approvals",
@@ -118,16 +111,12 @@ impl HostedClient {
         body: Option<Value>,
     ) -> Result<Value, String> {
         let token = match credential {
-            CredentialKind::Execute => self
-                .execute_token
-                .as_deref()
-                .ok_or_else(|| "ORTYO_TOKEN is required for hosted execution operations".to_owned())?,
-            CredentialKind::Approve => self
-                .approver_token
-                .as_deref()
-                .ok_or_else(|| {
-                    "ORTYO_APPROVER_TOKEN is required for approval decisions".to_owned()
-                })?,
+            CredentialKind::Execute => self.execute_token.as_deref().ok_or_else(|| {
+                "ORTYO_TOKEN is required for hosted execution operations".to_owned()
+            })?,
+            CredentialKind::Approve => self.approver_token.as_deref().ok_or_else(|| {
+                "ORTYO_APPROVER_TOKEN is required for approval decisions".to_owned()
+            })?,
         };
 
         let url = format!("{}{}", self.base_url, path);
