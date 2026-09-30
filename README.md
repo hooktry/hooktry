@@ -98,6 +98,26 @@ ortyo scenario outcome <run-id>
 
 `scenario complete` is a deterministic CI gate: exit `0` for a passing ScenarioOutcome, exit `1` for a behavioral mismatch or missing expected evidence, and exit `2` for CLI, transport, API, or response errors. `ortyo assert` uses the same `0/1/2` convention.
 
+For the common CI path, ORTYO can orchestrate the lifecycle around an explicit child command:
+
+```sh
+ortyo scenario run examples/scenarios/payment-webhook.json -- bundle exec rspec spec/integration/payment_webhook_spec.rb
+```
+
+`scenario run` creates the Scenario, starts a unique Exposure, executes the child directly (without an implicit shell), completes the run even when the child exits non-zero, and prints one structured `ScenarioRunReport` to stdout. Child stdout/stderr is forwarded to ORTYO stderr so stdout remains machine-readable.
+
+The child receives:
+
+```text
+ORTYO_BASE_URL
+ORTYO_SCENARIO_ID
+ORTYO_SCENARIO_RUN_ID
+ORTYO_EXPOSURE_ID
+ORTYO_EXPOSURE_URL
+```
+
+The command exits `0` only when both the child command and ScenarioOutcome pass, `1` when either behavior or the child command fails, and `2` when ORTYO cannot orchestrate or complete the run. If shell syntax is needed, invoke a shell explicitly after `--`.
+
 
 ## License
 
