@@ -12,12 +12,13 @@ use uuid::Uuid;
 use crate::{
     http::{AppState, proxy_relay_request},
     relay::{RelayBroker, RelayRequest, RelayResponse},
+    relay_auth::CapabilityStore,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RelayFrame {
-    Register { exposure_id: Uuid },
+    Register { exposure_id: Uuid, capability: String },
     Registered { exposure_id: Uuid },
     Request { request: RelayRequest },
     Response { response: RelayResponse },
@@ -48,13 +49,22 @@ impl From<serde_json::Error> for TransportError {
 pub async fn serve_connection(
     stream: TcpStream,
     broker: RelayBroker,
+    capabilities: CapabilityStore,
 ) -> Result<(), TransportError> {
     let (read_half, write_half) = stream.into_split();
     let mut reader = BufReader::new(read_half);
     let writer = Arc::new(Mutex::new(write_half));
 
     let exposure_id = match read_frame::<RelayFrame, _>(&mut reader).await? {
-        Some(RelayFrame::Register { exposure_id }) => exposure_id,
+        Some(RelayFrame::Register {
+            exposure_id,
+            capability,
+        }) => {
+            capabilities
+                .authorize(exposure_id, &capability)
+                .map_err(|error| TransportError::Protocol(format!("registration denied: {error:?}")))?;
+            exposure_id
+        },
         Some(_) => {
             return Err(TransportError::Protocol(
                 "expected register frame".to_owned(),
@@ -127,6 +137,7 @@ pub async fn serve_connection(
 pub async fn run_runtime_connection(
     stream: TcpStream,
     exposure_id: Uuid,
+    capability: &str,
     state: AppState,
 ) -> Result<(), TransportError> {
     let (read_half, write_half) = stream.into_split();
@@ -135,7 +146,10 @@ pub async fn run_runtime_connection(
 
     write_frame(
         &mut *writer.lock().await,
-        &RelayFrame::Register { exposure_id },
+        &RelayFrame::Register {
+            exposure_id,
+            capability: capability.to_owned(),
+        },
     )
     .await?;
     match read_frame::<RelayFrame, _>(&mut reader).await? {
@@ -178,13 +192,14 @@ pub async fn run_runtime_connection(
 pub async fn run_runtime_reconnecting(
     relay_addr: &str,
     exposure_id: Uuid,
+    capability: &str,
     state: AppState,
     retry_delay: Duration,
 ) -> Result<(), TransportError> {
     loop {
         match TcpStream::connect(relay_addr).await {
             Ok(stream) => {
-                let _ = run_runtime_connection(stream, exposure_id, state.clone()).await;
+                let _ = run_runtime_connection(stream, exposure_id, capability, state.clone()).await;
             }
             Err(error) if error.kind() == io::ErrorKind::InvalidInput => {
                 return Err(TransportError::Io(error));
@@ -198,12 +213,14 @@ pub async fn run_runtime_reconnecting(
 pub async fn serve_listener(
     listener: TcpListener,
     broker: RelayBroker,
+    capabilities: CapabilityStore,
 ) -> Result<(), TransportError> {
     loop {
         let (stream, _) = listener.accept().await?;
         let broker = broker.clone();
+        let capabilities = capabilities.clone();
         tokio::spawn(async move {
-            let _ = serve_connection(stream, broker).await;
+            let _ = serve_connection(stream, broker, capabilities).await;
         });
     }
 }
