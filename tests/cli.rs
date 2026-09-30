@@ -63,3 +63,72 @@ fn parses_mcp_stdio_command() {
 
     assert_eq!(cli.command, Command::Mcp);
 }
+
+#[test]
+fn parses_scenario_manifest_lifecycle_commands() {
+    let scenario_id = Uuid::now_v7();
+    let run_id = Uuid::now_v7();
+
+    let create = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "create".to_owned(),
+        "ortyo/payment-webhook.json".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(
+        create.command,
+        Command::ScenarioCreate {
+            path: "ortyo/payment-webhook.json".to_owned()
+        }
+    );
+
+    let get = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "get".to_owned(),
+        scenario_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(get.command, Command::ScenarioGet { id: scenario_id });
+
+    let start = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "start".to_owned(),
+        scenario_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(start.command, Command::ScenarioStart { id: scenario_id });
+
+    let complete = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "complete".to_owned(),
+        run_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(complete.command, Command::ScenarioComplete { id: run_id });
+
+    let outcome = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "outcome".to_owned(),
+        run_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(outcome.command, Command::ScenarioOutcome { id: run_id });
+}
+
+#[test]
+fn rejects_invalid_scenario_ids() {
+    let error = Cli::parse([
+        "ortyo".to_owned(),
+        "scenario".to_owned(),
+        "complete".to_owned(),
+        "not-a-uuid".to_owned(),
+    ])
+    .unwrap_err();
+
+    assert_eq!(error, "scenario complete requires a valid UUID");
+}
