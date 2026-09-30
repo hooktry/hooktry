@@ -51,4 +51,5 @@ async fn captures_http_request_as_structured_interaction() {
     assert_eq!(interaction["request"]["path"], "/stripe/payment_intents");
     assert_eq!(interaction["request"]["body"], r#"{"amount":4999}"#);
     assert_eq!(interaction["response"]["status"], 200);
+    assert!(interaction.get("source_interaction_id").is_none());
 }
