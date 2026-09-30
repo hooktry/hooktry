@@ -69,7 +69,7 @@ fn execution_store_is_workspace_scoped_and_discards_only_uncompleted_reservation
     let other_workspace_id = Uuid::now_v7();
     let execution_id = Uuid::now_v7();
 
-    let started = store
+    store
         .reserve(workspace_id, execution_id, ExecutionProviderKind::Http)
         .unwrap();
 
