@@ -17,11 +17,7 @@ fn execution_store_persists_started_then_completed_lifecycle() {
 
     let store = ExecutionStore::open(&path).unwrap();
     let started = store
-        .reserve(
-            workspace_id,
-            execution_id,
-            ExecutionProviderKind::Http,
-        )
+        .reserve(workspace_id, execution_id, ExecutionProviderKind::Http)
         .unwrap();
     assert_eq!(started.state, DurableExecutionState::Started);
     assert_eq!(started.execution_id, execution_id);
@@ -74,17 +70,10 @@ fn execution_store_is_workspace_scoped_and_discards_only_uncompleted_reservation
     let execution_id = Uuid::now_v7();
 
     let started = store
-        .reserve(
-            workspace_id,
-            execution_id,
-            ExecutionProviderKind::Http,
-        )
+        .reserve(workspace_id, execution_id, ExecutionProviderKind::Http)
         .unwrap();
 
-    assert_eq!(
-        store.get(other_workspace_id, execution_id).unwrap(),
-        None
-    );
+    assert_eq!(store.get(other_workspace_id, execution_id).unwrap(), None);
     store
         .discard_started(other_workspace_id, execution_id)
         .unwrap();
@@ -95,11 +84,7 @@ fn execution_store_is_workspace_scoped_and_discards_only_uncompleted_reservation
 
     let completed_id = Uuid::now_v7();
     let started = store
-        .reserve(
-            workspace_id,
-            completed_id,
-            ExecutionProviderKind::Http,
-        )
+        .reserve(workspace_id, completed_id, ExecutionProviderKind::Http)
         .unwrap();
     let terminal = ExecutionRecord {
         execution_id: completed_id,
@@ -124,11 +109,7 @@ fn durable_store_does_not_persist_execution_request_material() {
     let store = ExecutionStore::open(&path).unwrap();
 
     let started = store
-        .reserve(
-            workspace_id,
-            execution_id,
-            ExecutionProviderKind::Http,
-        )
+        .reserve(workspace_id, execution_id, ExecutionProviderKind::Http)
         .unwrap();
 
     let request = HttpExecutionRequest {
