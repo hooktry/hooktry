@@ -228,10 +228,7 @@ impl SecretStore {
         }))
     }
 
-    pub fn list_metadata(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<SecretMetadata>, SecretError> {
+    pub fn list_metadata(&self, workspace_id: Uuid) -> Result<Vec<SecretMetadata>, SecretError> {
         let mut metadata = match &self.backend {
             SecretBackend::Memory(inner) => inner
                 .read()
