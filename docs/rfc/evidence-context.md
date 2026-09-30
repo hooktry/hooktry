@@ -2,6 +2,11 @@
 
 Status: foundational design / incremental adoption
 
+Implementation status:
+- CTX1: implemented — normalized allowlisted HTTP context and replay preservation.
+- MATCH1: implemented — all-candidate Contract matching with `count`/`min`/`max` cardinality evidence.
+- ORDER1, WAIT1, RETRY1, OTEL1: deferred.
+
 ## Summary
 
 ORTYO's source of truth is boundary evidence: what actually crossed an external integration boundary.
