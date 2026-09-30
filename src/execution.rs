@@ -147,7 +147,8 @@ impl HttpExecutionProvider {
         }
         for (name, binding) in request.secret_headers {
             let value =
-                resolve_secret_header(&self.secrets, workspace_id, binding, &request_origin).await?;
+                resolve_secret_header(&self.secrets, workspace_id, binding, &request_origin)
+                    .await?;
             builder = builder.header(&name, value);
         }
         if let Some(body) = body {
@@ -253,11 +254,7 @@ async fn resolve_secret_header(
 
     match binding {
         SecretHeaderBinding::SecretName(name) => secrets
-            .resolve_legacy_for_origin_async(
-                workspace_id,
-                name,
-                destination_origin.to_owned(),
-            )
+            .resolve_legacy_for_origin_async(workspace_id, name, destination_origin.to_owned())
             .await
             .map_err(map_error),
         SecretHeaderBinding::SecretRef {
