@@ -164,7 +164,6 @@ fn local_public_base_url(socket: SocketAddr) -> String {
     format!("http://{host}:{}", socket.port())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::{HostedServerConfig, open_hosted_stores};
