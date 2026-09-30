@@ -155,6 +155,14 @@ struct DogfoodApprovalEvent {
     revision: String,
 }
 
+#[derive(Debug, Serialize)]
+struct DogfoodWebhookEvent {
+    event: &'static str,
+    approval_id: Uuid,
+    notification_id: Uuid,
+    revision: String,
+}
+
 pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String> {
     let listener = TcpListener::bind(&config.bind)
         .await
@@ -243,6 +251,18 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
                     })
                 );
                 return;
+            }
+
+            if approval_webhook
+                && let Err(error) = run_dogfood_approval_webhook(&dogfood_state, workspace_id).await
+            {
+                eprintln!(
+                    "{}",
+                    json!({
+                        "event": "dogfood_approval_webhook_failed",
+                        "error": error
+                    })
+                );
             }
 
             if let Err(error) = run_dogfood_approval_gate(&dogfood_state, workspace_id).await {
@@ -459,6 +479,110 @@ async fn run_dogfood_exposure(
     attach_dogfood_runtime(state, workspace_id, &exposure, &local_runtime_base_url).await?;
     verify_dogfood_data_plane(&exposure).await?;
     log_dogfood_exposure(&exposure, created, "dogfood_data_plane_ready");
+    Ok(())
+}
+
+async fn run_dogfood_approval_webhook(
+    state: &HostedRelayState,
+    workspace_id: Uuid,
+) -> Result<(), String> {
+    const ATTEMPTS: usize = 30;
+    let request = HttpExecutionRequest {
+        method: "GET".to_owned(),
+        url: format!("{}/llms.txt", state.public_base_url),
+        headers: BTreeMap::new(),
+        body: None,
+        secret_headers: BTreeMap::new(),
+        capture: vec![],
+        timeout_ms: 5_000,
+    };
+
+    let created = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        "/_ortyo/hosted/approvals",
+        Some(
+            serde_json::to_value(&request)
+                .map_err(|error| format!("serialize dogfood webhook approval: {error}"))?,
+        ),
+    )
+    .await?;
+    if created.status != 201 {
+        return Err(format!(
+            "dogfood webhook approval ask returned HTTP {}: {}",
+            created.status, created.body
+        ));
+    }
+    let approval: ApprovalRecord = serde_json::from_value(created.body)
+        .map_err(|error| format!("parse dogfood webhook approval: {error}"))?;
+    if approval.state != ApprovalState::Pending {
+        return Err(format!(
+            "dogfood webhook approval was not pending: {:?}",
+            approval.state
+        ));
+    }
+
+    let notification = state
+        .approvals
+        .get_notification_for_approval_async(workspace_id, approval.approval_id)
+        .await
+        .map_err(|error| format!("load dogfood webhook notification: {error:?}"))?
+        .ok_or_else(|| "dogfood webhook approval had no notification intent".to_owned())?;
+
+    let mut delivered = false;
+    for attempt in 0..ATTEMPTS {
+        let current = state
+            .approvals
+            .get_notification(workspace_id, notification.notification_id)
+            .map_err(|error| format!("poll dogfood webhook notification: {error:?}"))?
+            .ok_or_else(|| "dogfood webhook notification disappeared".to_owned())?;
+        if current.delivered_at_unix_ms.is_some() {
+            delivered = true;
+            break;
+        }
+        if attempt + 1 < ATTEMPTS {
+            sleep(Duration::from_secs(1)).await;
+        }
+    }
+    if !delivered {
+        return Err("dogfood approval webhook was not delivered before timeout".to_owned());
+    }
+
+    let decision = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "POST",
+        &format!("/_ortyo/hosted/approvals/{}/decision", approval.approval_id),
+        Some(json!({"decision": "deny"})),
+    )
+    .await?;
+    if decision.status != 200 {
+        return Err(format!(
+            "dogfood webhook cleanup decision returned HTTP {}: {}",
+            decision.status, decision.body
+        ));
+    }
+    let denied: ApprovalRecord = serde_json::from_value(decision.body)
+        .map_err(|error| format!("parse dogfood webhook denied approval: {error}"))?;
+    if denied.state != ApprovalState::Denied {
+        return Err(format!(
+            "dogfood webhook cleanup was not denied: {:?}",
+            denied.state
+        ));
+    }
+
+    println!(
+        "{}",
+        serde_json::to_string(&DogfoodWebhookEvent {
+            event: "dogfood_approval_webhook_ready",
+            approval_id: approval.approval_id,
+            notification_id: notification.notification_id,
+            revision: render_revision().unwrap_or_else(|| "unknown".to_owned()),
+        })
+        .expect("dogfood webhook event is serializable")
+    );
+
     Ok(())
 }
 

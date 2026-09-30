@@ -127,6 +127,21 @@ When `ORTYO_APPROVAL_WEBHOOK_URL` is configured, hosted ORTYO starts one lightwe
 
 The worker is delivery plumbing, not a workflow scheduler. Approval state remains in CONTROL1/CONTROL2.
 
+## Production dogfood
+
+When the webhook provider is configured, hosted startup also proves the real external delivery path:
+
+```text
+create harmless pending approval
+    -> wait for its durable outbox row to become delivered
+    -> deny the still-pending approval for cleanup
+    -> emit dogfood_approval_webhook_ready
+```
+
+This uses a separate approval from the normal ask-approve-act dogfood. The normal control proof intentionally decides too quickly for a pending-approval notification and therefore correctly cancels that notification before send.
+
+The production proof logs only approval ID, notification ID, and deployed revision. It never logs the webhook URL.
+
 ## Out of scope
 
 - generic NotificationDestination ontology
