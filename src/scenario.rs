@@ -236,7 +236,8 @@ pub fn complete(
                 matched_interaction_ids.len()
             )
         });
-        let interaction_id = (matched_interaction_ids.len() == 1).then(|| matched_interaction_ids[0]);
+        let interaction_id =
+            (matched_interaction_ids.len() == 1).then(|| matched_interaction_ids[0]);
         let assertion_id = (matched_assertion_ids.len() == 1).then(|| matched_assertion_ids[0]);
 
         checks.push(ScenarioCheckOutcome {
