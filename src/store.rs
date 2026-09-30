@@ -6,7 +6,9 @@ use std::{
 use rusqlite::{Connection, params};
 use uuid::Uuid;
 
-use crate::domain::{AssertionResult, Contract, Interaction, Recording, Scenario, ScenarioOutcome, ScenarioRun};
+use crate::domain::{
+    AssertionResult, Contract, Interaction, Recording, Scenario, ScenarioOutcome, ScenarioRun,
+};
 
 #[derive(Clone)]
 pub struct InteractionStore {
