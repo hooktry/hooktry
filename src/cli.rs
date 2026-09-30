@@ -49,10 +49,14 @@ impl Cli {
             [command] if command == "interactions" => Command::Interactions,
             [command] if command == "exposures" => Command::Exposures,
             [command, id] if command == "exposure-get" => Command::ExposureGet {
-                id: id.parse().map_err(|_| "exposure-get requires a valid UUID".to_owned())?,
+                id: id
+                    .parse()
+                    .map_err(|_| "exposure-get requires a valid UUID".to_owned())?,
             },
             [command, id] if command == "exposure-revoke" => Command::ExposureRevoke {
-                id: id.parse().map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
+                id: id
+                    .parse()
+                    .map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
             },
             [command, port] if command == "expose" => Command::Expose {
                 name: "web".to_owned(),
