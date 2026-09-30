@@ -149,12 +149,7 @@ async fn mcp_proves_ask_approve_act_and_durable_query_against_hosted_boundary() 
     );
 }
 
-async fn call(
-    base_url: &str,
-    hosted: &HostedClient,
-    name: &str,
-    arguments: Value,
-) -> Value {
+async fn call(base_url: &str, hosted: &HostedClient, name: &str, arguments: Value) -> Value {
     handle_with_hosted_client(
         base_url,
         hosted,
