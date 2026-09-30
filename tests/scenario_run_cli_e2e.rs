@@ -1,11 +1,6 @@
 use std::{process::Command, sync::Arc};
 
-use axum::{
-    Json, Router,
-    body::Bytes,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
 use ortyo::{
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
