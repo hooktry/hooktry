@@ -5,7 +5,7 @@ Tracking: #104
 
 ORTYO needs an identity for an attempted action even when the action is rejected before network work or fails before Evidence can be produced.
 
-This slice adds a lightweight, non-durable lifecycle envelope around the existing hosted HTTP executor.
+EXEC4 introduced a lightweight lifecycle envelope around the hosted HTTP executor. EXEC5 now persists that envelope before provider work and completes it with the terminal outcome. See [durable-execution-evidence.md](./durable-execution-evidence.md).
 
 ## Contract
 
@@ -84,8 +84,6 @@ The hosted `POST /_ortyo/hosted/execute` response contract is intentionally unch
 
 EXEC4 does not add:
 
-- durable execution storage
-- execution query APIs
 - resumable execution
 - blocked/waiting states
 - workflow orchestration
