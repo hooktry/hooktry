@@ -12,9 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     agent_surface,
-    approval::{
-        ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore,
-    },
+    approval::{ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
     execution::{
         ExecutionError, ExecutionEvidence, ExecutionRecord, HttpExecutionProvider,
@@ -256,14 +254,8 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             post(issue_credential),
         )
         .route("/_ortyo/hosted/execute", post(execute_http))
-        .route(
-            "/_ortyo/hosted/approvals",
-            post(create_approval),
-        )
-        .route(
-            "/_ortyo/hosted/approvals/{approval_id}",
-            get(get_approval),
-        )
+        .route("/_ortyo/hosted/approvals", post(create_approval))
+        .route("/_ortyo/hosted/approvals/{approval_id}", get(get_approval))
         .route(
             "/_ortyo/hosted/approvals/{approval_id}/decision",
             post(decide_approval),
@@ -483,15 +475,9 @@ fn approval_error(error: ApprovalError) -> HostedApiError {
         ApprovalError::NotPending => {
             HostedApiError::new(StatusCode::CONFLICT, "approval_already_decided")
         }
-        ApprovalError::Pending => {
-            HostedApiError::new(StatusCode::CONFLICT, "approval_pending")
-        }
-        ApprovalError::Denied => {
-            HostedApiError::new(StatusCode::FORBIDDEN, "approval_denied")
-        }
-        ApprovalError::Consumed => {
-            HostedApiError::new(StatusCode::CONFLICT, "approval_consumed")
-        }
+        ApprovalError::Pending => HostedApiError::new(StatusCode::CONFLICT, "approval_pending"),
+        ApprovalError::Denied => HostedApiError::new(StatusCode::FORBIDDEN, "approval_denied"),
+        ApprovalError::Consumed => HostedApiError::new(StatusCode::CONFLICT, "approval_consumed"),
         ApprovalError::RequestMismatch => {
             HostedApiError::new(StatusCode::CONFLICT, "approval_request_mismatch")
         }
@@ -642,7 +628,11 @@ async fn authorize_api_any(
         .ok_or_else(HostedApiError::unauthorized)?
         .to_owned();
     for scope in required_scopes {
-        match state.identities.authorize_async(token.clone(), *scope).await {
+        match state
+            .identities
+            .authorize_async(token.clone(), *scope)
+            .await
+        {
             Ok(authorization) => return Ok(authorization),
             Err(IdentityError::Forbidden) => continue,
             Err(error) => return Err(identity_authorization_error(error)),
