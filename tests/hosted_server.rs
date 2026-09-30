@@ -16,6 +16,7 @@ fn hosted_server_config_has_deployable_defaults() {
 
     assert_eq!(config.bind, "0.0.0.0:8080");
     assert_eq!(config.public_base_url, "http://127.0.0.1:8080");
+    assert_eq!(config.database_url, None);
     assert_eq!(config.db_path, "ortyo-hosted.db");
 }
 
@@ -25,6 +26,7 @@ fn hosted_server_config_uses_port_and_public_url() {
         "PORT" => Some("9090".to_owned()),
         "ORTYO_PUBLIC_BASE_URL" => Some("https://relay.example/".to_owned()),
         "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "ORTYO_DATABASE_URL" => Some("postgresql://secret@db/ortyo".to_owned()),
         "ORTYO_HOSTED_DB_PATH" => Some("/tmp/ortyo-hosted-test.db".to_owned()),
         _ => None,
     })
@@ -32,7 +34,14 @@ fn hosted_server_config_uses_port_and_public_url() {
 
     assert_eq!(config.bind, "0.0.0.0:9090");
     assert_eq!(config.public_base_url, "https://relay.example");
+    assert_eq!(
+        config.database_url.as_deref(),
+        Some("postgresql://secret@db/ortyo")
+    );
     assert_eq!(config.db_path, "/tmp/ortyo-hosted-test.db");
+    let debug = format!("{config:?}");
+    assert!(!debug.contains("secret@db"));
+    assert!(debug.contains("[REDACTED]"));
 }
 
 #[test]
@@ -135,4 +144,17 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
 fn hosted_server_config_requires_control_token() {
     let error = HostedServerConfig::from_lookup(|_| None).unwrap_err();
     assert_eq!(error, "ORTYO_CONTROL_TOKEN is required");
+}
+
+
+#[test]
+fn hosted_server_config_rejects_non_postgres_database_url() {
+    let error = HostedServerConfig::from_lookup(|key| match key {
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "ORTYO_DATABASE_URL" => Some("mysql://db/ortyo".to_owned()),
+        _ => None,
+    })
+    .unwrap_err();
+
+    assert_eq!(error, "ORTYO_DATABASE_URL must be a PostgreSQL URL");
 }
