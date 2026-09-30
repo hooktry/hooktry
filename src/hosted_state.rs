@@ -96,9 +96,7 @@ impl HostedExposureStore {
                     runtime_url TEXT NOT NULL,
                     capability_expires_at INTEGER NOT NULL,
                     revoked INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
-                    ON hosted_exposures(workspace_id);",
+                );",
             )
             .map_err(|error| HostedStateError::Storage(error.to_string()))?;
 
@@ -128,14 +126,14 @@ impl HostedExposureStore {
             connection
                 .execute("ALTER TABLE hosted_exposures ADD COLUMN workspace_id TEXT", [])
                 .map_err(|error| HostedStateError::Storage(error.to_string()))?;
-            connection
-                .execute(
-                    "CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
-                     ON hosted_exposures(workspace_id)",
-                    [],
-                )
-                .map_err(|error| HostedStateError::Storage(error.to_string()))?;
         }
+        connection
+            .execute(
+                "CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
+                 ON hosted_exposures(workspace_id)",
+                [],
+            )
+            .map_err(|error| HostedStateError::Storage(error.to_string()))?;
 
         Ok(Self {
             backend: HostedExposureBackend::Sqlite(Arc::new(Mutex::new(connection))),
