@@ -1,7 +1,7 @@
-# EXEC1 - Safe Hosted HTTP Execution
+# EXEC2 - Safe Hosted HTTP Execution with SecretRef Chaining
 
 Status: executable vertical slice  
-Tracking: #77
+Tracking: #77, #87
 
 ORTYO can actively initiate a bounded HTTP Interaction from its hosted boundary and return structured Evidence.
 
@@ -27,7 +27,12 @@ Request -> ExecutionProvider -> outbound HTTP
   "method": "POST",
   "url": "https://api.example.com/token",
   "headers": {"accept": "application/json"},
-  "secret_headers": {"authorization": "production-api"},
+  "secret_headers": {
+    "authorization": {
+      "secret_ref": "ortyo://secrets/default-api-token",
+      "prefix": "Bearer "
+    }
+  },
   "body": {"action": "issue"},
   "capture": [
     {
@@ -66,9 +71,22 @@ Loopback execution exists only behind an explicit test helper and is not reachab
 
 ## Secrets
 
-Request headers can reference a Workspace secret by name. Raw secret values are resolved only inside the executor and are never added to Evidence.
+Request headers can reference a Workspace secret either by the legacy secret name form or by a typed SecretRef binding. SecretRef bindings can add a non-secret prefix/suffix, which allows forms such as `Authorization: Bearer <secret>` without materializing the secret outside the executor.
 
-EXEC1 deliberately introduces `SecretRef` before building a complete secret-management product. The first slice uses process-local storage; durable encrypted secret persistence and lifecycle are a required follow-up before SecretRef is treated as production-grade storage.
+```json
+{
+  "secret_headers": {
+    "authorization": {
+      "secret_ref": "ortyo://secrets/default-api-token",
+      "prefix": "Bearer "
+    }
+  }
+}
+```
+
+SecretRef resolution is always scoped to the authenticated Workspace. An `ortyo://secrets/...` reference from one Workspace cannot read the same-named secret from another Workspace. Invalid reference schemes fail closed.
+
+Raw secret values are resolved only inside the executor and are never added to request Evidence. Durable hosted secrets are encrypted at rest with AES-256-GCM and an external `ORTYO_SECRETS_KEY`.
 
 ## Provider boundary
 
