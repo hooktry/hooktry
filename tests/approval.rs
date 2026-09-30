@@ -75,12 +75,13 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
     let executor_id = Uuid::now_v7();
-    let request = request("https://api.example.com/v1/run?token=query-secret", "body-secret");
+    let request = request(
+        "https://api.example.com/v1/run?token=query-secret",
+        "body-secret",
+    );
 
     let store = ApprovalStore::open(&path).unwrap();
-    let created = store
-        .create(workspace_id, requester_id, &request)
-        .unwrap();
+    let created = store.create(workspace_id, requester_id, &request).unwrap();
     assert_eq!(created.state, ApprovalState::Pending);
     drop(store);
 
@@ -184,12 +185,7 @@ fn denied_and_cross_workspace_approvals_fail_closed() {
     assert_eq!(denied.state, ApprovalState::Denied);
 
     assert_eq!(
-        store.consume(
-            workspace_id,
-            approval.approval_id,
-            Uuid::now_v7(),
-            &request
-        ),
+        store.consume(workspace_id, approval.approval_id, Uuid::now_v7(), &request),
         Err(ApprovalError::Denied)
     );
     assert_eq!(
