@@ -4,9 +4,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    approval::ApprovalDecision,
-    execution::HttpExecutionRequest,
-    hosted_client::HostedClient,
+    approval::ApprovalDecision, execution::HttpExecutionRequest, hosted_client::HostedClient,
 };
 
 pub async fn run_stdio(base_url: &str) -> Result<(), String> {
