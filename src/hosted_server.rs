@@ -19,6 +19,7 @@ pub struct HostedServerConfig {
     pub control_token: String,
     pub database_url: Option<String>,
     pub db_path: String,
+    pub secrets_key: [u8; 32],
 }
 
 impl std::fmt::Debug for HostedServerConfig {
@@ -32,6 +33,7 @@ impl std::fmt::Debug for HostedServerConfig {
                 &self.database_url.as_ref().map(|_| "[REDACTED]"),
             )
             .field("db_path", &self.db_path)
+            .field("secrets_key", &"[REDACTED]")
             .finish()
     }
 }
@@ -76,6 +78,7 @@ impl HostedServerConfig {
             control_token,
             database_url,
             db_path,
+            secrets_key: [0; 32],
         })
     }
 }
@@ -192,6 +195,7 @@ mod tests {
             control_token: "test-control-token".to_owned(),
             database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
             db_path: "unused.db".to_owned(),
+            secrets_key: [7; 32],
         };
 
         let error = match open_hosted_stores(&config).await {
