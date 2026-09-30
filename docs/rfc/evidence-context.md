@@ -8,6 +8,7 @@ Implementation status:
 - WINDOW1: implemented — Scenario-level `within_ms` + quiet `settle_ms`, event-driven by persisted interaction revisions.
 - CONTEXT-MATCH1: implemented — Contracts can subset-match canonical normalized correlation context, and Scenario/WINDOW1 use the same matcher.
 - ORDER1: implemented — optional `ordering: "declared"` over durable source-interaction persistence order with machine-readable violations.
+- SEQ1: implemented — every stored Interaction exposes `observed_sequence`; UUIDv7 remains identity/time-locality while observed sequence is canonical local commit order.
 - Per-expectation WAIT1/eventually, RETRY1, OTEL1: deferred.
 
 ## Summary
@@ -446,6 +447,8 @@ Implemented as an optional Scenario-level policy:
 The declaration order defines the expected partial sequence of matching groups. Every match of an earlier expectation must be persisted before every match of each later expectation. Cardinality remains a separate concern, so two expectations may both satisfy their Contracts/counts while ORDER1 still fails.
 
 ORDER1 is based on a durable monotonic persistence sequence, not `started_at`, UUID ordering, or wall-clock comparison. SQLite keeps that sequence in an internal `interaction_order` table. Existing local databases are backfilled once from SQLite insertion order; all new interactions persist their evidence row and order row atomically.
+
+SEQ1 exposes that same value as `Interaction.observed_sequence`. The field is additive/optional in serialized legacy payloads, but every Interaction read from an ORTYO store is hydrated with its sequence. UUIDv7 remains the canonical globally unique Interaction identity and is useful for approximate time locality; it is not treated as the strict observation-order contract. Replays receive a new observed sequence because they are new evidence records, while `source_interaction_id` preserves lineage to the original evidence.
 
 The outcome contains the observed source interaction IDs and explicit violating pairs. This is observable boundary order only; it does not claim application-level causality. Missing groups do not invent an order relation.
 
