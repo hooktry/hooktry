@@ -75,7 +75,6 @@ fn hosted_command_is_typed() {
     assert_eq!(cli.command, Command::Hosted);
 }
 
-
 #[test]
 fn expose_public_is_typed_and_flags_can_follow_the_name() {
     let cli = Cli::parse([
