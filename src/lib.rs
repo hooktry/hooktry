@@ -1,5 +1,5 @@
-pub mod mcp;
 pub mod cli;
+pub mod mcp;
 pub mod contract;
 pub mod domain;
 pub mod exposure;
