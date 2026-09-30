@@ -6,8 +6,8 @@ use uuid::Uuid;
 use crate::{
     contract::assert_interaction,
     domain::{
-        Contract, Origin, Scenario, ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun,
-        ScenarioRunState,
+        Contract, InteractionCardinality, Origin, Scenario, ScenarioCheckOutcome,
+        ScenarioExpectation, ScenarioOutcome, ScenarioRun, ScenarioRunState,
     },
     exposure::{ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot},
@@ -20,6 +20,12 @@ pub struct ScenarioContractSpec {
     pub operation: String,
     pub request: Option<Value>,
     pub response: Option<Value>,
+    #[serde(default)]
+    pub count: Option<usize>,
+    #[serde(default)]
+    pub min: Option<usize>,
+    #[serde(default)]
+    pub max: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,6 +64,7 @@ pub enum ScenarioError {
     ContractRequired,
     InvalidContractName,
     InvalidOperation,
+    InvalidCardinality,
     ScenarioNotFound,
     RunNotFound,
     ContractNotFound(Uuid),
@@ -90,9 +97,11 @@ pub fn create(
         if spec.operation.trim().is_empty() {
             return Err(ScenarioError::InvalidOperation);
         }
+        validate_cardinality(&cardinality(spec))?;
     }
 
     let mut contract_ids = Vec::with_capacity(request.contracts.len());
+    let mut expectations = Vec::with_capacity(request.contracts.len());
     for spec in request.contracts {
         let contract = Contract {
             id: Uuid::now_v7(),
@@ -103,6 +112,14 @@ pub fn create(
         };
         store.save_contract(&contract);
         contract_ids.push(contract.id);
+        expectations.push(ScenarioExpectation {
+            contract_id: contract.id,
+            cardinality: InteractionCardinality {
+                count: spec.count,
+                min: spec.min,
+                max: spec.max,
+            },
+        });
     }
 
     let scenario = Scenario {
@@ -110,6 +127,7 @@ pub fn create(
         name: request.name,
         port: request.port,
         contract_ids,
+        expectations,
         created_at: Utc::now(),
     };
     store.save_scenario(&scenario);
@@ -180,38 +198,58 @@ pub fn complete(
         (Some(recording.id), replayed)
     };
 
-    let mut checks = Vec::with_capacity(scenario.contract_ids.len());
-    for contract_id in &scenario.contract_ids {
+    let expectations = scenario_expectations(&scenario);
+    let mut checks = Vec::with_capacity(expectations.len());
+    for expectation in expectations {
         let contract = store
-            .contract(*contract_id)
-            .ok_or(ScenarioError::ContractNotFound(*contract_id))?;
+            .contract(expectation.contract_id)
+            .ok_or(ScenarioError::ContractNotFound(expectation.contract_id))?;
         let operation = contract
             .operation
             .as_ref()
             .and_then(Value::as_str)
             .ok_or(ScenarioError::InvalidOperation)?;
 
-        if let Some(interaction) = replayed.iter().find(|item| item.operation == operation) {
+        let candidates = replayed
+            .iter()
+            .filter(|item| item.operation == operation)
+            .collect::<Vec<_>>();
+        let mut assertion_ids = Vec::with_capacity(candidates.len());
+        let mut matched_interaction_ids = Vec::new();
+        let mut matched_assertion_ids = Vec::new();
+
+        for interaction in &candidates {
             let assertion = assert_interaction(&contract, interaction);
             store.save_assertion(&assertion);
-            checks.push(ScenarioCheckOutcome {
-                contract_id: contract.id,
-                interaction_id: Some(interaction.id),
-                assertion_id: Some(assertion.id),
-                passed: assertion.passed,
-                error: None,
-            });
-        } else {
-            checks.push(ScenarioCheckOutcome {
-                contract_id: contract.id,
-                interaction_id: None,
-                assertion_id: None,
-                passed: false,
-                error: Some(format!(
-                    "no replayed interaction matched operation {operation}"
-                )),
-            });
+            assertion_ids.push(assertion.id);
+            if assertion.passed {
+                matched_interaction_ids.push(interaction.id);
+                matched_assertion_ids.push(assertion.id);
+            }
         }
+
+        let passed = cardinality_matches(&expectation.cardinality, matched_interaction_ids.len());
+        let error = (!passed).then(|| {
+            format!(
+                "expected {}, observed {} matching interactions",
+                cardinality_description(&expectation.cardinality),
+                matched_interaction_ids.len()
+            )
+        });
+        let interaction_id = (matched_interaction_ids.len() == 1).then(|| matched_interaction_ids[0]);
+        let assertion_id = (matched_assertion_ids.len() == 1).then(|| matched_assertion_ids[0]);
+
+        checks.push(ScenarioCheckOutcome {
+            contract_id: contract.id,
+            cardinality: expectation.cardinality,
+            candidate_interaction_ids: candidates.iter().map(|item| item.id).collect(),
+            matched_interaction_ids,
+            assertion_ids,
+            interaction_id,
+            assertion_id,
+            passed,
+            error,
+        });
     }
 
     let passed = !checks.is_empty() && checks.iter().all(|check| check.passed);
@@ -229,4 +267,64 @@ pub fn complete(
     let _ = exposures.revoke(run.exposure_id);
 
     Ok(outcome)
+}
+
+fn cardinality(spec: &ScenarioContractSpec) -> InteractionCardinality {
+    InteractionCardinality {
+        count: spec.count,
+        min: spec.min,
+        max: spec.max,
+    }
+}
+
+fn validate_cardinality(cardinality: &InteractionCardinality) -> Result<(), ScenarioError> {
+    if cardinality.count.is_some() && (cardinality.min.is_some() || cardinality.max.is_some()) {
+        return Err(ScenarioError::InvalidCardinality);
+    }
+    if let (Some(min), Some(max)) = (cardinality.min, cardinality.max)
+        && min > max
+    {
+        return Err(ScenarioError::InvalidCardinality);
+    }
+    Ok(())
+}
+
+fn scenario_expectations(scenario: &Scenario) -> Vec<ScenarioExpectation> {
+    if scenario.expectations.is_empty() {
+        scenario
+            .contract_ids
+            .iter()
+            .map(|contract_id| ScenarioExpectation {
+                contract_id: *contract_id,
+                cardinality: InteractionCardinality::default(),
+            })
+            .collect()
+    } else {
+        scenario.expectations.clone()
+    }
+}
+
+fn cardinality_matches(cardinality: &InteractionCardinality, observed: usize) -> bool {
+    if let Some(count) = cardinality.count {
+        return observed == count;
+    }
+    if cardinality.is_default() {
+        return observed == 1;
+    }
+
+    let min = cardinality.min.unwrap_or(0);
+    let max = cardinality.max.unwrap_or(usize::MAX);
+    observed >= min && observed <= max
+}
+
+fn cardinality_description(cardinality: &InteractionCardinality) -> String {
+    if let Some(count) = cardinality.count {
+        return format!("exactly {count}");
+    }
+    match (cardinality.min, cardinality.max) {
+        (Some(min), Some(max)) => format!("between {min} and {max}"),
+        (Some(min), None) => format!("at least {min}"),
+        (None, Some(max)) => format!("at most {max}"),
+        (None, None) => "exactly 1".to_owned(),
+    }
 }
