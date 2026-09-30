@@ -279,6 +279,42 @@ fn approval_and_notification_intent_share_one_sqlite_transaction() {
 }
 
 #[test]
+fn pending_approval_without_notification_is_backfilled_on_reopen() {
+    let path =
+        std::env::temp_dir().join(format!("ortyo-approval-outbox-backfill-{}.db", Uuid::now_v7()));
+    let workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+
+    let store = ApprovalStore::open(&path).unwrap();
+    let approval = store
+        .create(workspace_id, Uuid::now_v7(), &request)
+        .unwrap();
+    drop(store);
+
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "DELETE FROM hosted_approval_notification_outbox WHERE approval_id=?1",
+            [approval.approval_id.to_string()],
+        )
+        .unwrap();
+    drop(connection);
+
+    let reopened = ApprovalStore::open(&path).unwrap();
+    let notifications = reopened
+        .list_undelivered_notifications(workspace_id)
+        .unwrap();
+    assert_eq!(notifications.len(), 1);
+    assert_eq!(notifications[0].approval_id, approval.approval_id);
+    assert_eq!(
+        notifications[0].created_at_unix_ms,
+        approval.requested_at_unix_ms
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
 fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace() {
     let path = std::env::temp_dir().join(format!("ortyo-approval-inbox-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
