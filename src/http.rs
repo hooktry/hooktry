@@ -56,6 +56,15 @@ struct CreateExposureRequest {
     access: Option<ExposureAccess>,
 }
 
+struct ForwardHttpRequest {
+    method: Method,
+    path: String,
+    query: Option<String>,
+    headers: HeaderMap,
+    body: Bytes,
+    relay_request_id: Option<Uuid>,
+}
+
 struct ProxiedHttpResponse {
     status: StatusCode,
     headers: HeaderMap,
@@ -216,12 +225,14 @@ async fn proxy_exposure(
     let proxied = forward_and_record(
         &state,
         &exposure,
-        method,
-        format!("/{path}"),
-        uri.query(),
-        headers,
-        body,
-        None,
+        ForwardHttpRequest {
+            method,
+            path: format!("/{path}"),
+            query: uri.query().map(ToOwned::to_owned),
+            headers,
+            body,
+            relay_request_id: None,
+        },
     )
     .await?;
 
@@ -258,12 +269,14 @@ pub async fn proxy_relay_request(
     let proxied = forward_and_record(
         state,
         &exposure,
-        method,
-        path,
-        request.query.as_deref(),
-        headers,
-        Bytes::from(request.body.clone()),
-        Some(request.id),
+        ForwardHttpRequest {
+            method,
+            path,
+            query: request.query.clone(),
+            headers,
+            body: Bytes::from(request.body.clone()),
+            relay_request_id: Some(request.id),
+        },
     )
     .await?;
 
@@ -278,31 +291,26 @@ pub async fn proxy_relay_request(
 async fn forward_and_record(
     state: &AppState,
     exposure: &Exposure,
-    method: Method,
-    target_path: String,
-    query: Option<&str>,
-    headers: HeaderMap,
-    body: Bytes,
-    relay_request_id: Option<Uuid>,
+    request: ForwardHttpRequest,
 ) -> Result<ProxiedHttpResponse, StatusCode> {
     let started = Instant::now();
     let started_at = Utc::now();
-    let target_url = match query {
+    let target_url = match request.query.as_deref() {
         Some(query) => format!(
             "http://{}:{}{}?{}",
-            exposure.target.host, exposure.target.port, target_path, query
+            exposure.target.host, exposure.target.port, request.path, query
         ),
         None => format!(
             "http://{}:{}{}",
-            exposure.target.host, exposure.target.port, target_path
+            exposure.target.host, exposure.target.port, request.path
         ),
     };
 
     let mut outgoing = state
         .client
-        .request(method.clone(), &target_url)
-        .body(body.clone());
-    for (name, value) in &headers {
+        .request(request.method.clone(), &target_url)
+        .body(request.body.clone());
+    for (name, value) in &request.headers {
         if name != HOST && name != CONTENT_LENGTH && name != CONNECTION && name != TRANSFER_ENCODING
         {
             outgoing = outgoing.header(name, value);
@@ -323,17 +331,17 @@ async fn forward_and_record(
         protocol: Protocol::Http,
         direction: Direction::Inbound,
         origin: Origin::Proxied,
-        operation: format!("{} {}", method, target_path),
+        operation: format!("{} {}", request.method, request.path),
         started_at,
         duration_ms: started.elapsed().as_millis() as u64,
         request: json!({
             "exposure_id": exposure.id,
-            "relay_request_id": relay_request_id,
-            "method": method.as_str(),
-            "path": target_path,
-            "query": query,
-            "headers": headers_to_json(&headers),
-            "body": String::from_utf8_lossy(&body)
+            "relay_request_id": request.relay_request_id,
+            "method": request.method.as_str(),
+            "path": request.path,
+            "query": request.query,
+            "headers": headers_to_json(&request.headers),
+            "body": String::from_utf8_lossy(&request.body)
         }),
         response: json!({
             "status": status.as_u16(),
