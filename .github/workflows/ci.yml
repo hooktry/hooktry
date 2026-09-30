@@ -37,8 +37,11 @@ jobs:
       - name: Formatting
         run: cargo fmt --check
 
+      - name: Resolve dependencies
+        run: cargo generate-lockfile
+
       - name: Clippy
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Tests
-        run: cargo test --locked --all-targets --all-features
+        run: cargo test --all-targets --all-features
