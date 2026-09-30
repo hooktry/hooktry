@@ -374,7 +374,6 @@ async fn legacy_secret_name_cannot_bypass_a_bound_origin_policy() {
     assert_eq!(error, ExecutionError::SecretDestinationDenied);
 }
 
-
 #[tokio::test]
 async fn recorded_success_has_lifecycle_identity_and_matching_evidence_id() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -382,10 +381,7 @@ async fn recorded_success_has_lifecycle_identity_and_matching_evidence_id() {
     tokio::spawn(async move {
         axum::serve(
             listener,
-            Router::new().route(
-                "/ok",
-                post(|| async { Json(json!({"ok": true})) }),
-            ),
+            Router::new().route("/ok", post(|| async { Json(json!({"ok": true})) })),
         )
         .await
         .unwrap();
