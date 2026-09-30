@@ -128,5 +128,4 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     assert_eq!(failed.mismatches[0].path, "response");
     assert_eq!(failed.mismatches[0].expected, json!({"status": 201}));
     assert_eq!(failed.mismatches[0].actual, json!({"status": 200}));
-
 }
