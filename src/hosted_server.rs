@@ -58,9 +58,10 @@ impl HostedServerConfig {
             .filter(|token| !token.trim().is_empty())
             .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required".to_owned())?;
         let database_url = lookup("ORTYO_DATABASE_URL").filter(|url| !url.trim().is_empty());
-        if database_url.as_ref().is_some_and(|url| {
-            !url.starts_with("postgres://") && !url.starts_with("postgresql://")
-        }) {
+        if database_url
+            .as_ref()
+            .is_some_and(|url| !url.starts_with("postgres://") && !url.starts_with("postgresql://"))
+        {
             return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
         }
         let db_path = lookup("ORTYO_HOSTED_DB_PATH")
