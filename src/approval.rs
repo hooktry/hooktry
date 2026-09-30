@@ -639,8 +639,8 @@ impl ApprovalStore {
                 let connection = connection.lock().expect("approval store poisoned");
                 let mut statement = connection
                     .prepare(
-                        "SELECT notification_id, workspace_id, approval_id, event,
-                                created_at, delivered_at
+                        "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                                n.created_at, n.delivered_at
                          FROM hosted_approval_notification_outbox n
                          LEFT JOIN hosted_approval_notification_delivery d
                            ON d.notification_id=n.notification_id
@@ -673,8 +673,8 @@ impl ApprovalStore {
                 .lock()
                 .expect("approval store poisoned")
                 .query(
-                    "SELECT notification_id, workspace_id, approval_id, event,
-                            created_at, delivered_at
+                    "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                            n.created_at, n.delivered_at
                      FROM hosted_approval_notification_outbox n
                      LEFT JOIN hosted_approval_notification_delivery d
                        ON d.notification_id=n.notification_id
