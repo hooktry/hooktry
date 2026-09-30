@@ -106,7 +106,10 @@ impl HttpExecutionProvider {
             .map(serde_json::to_vec)
             .transpose()
             .map_err(|_| ExecutionError::InvalidRequest)?;
-        if body.as_ref().is_some_and(|body| body.len() > MAX_REQUEST_BODY_BYTES) {
+        if body
+            .as_ref()
+            .is_some_and(|body| body.len() > MAX_REQUEST_BODY_BYTES)
+        {
             return Err(ExecutionError::InvalidRequest);
         }
         if request.timeout_ms == 0 || request.timeout_ms > MAX_TIMEOUT_MS {
@@ -137,7 +140,10 @@ impl HttpExecutionProvider {
         }
 
         let started = Instant::now();
-        let response = builder.send().await.map_err(|_| ExecutionError::RequestFailed)?;
+        let response = builder
+            .send()
+            .await
+            .map_err(|_| ExecutionError::RequestFailed)?;
         if response.status().is_redirection() {
             return Err(ExecutionError::UnsafeDestination);
         }
@@ -156,7 +162,10 @@ impl HttpExecutionProvider {
                 }
             })
             .collect();
-        let bytes = response.bytes().await.map_err(|_| ExecutionError::RequestFailed)?;
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|_| ExecutionError::RequestFailed)?;
         if bytes.len() > MAX_RESPONSE_BODY_BYTES {
             return Err(ExecutionError::ResponseTooLarge);
         }
@@ -269,7 +278,8 @@ fn redact_pointer(body: &mut Value, pointer: &str) -> Result<(), ExecutionError>
     let parent = if parent.is_empty() {
         body
     } else {
-        body.pointer_mut(parent).ok_or(ExecutionError::CaptureFailed)?
+        body.pointer_mut(parent)
+            .ok_or(ExecutionError::CaptureFailed)?
     };
     match parent {
         Value::Object(map) => {
