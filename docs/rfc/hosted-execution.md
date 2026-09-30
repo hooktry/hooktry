@@ -1,0 +1,85 @@
+# EXEC1 - Safe Hosted HTTP Execution
+
+Status: executable vertical slice  
+Tracking: #77
+
+ORTYO can actively initiate a bounded HTTP Interaction from its hosted boundary and return structured Evidence.
+
+```text
+Workspace credential
+      |
+      | requests:execute
+      v
+Request -> ExecutionProvider -> outbound HTTP
+                           |
+                           v
+                     ExecutionEvidence
+                           |
+                    capture selected values
+                           v
+                        SecretRef
+```
+
+## Request
+
+```json
+{
+  "method": "POST",
+  "url": "https://api.example.com/token",
+  "headers": {"accept": "application/json"},
+  "secret_headers": {"authorization": "production-api"},
+  "body": {"action": "issue"},
+  "capture": [
+    {
+      "json_pointer": "/credential/token",
+      "secret_name": "issued-token"
+    }
+  ],
+  "timeout_ms": 10000
+}
+```
+
+The hosted API is `POST /_ortyo/hosted/execute` and requires `requests:execute`.
+
+## Evidence and capture
+
+Captured values are written to the Workspace secret store and replaced by `[REDACTED]` before Evidence leaves the executor. The caller receives only a stable reference such as `ortyo://secrets/issued-token`.
+
+Sensitive response headers including authorization, cookies, and set-cookie are omitted from Evidence.
+
+## Network policy
+
+EXEC1 is an Internet egress boundary, not an open proxy.
+
+The production path:
+
+- permits only HTTP and HTTPS
+- resolves the destination before sending
+- rejects localhost
+- rejects loopback, private, link-local, multicast, unspecified, broadcast, carrier-grade NAT and equivalent IPv6 ranges
+- disables redirects instead of following a second unvalidated destination
+- rejects explicit Host and Content-Length overrides
+- limits request and response bodies to 1 MiB
+- limits timeout to 30 seconds
+
+Loopback execution exists only behind an explicit test helper and is not reachable through the hosted API.
+
+## Secrets
+
+Request headers can reference a Workspace secret by name. Raw secret values are resolved only inside the executor and are never added to Evidence.
+
+EXEC1 deliberately introduces `SecretRef` before building a complete secret-management product. The first slice uses process-local storage; durable encrypted secret persistence and lifecycle are a required follow-up before SecretRef is treated as production-grade storage.
+
+## Provider boundary
+
+The domain is not Render-specific. The first hosted executor runs inside the existing ORTYO process on Render. Future providers can execute the same Request/Evidence contract in isolated workers, Cloudflare, BYOC, or other runtimes.
+
+## Dogfood acceptance
+
+The intended first production proof is:
+
+1. execute ORTYO's public one-time bootstrap endpoint
+2. capture `/credential/token` as a SecretRef
+3. ensure Evidence contains only `[REDACTED]`
+4. use the captured SecretRef as Authorization for a hosted Exposure request
+5. return only non-secret Exposure evidence to the agent
