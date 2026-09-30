@@ -13,6 +13,7 @@ Early development. The first vertical slice focuses on an HTTP boundary and a ca
 - **Interaction** - canonical evidence of what crossed a boundary.
 - **Recording** - portable captured evidence that can be replayed.
 - **Contract** - assertions over observed interactions.
+- **Scenario** - a reusable setup + evidence + replay + assertion definition that produces a persisted outcome.
 
 ORTYO is not an observability backend. OpenTelemetry may enrich ORTYO evidence, but ORTYO does not require application instrumentation.
 
@@ -34,7 +35,28 @@ Successful command output is structured JSON, so the same surface is suitable fo
 
 ### MCP
 
-`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. The production HTTP path is covered by an end-to-end proof: a local upstream is reached through an Exposure, the proxied interaction is recorded, replayed with provenance, matched by a Contract, and persisted as passing Assertion evidence.\n\nThe MCP surface also owns the Exposure lifecycle (`exposure_create`, `exposure_get`, `exposure_revoke`), allowing an agent to establish the external boundary before inspecting evidence. An end-to-end agent proof drives Exposure creation, evidence inspection, recording, replay, contract assertion, persisted assertion retrieval, and Exposure revocation through MCP; only the simulated external webhook uses the exposed HTTP endpoint.\n\nThe MCP toolset covers the evidence workflow: `interactions_list`, `recording_create`, `recording_replay`, `contract_create`, `contract_get`, `contract_assert`, and `assertion_get`. Agents consume the same canonical evidence, replay, and assertion semantics as the HTTP API.
+`ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, and create/assert Contracts without bypassing ORTYO's HTTP boundary.
+
+### Scenario
+
+A Scenario packages the repeatable part of that workflow. Create it once with an upstream port and one or more operation-bound Contracts, then run it repeatedly:
+
+```text
+scenario_create
+    ↓
+scenario_start → unique Exposure URL
+    ↓
+external traffic
+    ↓
+scenario_complete
+    ↓
+filtered evidence → Recording → Replay → Contract assertions
+    ↓
+persisted ScenarioOutcome + automatic Exposure revoke
+```
+
+Scenario completion is idempotent. Evidence is scoped to the run's unique Exposure, so previous replays or unrelated traffic cannot enter the run. A run with no matching evidence completes as an explicit failed outcome rather than manufacturing evidence.
+
 
 ## License
 
