@@ -91,6 +91,7 @@ pub async fn serve_connection(
     };
 
     let mut runtime = broker.register(exposure_id).await;
+    let registration_id = runtime.registration_id();
     write_frame(
         &mut *writer.lock().await,
         &RelayFrame::Registered { exposure_id },
@@ -148,6 +149,7 @@ pub async fn serve_connection(
     }
 
     reader_task.abort();
+    broker.unregister(exposure_id, registration_id).await;
     Ok(())
 }
 
@@ -213,18 +215,21 @@ pub async fn run_runtime_reconnecting(
     state: AppState,
     retry_delay: Duration,
 ) -> Result<(), TransportError> {
+    let mut delay = retry_delay;
     loop {
         match TcpStream::connect(relay_addr).await {
             Ok(stream) => {
                 let _ =
                     run_runtime_connection(stream, exposure_id, capability, state.clone()).await;
+                delay = retry_delay;
             }
             Err(error) if error.kind() == io::ErrorKind::InvalidInput => {
                 return Err(TransportError::Io(error));
             }
             Err(_) => {}
         }
-        sleep(retry_delay).await;
+        sleep(delay).await;
+        delay = std::cmp::min(delay.saturating_mul(2), Duration::from_secs(30));
     }
 }
 
