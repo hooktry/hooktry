@@ -244,8 +244,7 @@ pub async fn proxy_relay_request(
         Method::from_bytes(request.method.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST)?;
     let mut headers = HeaderMap::new();
     for (name, value) in &request.headers {
-        let name =
-            HeaderName::from_bytes(name.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST)?;
+        let name = HeaderName::from_bytes(name.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST)?;
         let value = HeaderValue::from_str(value).map_err(|_| StatusCode::BAD_REQUEST)?;
         headers.append(name, value);
     }
