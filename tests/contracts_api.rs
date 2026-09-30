@@ -7,7 +7,7 @@ use ortyo::{
     domain::{AssertionResult, Contract, Interaction},
     http::{AppState, app},
 };
-use serde_json::{Value, json};
+use serde_json::json;
 use tower::ServiceExt;
 
 #[tokio::test]
@@ -129,5 +129,4 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     assert_eq!(failed.mismatches[0].expected, json!({"status": 201}));
     assert_eq!(failed.mismatches[0].actual, json!({"status": 200}));
 
-    let _unused: Value = json!(null);
 }
