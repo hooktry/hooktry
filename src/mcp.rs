@@ -58,8 +58,16 @@ pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, Str
 
 fn tools() -> Vec<Value> {
     vec![
-        tool("interactions_list", "List canonical ORTYO interaction evidence.", json!({})),
-        tool("recording_create", "Snapshot current interactions into an immutable recording.", json!({})),
+        tool(
+            "interactions_list",
+            "List canonical ORTYO interaction evidence.",
+            json!({}),
+        ),
+        tool(
+            "recording_create",
+            "Snapshot current interactions into an immutable recording.",
+            json!({}),
+        ),
         tool(
             "recording_replay",
             "Replay an immutable recording and return replayed interaction evidence.",
@@ -75,7 +83,11 @@ fn tools() -> Vec<Value> {
                 "response": {}
             }),
         ),
-        tool("contract_get", "Get a persisted contract by ID.", uuid_schema("contract_id")),
+        tool(
+            "contract_get",
+            "Get a persisted contract by ID.",
+            uuid_schema("contract_id"),
+        ),
         tool(
             "contract_assert",
             "Assert one captured interaction against a persisted ORTYO contract.",
@@ -84,7 +96,11 @@ fn tools() -> Vec<Value> {
                 "interaction_id": {"type": "string", "format": "uuid"}
             }),
         ),
-        tool("assertion_get", "Get persisted structured assertion evidence by ID.", uuid_schema("assertion_id")),
+        tool(
+            "assertion_get",
+            "Get persisted structured assertion evidence by ID.",
+            uuid_schema("assertion_id"),
+        ),
     ]
 }
 
@@ -126,11 +142,20 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         .unwrap_or_else(|| json!({}));
 
     let value = match name {
-        "interactions_list" => api_json("GET", &format!("{base_url}/_ortyo/interactions"), None).await?,
-        "recording_create" => api_json("POST", &format!("{base_url}/_ortyo/recordings"), None).await?,
+        "interactions_list" => {
+            api_json("GET", &format!("{base_url}/_ortyo/interactions"), None).await?
+        }
+        "recording_create" => {
+            api_json("POST", &format!("{base_url}/_ortyo/recordings"), None).await?
+        }
         "recording_replay" => {
             let id = uuid_argument(&arguments, "recording_id")?;
-            api_json("POST", &format!("{base_url}/_ortyo/recordings/{id}/replay"), None).await?
+            api_json(
+                "POST",
+                &format!("{base_url}/_ortyo/recordings/{id}/replay"),
+                None,
+            )
+            .await?
         }
         "contract_create" => {
             let name = string_argument(&arguments, "name")?;
@@ -183,7 +208,9 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
     let status = response.status();
     let body = response.text().await.map_err(|error| error.to_string())?;
     if !status.is_success() {
-        return Ok(tool_error(format!("ORTYO API returned HTTP {status}: {body}")));
+        return Ok(tool_error(format!(
+            "ORTYO API returned HTTP {status}: {body}"
+        )));
     }
 
     serde_json::from_str(&body).map_err(|error| format!("invalid ORTYO API JSON: {error}"))
