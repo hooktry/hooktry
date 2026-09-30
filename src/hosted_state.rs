@@ -44,8 +44,8 @@ impl HostedExposureStore {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, HostedStateError> {
-        let connection = Connection::open(path)
-            .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+        let connection =
+            Connection::open(path).map_err(|error| HostedStateError::Storage(error.to_string()))?;
         Self::from_connection(connection)
     }
 
@@ -125,14 +125,7 @@ impl HostedExposureStore {
             .map_err(|error| HostedStateError::Storage(error.to_string()))?;
 
         raw.map(
-            |(
-                name,
-                target_port,
-                public_url,
-                runtime_url,
-                capability_expires_at,
-                revoked,
-            )| {
+            |(name, target_port, public_url, runtime_url, capability_expires_at, revoked)| {
                 Ok(HostedExposureRecord {
                     exposure_id,
                     name,
