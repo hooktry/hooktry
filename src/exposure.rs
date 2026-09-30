@@ -22,6 +22,28 @@ pub trait ExposureProvider: Send + Sync {
     fn revoke(&self, exposure: &Exposure) -> Result<(), ExposureError>;
 }
 
+#[derive(Debug, Clone)]
+pub struct CreateExposure {
+    pub name: String,
+    pub target: ExposureTarget,
+    pub mode: ExposureMode,
+    pub access: ExposureAccess,
+}
+
+impl CreateExposure {
+    pub fn forward(name: impl Into<String>, port: u16) -> Self {
+        Self {
+            name: name.into(),
+            target: ExposureTarget {
+                host: "127.0.0.1".to_owned(),
+                port,
+            },
+            mode: ExposureMode::Forward,
+            access: ExposureAccess::Private,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct LocalExposureProvider {
     base_url: String,
@@ -45,25 +67,58 @@ impl ExposureProvider for LocalExposureProvider {
     }
 }
 
+#[derive(Debug)]
+pub struct RelayExposureProvider {
+    base_url: String,
+}
+
+impl RelayExposureProvider {
+    pub fn new(base_url: impl Into<String>) -> Self {
+        Self {
+            base_url: base_url.into().trim_end_matches('/').to_owned(),
+        }
+    }
+}
+
+impl ExposureProvider for RelayExposureProvider {
+    fn provision(&self, id: Uuid, _target: &ExposureTarget) -> Result<String, ExposureError> {
+        Ok(format!("{}/e/{id}", self.base_url))
+    }
+
+    fn revoke(&self, _exposure: &Exposure) -> Result<(), ExposureError> {
+        Ok(())
+    }
+}
+
 #[derive(Clone)]
 pub struct ExposureService {
     inner: Arc<RwLock<Vec<Exposure>>>,
-    provider: Arc<dyn ExposureProvider>,
+    forward_provider: Arc<dyn ExposureProvider>,
+    relay_provider: Arc<dyn ExposureProvider>,
 }
 
 impl Default for ExposureService {
     fn default() -> Self {
-        Self::new(Arc::new(LocalExposureProvider::new(
-            "http://127.0.0.1:7777",
-        )))
+        Self::with_providers(
+            Arc::new(LocalExposureProvider::new("http://127.0.0.1:7777")),
+            Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        )
     }
 }
 
 impl ExposureService {
     pub fn new(provider: Arc<dyn ExposureProvider>) -> Self {
+        Self::with_providers(provider.clone(), provider)
+    }
+
+    pub fn with_providers(
+        forward_provider: Arc<dyn ExposureProvider>,
+        relay_provider: Arc<dyn ExposureProvider>,
+    ) -> Self {
         Self {
             inner: Arc::new(RwLock::new(Vec::new())),
-            provider,
+            forward_provider,
+            relay_provider,
         }
     }
 
@@ -73,36 +128,43 @@ impl ExposureService {
         name: impl Into<String>,
         port: u16,
     ) -> Result<Exposure, ExposureError> {
-        let name = name.into();
-        if name.trim().is_empty() {
+        self.create_with(session_id, CreateExposure::forward(name, port))
+    }
+
+    pub fn create_with(
+        &self,
+        session_id: Uuid,
+        request: CreateExposure,
+    ) -> Result<Exposure, ExposureError> {
+        if request.name.trim().is_empty() {
             return Err(ExposureError::InvalidName);
         }
-        if port == 0 {
+        if request.target.port == 0 {
             return Err(ExposureError::InvalidPort);
         }
 
         let mut exposures = self.inner.write().expect("exposure store poisoned");
         if exposures
             .iter()
-            .any(|item| item.name == name && item.state == ExposureState::Active)
+            .any(|item| item.name == request.name && item.state == ExposureState::Active)
         {
             return Err(ExposureError::DuplicateName);
         }
 
         let id = Uuid::now_v7();
-        let target = ExposureTarget {
-            host: "127.0.0.1".to_owned(),
-            port,
+        let provider = match request.mode {
+            ExposureMode::Forward => &self.forward_provider,
+            ExposureMode::Relay => &self.relay_provider,
         };
-        let url = self.provider.provision(id, &target)?;
+        let url = provider.provision(id, &request.target)?;
         let exposure = Exposure {
             id,
             session_id,
-            name,
+            name: request.name,
             protocol: Protocol::Http,
-            mode: ExposureMode::Forward,
-            access: ExposureAccess::Private,
-            target,
+            mode: request.mode,
+            access: request.access,
+            target: request.target,
             url,
             state: ExposureState::Active,
             created_at: Utc::now(),
@@ -144,7 +206,11 @@ impl ExposureService {
             return Err(ExposureError::Inactive);
         }
 
-        self.provider.revoke(exposure)?;
+        let provider = match exposure.mode {
+            ExposureMode::Forward => &self.forward_provider,
+            ExposureMode::Relay => &self.relay_provider,
+        };
+        provider.revoke(exposure)?;
         exposure.state = ExposureState::Revoked;
         exposure.revoked_at = Some(Utc::now());
         Ok(exposure.clone())
