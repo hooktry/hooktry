@@ -1,5 +1,6 @@
 use ortyo::{
     cli::{Cli, Command, usage},
+    hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
     store::InteractionStore,
 };
@@ -16,6 +17,7 @@ async fn main() {
 
     let result = match cli.command {
         Command::Serve => serve().await,
+        Command::Hosted => hosted().await,
         Command::Interactions => get_json(&format!("{}/_ortyo/interactions", cli.base_url)).await,
         Command::Exposures => get_json(&format!("{}/_ortyo/exposures", cli.base_url)).await,
         Command::ExposureGet { id } => {
@@ -43,6 +45,11 @@ async fn main() {
         eprintln!("{}", usage());
         std::process::exit(1);
     }
+}
+
+async fn hosted() -> Result<(), String> {
+    let config = HostedServerConfig::from_lookup(|key| std::env::var(key).ok())?;
+    run_hosted_server(config).await
 }
 
 async fn serve() -> Result<(), String> {
