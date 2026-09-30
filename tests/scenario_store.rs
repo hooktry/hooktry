@@ -15,6 +15,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         contract_ids: vec![Uuid::now_v7()],
         expectations: Vec::new(),
         observation: Default::default(),
+        ordering: None,
         created_at: Utc::now(),
     };
     let run = ScenarioRun {
@@ -45,6 +46,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
             passed: false,
             error: Some("no evidence".into()),
         }],
+        order: None,
     };
 
     {
