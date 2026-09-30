@@ -77,8 +77,8 @@ impl CapabilityStore {
     }
 
     pub fn open_postgres(database_url: &str) -> Result<Self, CapabilityError> {
-        let mut client =
-            Client::connect(database_url, NoTls).map_err(|error| CapabilityError::Storage(error.to_string()))?;
+        let mut client = Client::connect(database_url, NoTls)
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?;
         client
             .batch_execute(
                 "CREATE TABLE IF NOT EXISTS runtime_capabilities (
@@ -244,7 +244,12 @@ impl CapabilityStore {
                         "INSERT INTO runtime_capabilities
                             (token_digest, exposure_id, expires_at, revoked)
                          VALUES ($1, $2, $3, $4)",
-                        &[&digest.as_slice(), &exposure_id, &expires_at, &record.revoked],
+                        &[
+                            &digest.as_slice(),
+                            &exposure_id,
+                            &expires_at,
+                            &record.revoked,
+                        ],
                     )
                     .map_err(|error| CapabilityError::Storage(error.to_string()))?;
                 Ok(())
@@ -309,10 +314,9 @@ fn capability_record_from_raw(
         .parse()
         .map_err(|error| CapabilityError::Storage(format!("invalid exposure id: {error}")))?;
     let expires_at = UNIX_EPOCH
-        + Duration::from_secs(
-            u64::try_from(expires_at)
-                .map_err(|error| CapabilityError::Storage(format!("invalid capability expiry: {error}")))?,
-        );
+        + Duration::from_secs(u64::try_from(expires_at).map_err(|error| {
+            CapabilityError::Storage(format!("invalid capability expiry: {error}"))
+        })?);
     Ok(CapabilityRecord {
         exposure_id,
         expires_at,
