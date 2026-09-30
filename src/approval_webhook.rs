@@ -130,7 +130,9 @@ async fn process_one(
             return release_failed_claim(state, workspace_id, &claim, "webhook_secret_error").await;
         }
     };
-    validate_webhook_url(&url)?;
+    if validate_webhook_url(&url).is_err() {
+        return release_failed_claim(state, workspace_id, &claim, "invalid_webhook_url").await;
+    }
 
     let payload = ApprovalWebhookPayload {
         event: "approval_requested",
