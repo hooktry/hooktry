@@ -12,5 +12,6 @@ pub mod relay_auth;
 pub mod relay_ingress;
 pub mod relay_transport;
 pub mod scenario;
+pub mod scenario_run;
 pub mod store;
 pub mod websocket_transport;

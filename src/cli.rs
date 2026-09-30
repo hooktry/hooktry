@@ -21,6 +21,10 @@ pub enum Command {
     ScenarioCreate {
         path: String,
     },
+    ScenarioRun {
+        path: String,
+        command: Vec<String>,
+    },
     ScenarioGet {
         id: Uuid,
     },
@@ -100,6 +104,17 @@ impl Cli {
             [group, command, path] if group == "scenario" && command == "create" => {
                 Command::ScenarioCreate { path: path.clone() }
             }
+            [group, command, path, separator, child @ ..]
+                if group == "scenario"
+                    && command == "run"
+                    && separator == "--"
+                    && !child.is_empty() =>
+            {
+                Command::ScenarioRun {
+                    path: path.clone(),
+                    command: child.to_vec(),
+                }
+            }
             [group, command, id] if group == "scenario" && command == "get" => {
                 Command::ScenarioGet {
                     id: parse_uuid(id, "scenario get")?,
@@ -151,6 +166,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
