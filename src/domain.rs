@@ -99,3 +99,28 @@ pub struct Exposure {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revoked_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Contract {
+    pub id: Uuid,
+    pub name: String,
+    pub operation: Option<serde_json::Value>,
+    pub request: Option<serde_json::Value>,
+    pub response: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Mismatch {
+    pub path: String,
+    pub expected: serde_json::Value,
+    pub actual: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssertionResult {
+    pub id: Uuid,
+    pub contract_id: Uuid,
+    pub interaction_id: Uuid,
+    pub passed: bool,
+    pub mismatches: Vec<Mismatch>,
+}
