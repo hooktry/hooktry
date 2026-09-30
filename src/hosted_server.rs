@@ -307,12 +307,11 @@ fn ensure_operator_bootstrap(
                 .map_err(|error| format!("bind bootstrap credential origin: {error:?}"))?;
             let token = secrets
                 .resolve(workspace.id, SECRET_NAME)
-                .map_err(|error| format!("resolve bootstrap credential for scope upgrade: {error:?}"))?;
+                .map_err(|error| {
+                    format!("resolve bootstrap credential for scope upgrade: {error:?}")
+                })?;
             identities
-                .ensure_scope(
-                    &token,
-                    crate::hosted_identity::ApiScope::RequestsApprove,
-                )
+                .ensure_scope(&token, crate::hosted_identity::ApiScope::RequestsApprove)
                 .map_err(|error| format!("upgrade bootstrap credential scopes: {error:?}"))?;
             return Ok(());
         }
