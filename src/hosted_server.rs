@@ -691,6 +691,9 @@ mod tests {
         identities
             .authorize(&token, ApiScope::RequestsExecute)
             .unwrap();
+        identities
+            .authorize(&token, ApiScope::RequestsApprove)
+            .unwrap();
 
         let first_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
         assert_eq!(
