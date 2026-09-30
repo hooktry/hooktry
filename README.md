@@ -23,7 +23,7 @@ Run the local boundary with `ortyo` or `ortyo serve`. The CLI talks to the same 
 
 ```sh
 ortyo expose 3000
-ORTYO_TOKEN='ortyo_...' ortyo expose 3000 web --public
+ORTYO_CONTROL_TOKEN='<secret>' ortyo expose 3000 web --public
 ortyo exposures
 ortyo exposure-get <exposure-id>
 ortyo exposure-revoke <exposure-id>
@@ -46,7 +46,7 @@ ORTYO_DATABASE_URL='postgresql://...' \
 ortyo hosted
 ```
 
-Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `ORTYO_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `ORTYO_DATABASE_URL` is set. Otherwise ORTYO falls back to SQLite via `ORTYO_HOSTED_DB_PATH`. The raw capability is never stored.
+Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required and protects hosted Exposure provisioning; runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `ORTYO_DATABASE_URL` is set. Otherwise ORTYO falls back to SQLite via `ORTYO_HOSTED_DB_PATH`. The raw capability is never stored.
 
 ### MCP
 
