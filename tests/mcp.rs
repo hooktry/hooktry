@@ -37,6 +37,9 @@ async fn tools_list_exposes_complete_evidence_workflow() {
     assert_eq!(
         names,
         vec![
+            "exposure_create",
+            "exposure_get",
+            "exposure_revoke",
             "interactions_list",
             "recording_create",
             "recording_replay",
@@ -59,6 +62,12 @@ async fn tool_schemas_require_identity_arguments() {
     .unwrap();
 
     let tools = response["result"]["tools"].as_array().unwrap();
+    let exposure = tools
+        .iter()
+        .find(|tool| tool["name"] == "exposure_create")
+        .unwrap();
+    assert_eq!(exposure["inputSchema"]["required"], json!(["name", "port"]));
+
     let replay = tools
         .iter()
         .find(|tool| tool["name"] == "recording_replay")
