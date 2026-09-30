@@ -148,7 +148,6 @@ async fn resolves_secret_header_without_returning_secret() {
     assert!(!serde_json::to_string(&result).unwrap().contains("hidden"));
 }
 
-
 #[tokio::test]
 async fn chains_secret_ref_into_bearer_header_without_exposing_value() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -204,7 +203,11 @@ async fn chains_secret_ref_into_bearer_header_without_exposing_value() {
         .unwrap();
 
     assert_eq!(result.body["ok"], true);
-    assert!(!serde_json::to_string(&result).unwrap().contains("chained-token"));
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("chained-token")
+    );
 }
 
 #[tokio::test]
