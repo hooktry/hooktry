@@ -10,8 +10,12 @@ pub enum Command {
         verify: bool,
     },
     Exposures,
-    ExposureGet { id: Uuid },
-    ExposureRevoke { id: Uuid },
+    ExposureGet {
+        id: Uuid,
+    },
+    ExposureRevoke {
+        id: Uuid,
+    },
     Mcp,
     Assert {
         contract_id: Uuid,
