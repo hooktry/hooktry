@@ -12,6 +12,7 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
             "name": "stripe webhook",
             "target": {"port": 3000},
             "observation": {"within_ms": 5000, "settle_ms": 500},
+            "ordering": "declared",
             "contracts": [
                 {
                     "name": "payment accepted",
@@ -35,6 +36,10 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
     assert_eq!(request.port, 3000);
     assert_eq!(request.observation.within_ms, 5000);
     assert_eq!(request.observation.settle_ms, 500);
+    assert_eq!(
+        request.ordering,
+        Some(ortyo::domain::ScenarioOrdering::Declared)
+    );
     assert_eq!(request.contracts.len(), 1);
     assert_eq!(request.contracts[0].operation, "POST /webhook");
     assert_eq!(request.contracts[0].count, Some(1));
@@ -92,5 +97,6 @@ fn outcome(passed: bool) -> ScenarioOutcome {
             passed,
             error: (!passed).then(|| "expected behavior did not occur".to_owned()),
         }],
+        order: None,
     }
 }

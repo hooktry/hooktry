@@ -101,6 +101,10 @@ async fn tool_schemas_require_identity_arguments() {
         ["context"]["properties"];
     assert!(scenario_context["correlation_id"].is_object());
     assert!(scenario_context["trace_id"].is_object());
+    assert_eq!(
+        scenario["inputSchema"]["properties"]["ordering"]["enum"],
+        json!(["declared"])
+    );
 }
 
 #[tokio::test]

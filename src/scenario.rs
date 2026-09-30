@@ -10,8 +10,8 @@ use crate::{
     contract::assert_interaction,
     domain::{
         Contract, CorrelationContext, Interaction, InteractionCardinality, Origin, Scenario,
-        ScenarioCheckOutcome, ScenarioExpectation, ScenarioObservation, ScenarioOutcome,
-        ScenarioRun, ScenarioRunState,
+        ScenarioCheckOutcome, ScenarioExpectation, ScenarioObservation, ScenarioOrderOutcome,
+        ScenarioOrderViolation, ScenarioOrdering, ScenarioOutcome, ScenarioRun, ScenarioRunState,
     },
     exposure::{ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot},
@@ -40,6 +40,8 @@ pub struct ScenarioManifest {
     pub target: ScenarioTarget,
     #[serde(default)]
     pub observation: ScenarioObservation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ordering: Option<ScenarioOrdering>,
     pub contracts: Vec<ScenarioContractSpec>,
 }
 
@@ -54,6 +56,7 @@ impl From<ScenarioManifest> for CreateScenario {
             name: manifest.name,
             port: manifest.target.port,
             observation: manifest.observation,
+            ordering: manifest.ordering,
             contracts: manifest.contracts,
         }
     }
@@ -65,6 +68,8 @@ pub struct CreateScenario {
     pub port: u16,
     #[serde(default)]
     pub observation: ScenarioObservation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ordering: Option<ScenarioOrdering>,
     pub contracts: Vec<ScenarioContractSpec>,
 }
 
@@ -149,6 +154,7 @@ pub fn create(
         contract_ids,
         expectations,
         observation: request.observation,
+        ordering: request.ordering,
         created_at: Utc::now(),
     };
     store.save_scenario(&scenario);
@@ -205,6 +211,8 @@ pub async fn complete(
     let sources =
         observe_sources(store, run.exposure_id, &scenario.observation, &definitions).await;
     let observation_elapsed_ms = observation_started.elapsed().as_millis() as u64;
+
+    let order = evaluate_order(scenario.ordering.as_ref(), &definitions, &sources);
 
     let (recording_id, replayed) = if sources.is_empty() {
         (None, Vec::new())
@@ -265,7 +273,9 @@ pub async fn complete(
         });
     }
 
-    let passed = !checks.is_empty() && checks.iter().all(|check| check.passed);
+    let checks_passed = !checks.is_empty() && checks.iter().all(|check| check.passed);
+    let order_passed = order.as_ref().is_none_or(|outcome| outcome.passed);
+    let passed = checks_passed && order_passed;
     let outcome = ScenarioOutcome {
         run_id: run.id,
         scenario_id: scenario.id,
@@ -276,6 +286,7 @@ pub async fn complete(
         recording_id,
         replayed_interaction_ids: replayed.iter().map(|item| item.id).collect(),
         checks,
+        order,
     };
     store.save_scenario_outcome(&outcome);
 
@@ -359,7 +370,7 @@ async fn observe_sources(
 fn source_interactions(store: &InteractionStore, exposure_id: Uuid) -> Vec<Interaction> {
     let exposure_id = exposure_id.to_string();
     store
-        .all()
+        .all_recorded()
         .into_iter()
         .filter(|interaction| {
             interaction.origin == Origin::Proxied
@@ -498,5 +509,76 @@ fn cardinality_description(cardinality: &InteractionCardinality) -> String {
         (Some(min), None) => format!("at least {min}"),
         (None, Some(max)) => format!("at most {max}"),
         (None, None) => "exactly 1".to_owned(),
+    }
+}
+
+fn evaluate_order(
+    policy: Option<&ScenarioOrdering>,
+    definitions: &[(ScenarioExpectation, Contract)],
+    interactions: &[Interaction],
+) -> Option<ScenarioOrderOutcome> {
+    let policy = policy?.clone();
+    match policy {
+        ScenarioOrdering::Declared => Some(evaluate_declared_order(definitions, interactions)),
+    }
+}
+
+fn evaluate_declared_order(
+    definitions: &[(ScenarioExpectation, Contract)],
+    interactions: &[Interaction],
+) -> ScenarioOrderOutcome {
+    let groups = definitions
+        .iter()
+        .map(|(expectation, contract)| {
+            let positions = interactions
+                .iter()
+                .enumerate()
+                .filter(|(_, interaction)| assert_interaction(contract, interaction).passed)
+                .map(|(index, interaction)| (index, interaction.id))
+                .collect::<Vec<_>>();
+            (expectation.contract_id, positions)
+        })
+        .collect::<Vec<_>>();
+
+    let mut observed = interactions
+        .iter()
+        .enumerate()
+        .filter(|(_, interaction)| {
+            definitions
+                .iter()
+                .any(|(_, contract)| assert_interaction(contract, interaction).passed)
+        })
+        .map(|(index, interaction)| (index, interaction.id))
+        .collect::<Vec<_>>();
+    observed.sort_by_key(|(index, _)| *index);
+
+    let mut violations = Vec::new();
+    for earlier_index in 0..groups.len() {
+        let (earlier_contract_id, earlier_positions) = &groups[earlier_index];
+        let Some(&(latest_earlier_index, latest_earlier_id)) = earlier_positions.last() else {
+            continue;
+        };
+
+        for (later_contract_id, later_positions) in groups.iter().skip(earlier_index + 1) {
+            let Some(&(earliest_later_index, earliest_later_id)) = later_positions.first() else {
+                continue;
+            };
+
+            if latest_earlier_index >= earliest_later_index {
+                violations.push(ScenarioOrderViolation {
+                    expected_before_contract_id: *earlier_contract_id,
+                    expected_before_source_interaction_id: latest_earlier_id,
+                    expected_after_contract_id: *later_contract_id,
+                    expected_after_source_interaction_id: earliest_later_id,
+                });
+            }
+        }
+    }
+
+    ScenarioOrderOutcome {
+        policy: ScenarioOrdering::Declared,
+        passed: violations.is_empty(),
+        observed_source_interaction_ids: observed.into_iter().map(|(_, id)| id).collect(),
+        violations,
     }
 }

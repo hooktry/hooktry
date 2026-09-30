@@ -90,6 +90,10 @@ fn tools() -> Vec<Value> {
                     },
                     "additionalProperties": false
                 },
+                "ordering": {
+                    "type": "string",
+                    "enum": ["declared"]
+                },
                 "contracts": {
                     "type": "array",
                     "minItems": 1,
@@ -253,6 +257,7 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
                 .get("observation")
                 .cloned()
                 .unwrap_or_else(|| json!({}));
+            let ordering = arguments.get("ordering").cloned();
             api_json(
                 "POST",
                 &format!("{base_url}/_ortyo/scenarios"),
@@ -260,6 +265,7 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
                     "name": scenario_name,
                     "port": port,
                     "observation": observation,
+                    "ordering": ordering,
                     "contracts": contracts
                 })),
             )
