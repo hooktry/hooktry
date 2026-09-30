@@ -436,9 +436,7 @@ fn secret_name_from_ref(secret_ref: &str) -> Result<&str, ExecutionError> {
     Ok(name)
 }
 
-async fn client_for_public_destination(
-    url: &Url,
-) -> Result<reqwest::Client, ExecutionError> {
+async fn client_for_public_destination(url: &Url) -> Result<reqwest::Client, ExecutionError> {
     if url.scheme() != "https" && url.scheme() != "http" {
         return Err(ExecutionError::InvalidRequest);
     }
@@ -569,7 +567,6 @@ fn unix_time_ms() -> u64 {
 fn default_timeout_ms() -> u64 {
     10_000
 }
-
 
 #[cfg(test)]
 mod destination_tests {
