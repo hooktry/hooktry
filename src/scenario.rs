@@ -10,8 +10,8 @@ use crate::{
     contract::assert_interaction,
     domain::{
         Contract, CorrelationContext, Interaction, InteractionCardinality, Origin, Scenario,
-        ScenarioCheckOutcome,
-        ScenarioExpectation, ScenarioObservation, ScenarioOutcome, ScenarioRun, ScenarioRunState,
+        ScenarioCheckOutcome, ScenarioExpectation, ScenarioObservation, ScenarioOutcome,
+        ScenarioRun, ScenarioRunState,
     },
     exposure::{ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot},
