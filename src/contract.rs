@@ -34,8 +34,8 @@ pub fn assert_interaction(contract: &Contract, interaction: &Interaction) -> Ass
         .context
         .as_ref()
         .map(|context| serde_json::to_value(context).expect("serialize contract context"));
-    let actual_context =
-        serde_json::to_value(&interaction.context.correlation).expect("serialize interaction context");
+    let actual_context = serde_json::to_value(&interaction.context.correlation)
+        .expect("serialize interaction context");
     check(
         &mut mismatches,
         "context",
