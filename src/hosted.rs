@@ -127,6 +127,23 @@ struct CreateWorkspaceRequest {
 }
 
 #[derive(Debug, Deserialize)]
+struct BootstrapRequest {
+    slug: String,
+    #[serde(default = "default_bootstrap_credential_name")]
+    credential_name: String,
+}
+
+#[derive(Debug, Serialize)]
+struct BootstrapResponse {
+    workspace: Workspace,
+    credential: IssuedApiCredential,
+}
+
+fn default_bootstrap_credential_name() -> String {
+    "initial-cli".to_owned()
+}
+
+#[derive(Debug, Deserialize)]
 struct IssueCredentialRequest {
     name: String,
     scopes: Vec<ApiScope>,
@@ -196,6 +213,7 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     Router::new()
         .route("/_ortyo/health", get(health))
         .route("/healthz", get(health))
+        .route("/_ortyo/bootstrap", post(bootstrap_first_workspace))
         .route("/_ortyo/admin/workspaces", post(create_workspace))
         .route(
             "/_ortyo/admin/workspaces/{workspace_id}/credentials",
@@ -222,6 +240,24 @@ async fn health() -> Json<serde_json::Value> {
         "ok": true,
         "service": "hosted_relay"
     }))
+}
+
+async fn bootstrap_first_workspace(
+    State(state): State<HostedRelayState>,
+    Json(request): Json<BootstrapRequest>,
+) -> Result<(StatusCode, Json<BootstrapResponse>), HostedApiError> {
+    let (workspace, credential) = state
+        .identities
+        .bootstrap_first_workspace_async(request.slug, request.credential_name)
+        .await
+        .map_err(identity_bootstrap_error)?;
+    Ok((
+        StatusCode::CREATED,
+        Json(BootstrapResponse {
+            workspace,
+            credential,
+        }),
+    ))
 }
 
 async fn create_workspace(
@@ -396,6 +432,24 @@ fn identity_authorization_error(error: IdentityError) -> HostedApiError {
         | IdentityError::WorkspaceNotFound => HostedApiError::unauthorized(),
         IdentityError::InvalidWorkspace
         | IdentityError::DuplicateWorkspace
+        | IdentityError::BootstrapAlreadyCompleted
+        | IdentityError::Storage(_) => HostedApiError::internal(),
+    }
+}
+
+fn identity_bootstrap_error(error: IdentityError) -> HostedApiError {
+    match error {
+        IdentityError::BootstrapAlreadyCompleted => {
+            HostedApiError::new(StatusCode::CONFLICT, "bootstrap_already_completed")
+        }
+        IdentityError::InvalidWorkspace | IdentityError::InvalidCredential => {
+            HostedApiError::new(StatusCode::BAD_REQUEST, "invalid_request")
+        }
+        IdentityError::DuplicateWorkspace
+        | IdentityError::WorkspaceNotFound
+        | IdentityError::WorkspaceDisabled
+        | IdentityError::RevokedCredential
+        | IdentityError::Forbidden
         | IdentityError::Storage(_) => HostedApiError::internal(),
     }
 }
@@ -413,6 +467,9 @@ fn identity_admin_error(error: IdentityError) -> HostedApiError {
             HostedApiError::new(StatusCode::CONFLICT, "workspace_disabled")
         }
         IdentityError::Forbidden | IdentityError::RevokedCredential => HostedApiError::forbidden(),
+        IdentityError::BootstrapAlreadyCompleted => {
+            HostedApiError::new(StatusCode::CONFLICT, "bootstrap_already_completed")
+        }
         IdentityError::Storage(_) => HostedApiError::internal(),
     }
 }
