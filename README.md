@@ -69,6 +69,35 @@ persisted ScenarioOutcome + automatic Exposure revoke
 
 Scenario completion is idempotent. Evidence is scoped to the run's unique Exposure, so previous replays or unrelated traffic cannot enter the run. A run with no matching evidence completes as an explicit failed outcome rather than manufacturing evidence.
 
+Scenario definitions can live in the repository as portable JSON manifests:
+
+```json
+{
+  "name": "payment webhook",
+  "target": {"port": 3000},
+  "contracts": [
+    {
+      "name": "payment accepted",
+      "operation": "POST /webhook",
+      "request": {"body": "{\"event\":\"payment.created\",\"amount\":4999}"},
+      "response": {"status": 202}
+    }
+  ]
+}
+```
+
+Use the manifest and persisted run lifecycle from scripts or CI:
+
+```sh
+ortyo scenario create examples/scenarios/payment-webhook.json
+ortyo scenario start <scenario-id>
+# trigger the application behavior that sends traffic to the returned Exposure URL
+ortyo scenario complete <run-id>
+ortyo scenario outcome <run-id>
+```
+
+`scenario complete` is a deterministic CI gate: exit `0` for a passing ScenarioOutcome, exit `1` for a behavioral mismatch or missing expected evidence, and exit `2` for CLI, transport, API, or response errors. `ortyo assert` uses the same `0/1/2` convention.
+
 
 ## License
 
