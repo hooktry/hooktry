@@ -91,7 +91,10 @@ fn tools() -> Vec<Value> {
                             "name": {"type": "string"},
                             "operation": {"type": "string"},
                             "request": {},
-                            "response": {}
+                            "response": {},
+                            "count": {"type": "integer", "minimum": 0},
+                            "min": {"type": "integer", "minimum": 0},
+                            "max": {"type": "integer", "minimum": 0}
                         },
                         "required": ["name", "operation"],
                         "additionalProperties": false

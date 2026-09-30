@@ -505,7 +505,8 @@ fn scenario_error_status(error: ScenarioError) -> StatusCode {
         | ScenarioError::InvalidPort
         | ScenarioError::ContractRequired
         | ScenarioError::InvalidContractName
-        | ScenarioError::InvalidOperation => StatusCode::BAD_REQUEST,
+        | ScenarioError::InvalidOperation
+        | ScenarioError::InvalidCardinality => StatusCode::BAD_REQUEST,
         ScenarioError::ScenarioNotFound | ScenarioError::RunNotFound => StatusCode::NOT_FOUND,
         ScenarioError::ContractNotFound(_) => StatusCode::CONFLICT,
         ScenarioError::Exposure(error) => exposure_error_status(error),
