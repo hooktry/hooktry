@@ -6,6 +6,7 @@ use std::{
 
 use postgres::{Client, NoTls};
 use rand::RngCore;
+use reqwest::Url;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -16,6 +17,7 @@ pub struct SecretRef {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub name: String,
+    pub allowed_origin: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,8 +29,10 @@ pub struct SecretMetadata {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SecretError {
     InvalidName,
+    InvalidOrigin,
     InvalidKey,
     NotFound,
+    DestinationDenied,
     Crypto,
     Storage(String),
 }
@@ -83,7 +87,13 @@ impl SecretStore {
                     UNIQUE(workspace_id, name)
                 );
                 CREATE INDEX IF NOT EXISTS hosted_secrets_workspace
-                    ON hosted_secrets(workspace_id);",
+                    ON hosted_secrets(workspace_id);
+                CREATE TABLE IF NOT EXISTS hosted_secret_bindings (
+                    workspace_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    allowed_origin TEXT NOT NULL,
+                    PRIMARY KEY(workspace_id, name)
+                );",
             )
             .map_err(|error| SecretError::Storage(error.to_string()))?;
         Ok(Self {
@@ -106,7 +116,13 @@ impl SecretStore {
                     UNIQUE(workspace_id, name)
                 );
                 CREATE INDEX IF NOT EXISTS hosted_secrets_workspace
-                    ON hosted_secrets(workspace_id);",
+                    ON hosted_secrets(workspace_id);
+                CREATE TABLE IF NOT EXISTS hosted_secret_bindings (
+                    workspace_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    allowed_origin TEXT NOT NULL,
+                    PRIMARY KEY(workspace_id, name)
+                );",
             )
             .map_err(|error| SecretError::Storage(error.to_string()))?;
         Ok(Self {
@@ -131,6 +147,45 @@ impl SecretStore {
         value: impl Into<String>,
     ) -> Result<SecretRef, SecretError> {
         let name = name.into();
+        let allowed_origin = self
+            .find(workspace_id, &name)?
+            .and_then(|secret| secret.reference.allowed_origin);
+        self.rotate_with_origin(workspace_id, name, value.into(), allowed_origin)
+    }
+
+    pub fn put_bound(
+        &self,
+        workspace_id: Uuid,
+        name: impl Into<String>,
+        value: impl Into<String>,
+        allowed_origin: impl Into<String>,
+    ) -> Result<SecretRef, SecretError> {
+        self.rotate_bound(workspace_id, name, value, allowed_origin)
+    }
+
+    pub fn rotate_bound(
+        &self,
+        workspace_id: Uuid,
+        name: impl Into<String>,
+        value: impl Into<String>,
+        allowed_origin: impl Into<String>,
+    ) -> Result<SecretRef, SecretError> {
+        let allowed_origin = normalize_http_origin(&allowed_origin.into())?;
+        self.rotate_with_origin(
+            workspace_id,
+            name.into(),
+            value.into(),
+            Some(allowed_origin),
+        )
+    }
+
+    fn rotate_with_origin(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        value: String,
+        allowed_origin: Option<String>,
+    ) -> Result<SecretRef, SecretError> {
         if name.trim().is_empty() {
             return Err(SecretError::InvalidName);
         }
@@ -138,13 +193,9 @@ impl SecretStore {
             id: Uuid::now_v7(),
             workspace_id,
             name: name.clone(),
+            allowed_origin,
         };
-        let envelope = encrypt(
-            self.key.as_ref(),
-            workspace_id,
-            &name,
-            value.into().as_bytes(),
-        )?;
+        let envelope = encrypt(self.key.as_ref(), workspace_id, &name, value.as_bytes())?;
         self.save(StoredSecret {
             reference: reference.clone(),
             envelope,
@@ -157,6 +208,65 @@ impl SecretStore {
         let secret = self
             .find(workspace_id, name)?
             .ok_or(SecretError::NotFound)?;
+        self.decrypt_secret(workspace_id, name, &secret)
+    }
+
+    pub fn resolve_for_origin(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        destination_origin: &str,
+    ) -> Result<String, SecretError> {
+        let destination_origin = normalize_http_origin(destination_origin)?;
+        let secret = self
+            .find(workspace_id, name)?
+            .ok_or(SecretError::NotFound)?;
+        if secret.reference.allowed_origin.as_deref() != Some(destination_origin.as_str()) {
+            return Err(SecretError::DestinationDenied);
+        }
+        self.decrypt_secret(workspace_id, name, &secret)
+    }
+
+    pub fn resolve_legacy_for_origin(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        destination_origin: &str,
+    ) -> Result<String, SecretError> {
+        let destination_origin = normalize_http_origin(destination_origin)?;
+        let secret = self
+            .find(workspace_id, name)?
+            .ok_or(SecretError::NotFound)?;
+        if let Some(allowed_origin) = secret.reference.allowed_origin.as_deref()
+            && allowed_origin != destination_origin
+        {
+            return Err(SecretError::DestinationDenied);
+        }
+        self.decrypt_secret(workspace_id, name, &secret)
+    }
+
+    pub fn bind_origin(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        allowed_origin: &str,
+    ) -> Result<SecretRef, SecretError> {
+        let allowed_origin = normalize_http_origin(allowed_origin)?;
+        let mut secret = self
+            .find(workspace_id, name)?
+            .ok_or(SecretError::NotFound)?;
+        secret.reference.allowed_origin = Some(allowed_origin);
+        let reference = secret.reference.clone();
+        self.save(secret)?;
+        Ok(reference)
+    }
+
+    fn decrypt_secret(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        secret: &StoredSecret,
+    ) -> Result<String, SecretError> {
         if secret.key_version != KEY_VERSION {
             return Err(SecretError::InvalidKey);
         }
@@ -185,6 +295,32 @@ impl SecretStore {
             .map_err(|error| SecretError::Storage(format!("join secret rotate: {error}")))?
     }
 
+    pub async fn put_bound_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        value: String,
+        allowed_origin: String,
+    ) -> Result<SecretRef, SecretError> {
+        self.rotate_bound_async(workspace_id, name, value, allowed_origin)
+            .await
+    }
+
+    pub async fn rotate_bound_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        value: String,
+        allowed_origin: String,
+    ) -> Result<SecretRef, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.rotate_bound(workspace_id, name, value, allowed_origin)
+        })
+        .await
+        .map_err(|error| SecretError::Storage(format!("join bound secret rotate: {error}")))?
+    }
+
     pub async fn resolve_async(
         &self,
         workspace_id: Uuid,
@@ -194,6 +330,34 @@ impl SecretStore {
         tokio::task::spawn_blocking(move || store.resolve(workspace_id, &name))
             .await
             .map_err(|error| SecretError::Storage(format!("join secret resolve: {error}")))?
+    }
+
+    pub async fn resolve_for_origin_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        destination_origin: String,
+    ) -> Result<String, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.resolve_for_origin(workspace_id, &name, &destination_origin)
+        })
+        .await
+        .map_err(|error| SecretError::Storage(format!("join bound secret resolve: {error}")))?
+    }
+
+    pub async fn resolve_legacy_for_origin_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        destination_origin: String,
+    ) -> Result<String, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.resolve_legacy_for_origin(workspace_id, &name, &destination_origin)
+        })
+        .await
+        .map_err(|error| SecretError::Storage(format!("join legacy secret resolve: {error}")))?
     }
 
     pub async fn delete_async(
@@ -244,8 +408,11 @@ impl SecretStore {
                 let connection = connection.lock().expect("secret store poisoned");
                 let mut statement = connection
                     .prepare(
-                        "SELECT secret_id,name,key_version FROM hosted_secrets
-                         WHERE workspace_id=?1 ORDER BY name",
+                        "SELECT s.secret_id,s.name,s.key_version,b.allowed_origin
+                         FROM hosted_secrets s
+                         LEFT JOIN hosted_secret_bindings b
+                           ON b.workspace_id=s.workspace_id AND b.name=s.name
+                         WHERE s.workspace_id=?1 ORDER BY s.name",
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 let rows = statement
@@ -254,12 +421,13 @@ impl SecretStore {
                             row.get::<_, String>(0)?,
                             row.get::<_, String>(1)?,
                             row.get::<_, i32>(2)?,
+                            row.get::<_, Option<String>>(3)?,
                         ))
                     })
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
                 let mut metadata = Vec::new();
                 for row in rows {
-                    let (id, name, key_version) =
+                    let (id, name, key_version, allowed_origin) =
                         row.map_err(|error| SecretError::Storage(error.to_string()))?;
                     metadata.push(SecretMetadata {
                         reference: SecretRef {
@@ -268,6 +436,7 @@ impl SecretStore {
                             })?,
                             workspace_id,
                             name,
+                            allowed_origin,
                         },
                         key_version,
                     });
@@ -280,8 +449,11 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .query(
-                        "SELECT secret_id,name,key_version FROM hosted_secrets
-                         WHERE workspace_id=$1 ORDER BY name",
+                        "SELECT s.secret_id,s.name,s.key_version,b.allowed_origin
+                         FROM hosted_secrets s
+                         LEFT JOIN hosted_secret_bindings b
+                           ON b.workspace_id=s.workspace_id AND b.name=s.name
+                         WHERE s.workspace_id=$1 ORDER BY s.name",
                         &[&workspace],
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?
@@ -294,6 +466,7 @@ impl SecretStore {
                                 })?,
                                 workspace_id,
                                 name: row.get(1),
+                                allowed_origin: row.get(3),
                             },
                             key_version: row.get(2),
                         })
@@ -312,26 +485,38 @@ impl SecretStore {
                 .expect("secret store poisoned")
                 .remove(&(workspace_id, name.to_owned()))
                 .is_some()),
-            SecretBackend::Sqlite(connection) => connection
-                .lock()
-                .expect("secret store poisoned")
-                .execute(
-                    "DELETE FROM hosted_secrets WHERE workspace_id=?1 AND name=?2",
-                    params![workspace_id.to_string(), name],
-                )
-                .map(|deleted| deleted > 0)
-                .map_err(|error| SecretError::Storage(error.to_string())),
+            SecretBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("secret store poisoned");
+                let deleted = connection
+                    .execute(
+                        "DELETE FROM hosted_secrets WHERE workspace_id=?1 AND name=?2",
+                        params![workspace_id.to_string(), name],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                connection
+                    .execute(
+                        "DELETE FROM hosted_secret_bindings WHERE workspace_id=?1 AND name=?2",
+                        params![workspace_id.to_string(), name],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                Ok(deleted > 0)
+            }
             SecretBackend::Postgres(client) => {
                 let workspace = workspace_id.to_string();
-                client
-                    .lock()
-                    .expect("secret store poisoned")
+                let mut client = client.lock().expect("secret store poisoned");
+                let deleted = client
                     .execute(
                         "DELETE FROM hosted_secrets WHERE workspace_id=$1 AND name=$2",
                         &[&workspace, &name],
                     )
-                    .map(|deleted| deleted > 0)
-                    .map_err(|error| SecretError::Storage(error.to_string()))
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                client
+                    .execute(
+                        "DELETE FROM hosted_secret_bindings WHERE workspace_id=$1 AND name=$2",
+                        &[&workspace, &name],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                Ok(deleted > 0)
             }
         }
     }
@@ -353,9 +538,8 @@ impl SecretStore {
                 Ok(())
             }
             SecretBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("secret store poisoned");
                 connection
-                    .lock()
-                    .expect("secret store poisoned")
                     .execute(
                         "INSERT INTO hosted_secrets
                             (secret_id, workspace_id, name, envelope, key_version)
@@ -372,14 +556,43 @@ impl SecretStore {
                         ],
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
+                match &secret.reference.allowed_origin {
+                    Some(origin) => {
+                        connection
+                            .execute(
+                                "INSERT INTO hosted_secret_bindings
+                                    (workspace_id, name, allowed_origin)
+                                 VALUES (?1, ?2, ?3)
+                                 ON CONFLICT(workspace_id, name) DO UPDATE SET
+                                    allowed_origin=excluded.allowed_origin",
+                                params![
+                                    secret.reference.workspace_id.to_string(),
+                                    &secret.reference.name,
+                                    origin
+                                ],
+                            )
+                            .map_err(|error| SecretError::Storage(error.to_string()))?;
+                    }
+                    None => {
+                        connection
+                            .execute(
+                                "DELETE FROM hosted_secret_bindings
+                                 WHERE workspace_id=?1 AND name=?2",
+                                params![
+                                    secret.reference.workspace_id.to_string(),
+                                    &secret.reference.name
+                                ],
+                            )
+                            .map_err(|error| SecretError::Storage(error.to_string()))?;
+                    }
+                }
                 Ok(())
             }
             SecretBackend::Postgres(client) => {
                 let id = secret.reference.id.to_string();
                 let workspace = secret.reference.workspace_id.to_string();
+                let mut client = client.lock().expect("secret store poisoned");
                 client
-                    .lock()
-                    .expect("secret store poisoned")
                     .execute(
                         "INSERT INTO hosted_secrets
                             (secret_id, workspace_id, name, envelope, key_version)
@@ -396,6 +609,29 @@ impl SecretStore {
                         ],
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
+                match &secret.reference.allowed_origin {
+                    Some(origin) => {
+                        client
+                            .execute(
+                                "INSERT INTO hosted_secret_bindings
+                                    (workspace_id, name, allowed_origin)
+                                 VALUES ($1,$2,$3)
+                                 ON CONFLICT(workspace_id, name) DO UPDATE SET
+                                    allowed_origin=EXCLUDED.allowed_origin",
+                                &[&workspace, &secret.reference.name, origin],
+                            )
+                            .map_err(|error| SecretError::Storage(error.to_string()))?;
+                    }
+                    None => {
+                        client
+                            .execute(
+                                "DELETE FROM hosted_secret_bindings
+                                 WHERE workspace_id=$1 AND name=$2",
+                                &[&workspace, &secret.reference.name],
+                            )
+                            .map_err(|error| SecretError::Storage(error.to_string()))?;
+                    }
+                }
                 Ok(())
             }
         }
@@ -413,20 +649,24 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .query_row(
-                        "SELECT secret_id,envelope,key_version FROM hosted_secrets
-                         WHERE workspace_id=?1 AND name=?2",
+                        "SELECT s.secret_id,s.envelope,s.key_version,b.allowed_origin
+                         FROM hosted_secrets s
+                         LEFT JOIN hosted_secret_bindings b
+                           ON b.workspace_id=s.workspace_id AND b.name=s.name
+                         WHERE s.workspace_id=?1 AND s.name=?2",
                         params![workspace_id.to_string(), name],
                         |row| {
                             Ok((
                                 row.get::<_, String>(0)?,
                                 row.get::<_, String>(1)?,
                                 row.get::<_, i32>(2)?,
+                                row.get::<_, Option<String>>(3)?,
                             ))
                         },
                     )
                     .optional()
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
-                row.map(|(id, envelope, key_version)| {
+                row.map(|(id, envelope, key_version, allowed_origin)| {
                     Ok(StoredSecret {
                         reference: SecretRef {
                             id: id.parse().map_err(|error| {
@@ -434,6 +674,7 @@ impl SecretStore {
                             })?,
                             workspace_id,
                             name: name.to_owned(),
+                            allowed_origin,
                         },
                         envelope,
                         key_version,
@@ -447,8 +688,11 @@ impl SecretStore {
                     .lock()
                     .expect("secret store poisoned")
                     .query_opt(
-                        "SELECT secret_id,envelope,key_version FROM hosted_secrets
-                         WHERE workspace_id=$1 AND name=$2",
+                        "SELECT s.secret_id,s.envelope,s.key_version,b.allowed_origin
+                         FROM hosted_secrets s
+                         LEFT JOIN hosted_secret_bindings b
+                           ON b.workspace_id=s.workspace_id AND b.name=s.name
+                         WHERE s.workspace_id=$1 AND s.name=$2",
                         &[&workspace, &name],
                     )
                     .map_err(|error| SecretError::Storage(error.to_string()))?;
@@ -460,6 +704,7 @@ impl SecretStore {
                             })?,
                             workspace_id,
                             name: name.to_owned(),
+                            allowed_origin: row.get(3),
                         },
                         envelope: row.get(1),
                         key_version: row.get(2),
@@ -469,6 +714,14 @@ impl SecretStore {
             }
         }
     }
+}
+
+fn normalize_http_origin(value: &str) -> Result<String, SecretError> {
+    let url = Url::parse(value).map_err(|_| SecretError::InvalidOrigin)?;
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+        return Err(SecretError::InvalidOrigin);
+    }
+    Ok(url.origin().ascii_serialization())
 }
 
 pub fn decode_master_key(value: &str) -> Result<[u8; 32], SecretError> {

