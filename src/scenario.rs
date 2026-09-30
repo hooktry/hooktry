@@ -65,6 +65,10 @@ pub enum ScenarioError {
     Replay(ReplayError),
 }
 
+pub fn outcome_exit_code(outcome: &ScenarioOutcome) -> i32 {
+    if outcome.passed { 0 } else { 1 }
+}
+
 pub fn create(
     store: &InteractionStore,
     request: CreateScenario,
