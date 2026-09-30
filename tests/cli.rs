@@ -65,6 +65,105 @@ fn parses_mcp_stdio_command() {
 }
 
 #[test]
+fn parses_approval_and_execution_lifecycle_commands() {
+    let approval_id = Uuid::now_v7();
+    let execution_id = Uuid::now_v7();
+
+    let create = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "create".to_owned(),
+        "request.json".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(
+        create.command,
+        Command::ApprovalCreate {
+            path: "request.json".to_owned()
+        }
+    );
+
+    let get = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "get".to_owned(),
+        approval_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(get.command, Command::ApprovalGet { id: approval_id });
+
+    let approve = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "approve".to_owned(),
+        approval_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(
+        approve.command,
+        Command::ApprovalApprove { id: approval_id }
+    );
+
+    let deny = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "deny".to_owned(),
+        approval_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(deny.command, Command::ApprovalDeny { id: approval_id });
+
+    let execute = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "execute".to_owned(),
+        approval_id.to_string(),
+        "request.json".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(
+        execute.command,
+        Command::ApprovalExecute {
+            id: approval_id,
+            path: "request.json".to_owned()
+        }
+    );
+
+    let execution = Cli::parse([
+        "ortyo".to_owned(),
+        "execution".to_owned(),
+        "get".to_owned(),
+        execution_id.to_string(),
+    ])
+    .unwrap();
+    assert_eq!(
+        execution.command,
+        Command::ExecutionGet { id: execution_id }
+    );
+}
+
+#[test]
+fn rejects_invalid_approval_and_execution_ids() {
+    let approval_error = Cli::parse([
+        "ortyo".to_owned(),
+        "approval".to_owned(),
+        "approve".to_owned(),
+        "not-a-uuid".to_owned(),
+    ])
+    .unwrap_err();
+    assert_eq!(approval_error, "approval approve requires a valid UUID");
+
+    let execution_error = Cli::parse([
+        "ortyo".to_owned(),
+        "execution".to_owned(),
+        "get".to_owned(),
+        "not-a-uuid".to_owned(),
+    ])
+    .unwrap_err();
+    assert_eq!(execution_error, "execution get requires a valid UUID");
+}
+
+#[test]
 fn parses_scenario_manifest_lifecycle_commands() {
     let scenario_id = Uuid::now_v7();
     let run_id = Uuid::now_v7();
