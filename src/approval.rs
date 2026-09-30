@@ -158,7 +158,9 @@ impl ApprovalStore {
                 );
                 ALTER TABLE hosted_approvals ADD COLUMN IF NOT EXISTS execution_id TEXT;
                 CREATE INDEX IF NOT EXISTS hosted_approvals_workspace
-                    ON hosted_approvals(workspace_id);",
+                    ON hosted_approvals(workspace_id);
+                CREATE INDEX IF NOT EXISTS hosted_approvals_inbox
+                    ON hosted_approvals(workspace_id, state, requested_at, approval_id);",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
         Ok(Self {
@@ -184,7 +186,9 @@ impl ApprovalStore {
                     execution_id TEXT
                 );
                 CREATE INDEX IF NOT EXISTS hosted_approvals_workspace
-                    ON hosted_approvals(workspace_id);",
+                    ON hosted_approvals(workspace_id);
+                CREATE INDEX IF NOT EXISTS hosted_approvals_inbox
+                    ON hosted_approvals(workspace_id, state, requested_at, approval_id);",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
         Ok(Self {
@@ -213,6 +217,16 @@ impl ApprovalStore {
     ) -> Result<Option<ApprovalRecord>, ApprovalError> {
         let store = self.clone();
         tokio::task::spawn_blocking(move || store.get(workspace_id, approval_id))
+            .await
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn list_pending_async(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ApprovalRecord>, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.list_pending(workspace_id))
             .await
             .map_err(|error| ApprovalError::Storage(error.to_string()))?
     }
@@ -352,6 +366,97 @@ impl ApprovalStore {
             return Ok(None);
         }
         Ok(Some(record))
+    }
+
+    pub fn list_pending(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ApprovalRecord>, ApprovalError> {
+        const LIMIT: i64 = 100;
+        let workspace = workspace_id.to_string();
+
+        match &self.backend {
+            ApprovalBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("approval store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT approval_id, workspace_id, requested_by_credential_id,
+                                request_digest, summary_json, state, requested_at, decided_at,
+                                decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                                execution_id
+                         FROM hosted_approvals
+                         WHERE workspace_id=?1 AND state='pending'
+                         ORDER BY requested_at ASC, approval_id ASC
+                         LIMIT ?2",
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map(params![workspace, LIMIT], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            StoredApprovalRow {
+                                workspace_id: row.get(1)?,
+                                requested_by_credential_id: row.get(2)?,
+                                request_digest: row.get(3)?,
+                                summary_json: row.get(4)?,
+                                state: row.get(5)?,
+                                requested_at: row.get(6)?,
+                                decided_at: row.get(7)?,
+                                decided_by_credential_id: row.get(8)?,
+                                consumed_at: row.get(9)?,
+                                consumed_by_credential_id: row.get(10)?,
+                                execution_id: row.get(11)?,
+                            },
+                        ))
+                    })
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+
+                rows.map(|row| {
+                    let (approval_id, stored) =
+                        row.map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                    let approval_id = parse_uuid(&approval_id)?;
+                    stored.into_record(approval_id)
+                })
+                .collect()
+            }
+            ApprovalBackend::Postgres(client) => {
+                let rows = client
+                    .lock()
+                    .expect("approval store poisoned")
+                    .query(
+                        "SELECT approval_id, workspace_id, requested_by_credential_id,
+                                request_digest, summary_json, state, requested_at, decided_at,
+                                decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                                execution_id
+                         FROM hosted_approvals
+                         WHERE workspace_id=$1 AND state='pending'
+                         ORDER BY requested_at ASC, approval_id ASC
+                         LIMIT $2",
+                        &[&workspace, &LIMIT],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+
+                rows.into_iter()
+                    .map(|row| {
+                        let approval_id = parse_uuid(row.get::<_, String>(0).as_str())?;
+                        StoredApprovalRow {
+                            workspace_id: row.get(1),
+                            requested_by_credential_id: row.get(2),
+                            request_digest: row.get(3),
+                            summary_json: row.get(4),
+                            state: row.get(5),
+                            requested_at: row.get(6),
+                            decided_at: row.get(7),
+                            decided_by_credential_id: row.get(8),
+                            consumed_at: row.get(9),
+                            consumed_by_credential_id: row.get(10),
+                            execution_id: row.get(11),
+                        }
+                        .into_record(approval_id)
+                    })
+                    .collect()
+            }
+        }
     }
 
     pub fn decide(
