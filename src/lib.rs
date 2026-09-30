@@ -1,4 +1,5 @@
 pub mod agent_surface;
+pub mod approval;
 pub mod cli;
 pub mod context;
 pub mod contract;
