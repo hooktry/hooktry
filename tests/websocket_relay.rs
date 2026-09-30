@@ -36,6 +36,7 @@ async fn websocket_runtime_carries_public_request_to_local_boundary() {
         capabilities,
         format!("http://{hosted_addr}"),
         "debug-tcp-unused:0",
+        "test-control-token",
     );
     tokio::spawn(async move {
         axum::serve(hosted_listener, hosted_relay_app(hosted_state))
@@ -45,6 +46,7 @@ async fn websocket_runtime_carries_public_request_to_local_boundary() {
 
     let provision: ProvisionedExposure = reqwest::Client::new()
         .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
+        .bearer_auth("test-control-token")
         .json(&serde_json::json!({
             "name": "webhook",
             "target_port": target_port
@@ -149,6 +151,7 @@ async fn websocket_runtime_rejects_invalid_bearer_capability() {
         capabilities,
         format!("http://{hosted_addr}"),
         "debug-tcp-unused:0",
+        "test-control-token",
     );
     tokio::spawn(async move {
         axum::serve(hosted_listener, hosted_relay_app(hosted_state))
