@@ -17,11 +17,7 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
         "/stripe",
         post(|headers: axum::http::HeaderMap, body: Bytes| async move {
             assert_eq!(headers.get("stripe-signature").unwrap(), "t=1,v1=proof");
-            (
-                StatusCode::ACCEPTED,
-                [("x-ortyo-target", "stripe")],
-                body,
-            )
+            (StatusCode::ACCEPTED, [("x-ortyo-target", "stripe")], body)
         }),
     );
     let target_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -116,12 +112,9 @@ async fn ingress_returns_service_unavailable_without_runtime() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
-        axum::serve(
-            listener,
-            relay_ingress_app(RelayIngressState::new(broker)),
-        )
-        .await
-        .unwrap();
+        axum::serve(listener, relay_ingress_app(RelayIngressState::new(broker)))
+            .await
+            .unwrap();
     });
 
     let response = reqwest::get(format!("http://{addr}/e/{}/health", uuid::Uuid::now_v7()))
@@ -144,7 +137,9 @@ async fn ingress_times_out_when_registered_runtime_never_answers() {
         timeout: Duration::from_millis(25),
     };
     tokio::spawn(async move {
-        axum::serve(listener, relay_ingress_app(state)).await.unwrap();
+        axum::serve(listener, relay_ingress_app(state))
+            .await
+            .unwrap();
     });
 
     let response = reqwest::get(format!("http://{addr}/e/{exposure_id}/slow"))
