@@ -25,11 +25,24 @@ pub struct HttpExecutionRequest {
     #[serde(default)]
     pub body: Option<Value>,
     #[serde(default)]
-    pub secret_headers: BTreeMap<String, String>,
+    pub secret_headers: BTreeMap<String, SecretHeaderBinding>,
     #[serde(default)]
     pub capture: Vec<SecretCapture>,
     #[serde(default = "default_timeout_ms")]
     pub timeout_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum SecretHeaderBinding {
+    SecretName(String),
+    SecretRef {
+        secret_ref: String,
+        #[serde(default)]
+        prefix: String,
+        #[serde(default)]
+        suffix: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -126,12 +139,8 @@ impl HttpExecutionProvider {
             }
             builder = builder.header(&name, value);
         }
-        for (name, secret_name) in request.secret_headers {
-            let value = self
-                .secrets
-                .resolve_async(workspace_id, secret_name)
-                .await
-                .map_err(|_| ExecutionError::SecretNotFound)?;
+        for (name, binding) in request.secret_headers {
+            let value = resolve_secret_header(&self.secrets, workspace_id, binding).await?;
             builder = builder.header(&name, value);
         }
         if let Some(body) = body {
@@ -214,6 +223,41 @@ impl HttpExecutionProvider {
     pub fn secret_store(&self) -> &SecretStore {
         &self.secrets
     }
+}
+
+async fn resolve_secret_header(
+    secrets: &SecretStore,
+    workspace_id: Uuid,
+    binding: SecretHeaderBinding,
+) -> Result<String, ExecutionError> {
+    match binding {
+        SecretHeaderBinding::SecretName(name) => secrets
+            .resolve_async(workspace_id, name)
+            .await
+            .map_err(|_| ExecutionError::SecretNotFound),
+        SecretHeaderBinding::SecretRef {
+            secret_ref,
+            prefix,
+            suffix,
+        } => {
+            let name = secret_name_from_ref(&secret_ref)?;
+            let value = secrets
+                .resolve_async(workspace_id, name.to_owned())
+                .await
+                .map_err(|_| ExecutionError::SecretNotFound)?;
+            Ok(format!("{prefix}{value}{suffix}"))
+        }
+    }
+}
+
+fn secret_name_from_ref(secret_ref: &str) -> Result<&str, ExecutionError> {
+    let name = secret_ref
+        .strip_prefix("ortyo://secrets/")
+        .ok_or(ExecutionError::InvalidRequest)?;
+    if name.is_empty() || name.trim() != name {
+        return Err(ExecutionError::InvalidRequest);
+    }
+    Ok(name)
 }
 
 async fn validate_public_destination(url: &Url) -> Result<(), ExecutionError> {
