@@ -324,6 +324,17 @@ impl ApprovalStore {
             .map_err(|error| ApprovalError::Storage(error.to_string()))?
     }
 
+    pub async fn get_notification_async(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+    ) -> Result<Option<ApprovalNotificationOutboxRecord>, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.get_notification(workspace_id, notification_id))
+            .await
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
     pub async fn get_notification_for_approval_async(
         &self,
         workspace_id: Uuid,
