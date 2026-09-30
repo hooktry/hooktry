@@ -1,3 +1,8 @@
+//! Deterministic contract assertions.
+//!
+//! JSON objects use subset matching: a contract specifies only the fields that
+//! matter, while captured interactions may contain additional evidence.
+
 use serde_json::Value;
 use uuid::Uuid;
 
