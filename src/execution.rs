@@ -10,7 +10,7 @@ use serde_json::Value;
 use tokio::net::lookup_host;
 use uuid::Uuid;
 
-use crate::secret::{SecretRef, SecretStore};
+use crate::secret::SecretStore;
 
 const MAX_REQUEST_BODY_BYTES: usize = 1024 * 1024;
 const MAX_RESPONSE_BODY_BYTES: usize = 1024 * 1024;
