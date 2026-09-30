@@ -23,6 +23,7 @@ use crate::{
         ExposureTarget, Interaction, Origin, Protocol, Recording, Session,
     },
     exposure::{CreateExposure, ExposureError, ExposureService},
+    recording::{ReplayError, replay, snapshot_all},
     relay::{RelayRequest, RelayResponse},
     store::InteractionStore,
 };
@@ -144,42 +145,16 @@ async fn capture(
 }
 
 async fn create_recording(State(state): State<AppState>) -> Json<Recording> {
-    let recording = Recording {
-        id: Uuid::now_v7(),
-        created_at: Utc::now(),
-        interaction_ids: state.store.all().into_iter().map(|item| item.id).collect(),
-    };
-    state.store.save_recording(&recording);
-    Json(recording)
+    Json(snapshot_all(&state.store))
 }
 
 async fn replay_recording(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<Interaction>>, StatusCode> {
-    let recording = state.store.recording(id).ok_or(StatusCode::NOT_FOUND)?;
-    let mut replayed = Vec::new();
-
-    for source_id in recording.interaction_ids {
-        let source = state.store.find(source_id).ok_or(StatusCode::CONFLICT)?;
-        let interaction = Interaction {
-            id: Uuid::now_v7(),
-            session_id: state.session.id,
-            protocol: source.protocol,
-            direction: source.direction,
-            origin: Origin::Replayed,
-            operation: source.operation,
-            started_at: Utc::now(),
-            duration_ms: 0,
-            request: source.request,
-            response: source.response,
-            source_interaction_id: Some(source.id),
-        };
-        state.store.record(interaction.clone());
-        replayed.push(interaction);
-    }
-
-    Ok(Json(replayed))
+    replay(&state.store, state.session.id, id)
+        .map(Json)
+        .map_err(replay_error_status)
 }
 
 async fn create_contract(
@@ -439,6 +414,13 @@ fn build_response(proxied: ProxiedHttpResponse) -> Result<Response, StatusCode> 
     response
         .body(Body::from(proxied.body))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+fn replay_error_status(error: ReplayError) -> StatusCode {
+    match error {
+        ReplayError::RecordingNotFound => StatusCode::NOT_FOUND,
+        ReplayError::SourceInteractionNotFound(_) => StatusCode::CONFLICT,
+    }
 }
 
 fn exposure_error_status(error: ExposureError) -> StatusCode {
