@@ -123,10 +123,15 @@ pub async fn run_runtime_connection(
     exposure_id: Uuid,
     state: AppState,
 ) -> Result<(), TransportError> {
-    let (read_half, mut write_half) = stream.into_split();
+    let (read_half, write_half) = stream.into_split();
     let mut reader = BufReader::new(read_half);
+    let writer = Arc::new(Mutex::new(write_half));
 
-    write_frame(&mut write_half, &RelayFrame::Register { exposure_id }).await?;
+    write_frame(
+        &mut *writer.lock().await,
+        &RelayFrame::Register { exposure_id },
+    )
+    .await?;
     match read_frame::<RelayFrame, _>(&mut reader).await? {
         Some(RelayFrame::Registered {
             exposure_id: registered,
@@ -142,13 +147,20 @@ pub async fn run_runtime_connection(
     while let Some(frame) = read_frame::<RelayFrame, _>(&mut reader).await? {
         match frame {
             RelayFrame::Request { request } => {
-                let response = proxy_relay_request(&state, &request)
-                    .await
-                    .map_err(|status| TransportError::Protocol(format!("boundary returned {status}")))?;
-                write_frame(&mut write_half, &RelayFrame::Response { response }).await?;
+                let state = state.clone();
+                let writer = writer.clone();
+                tokio::spawn(async move {
+                    if let Ok(response) = proxy_relay_request(&state, &request).await {
+                        let _ = write_frame(
+                            &mut *writer.lock().await,
+                            &RelayFrame::Response { response },
+                        )
+                        .await;
+                    }
+                });
             }
             RelayFrame::Ping { nonce } => {
-                write_frame(&mut write_half, &RelayFrame::Pong { nonce }).await?;
+                write_frame(&mut *writer.lock().await, &RelayFrame::Pong { nonce }).await?;
             }
             _ => {}
         }
