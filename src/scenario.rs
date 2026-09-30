@@ -150,8 +150,7 @@ pub fn complete(
         (None, Vec::new())
     } else {
         let recording = snapshot(store, sources.iter().map(|item| item.id).collect());
-        let replayed =
-            replay(store, session_id, recording.id).map_err(ScenarioError::Replay)?;
+        let replayed = replay(store, session_id, recording.id).map_err(ScenarioError::Replay)?;
         (Some(recording.id), replayed)
     };
 
@@ -182,7 +181,9 @@ pub fn complete(
                 interaction_id: None,
                 assertion_id: None,
                 passed: false,
-                error: Some(format!("no replayed interaction matched operation {operation}")),
+                error: Some(format!(
+                    "no replayed interaction matched operation {operation}"
+                )),
             });
         }
     }
