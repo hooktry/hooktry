@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    agent_surface,
     domain::{ExposureAccess, ExposureMode},
     execution::{ExecutionError, ExecutionEvidence, HttpExecutionProvider, HttpExecutionRequest},
     hosted_identity::{
@@ -218,6 +219,9 @@ impl IntoResponse for HostedApiError {
 pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     let ingress = relay_ingress_app(RelayIngressState::new(state.broker.clone()));
     Router::new()
+        .route("/llms.txt", get(agent_surface::llms_txt))
+        .route("/llms-full.txt", get(agent_surface::llms_full_txt))
+        .route("/skills/ortyo/SKILL.md", get(agent_surface::skill_md))
         .route("/_ortyo/health", get(health))
         .route("/healthz", get(health))
         .route("/_ortyo/bootstrap", post(bootstrap_first_workspace))
