@@ -29,12 +29,10 @@ impl HostedServerConfig {
             .parse()
             .map_err(|_| format!("invalid ORTYO_BIND socket address: {bind}"))?;
 
-        let public_base_url = lookup("ORTYO_PUBLIC_BASE_URL")
-            .unwrap_or_else(|| local_public_base_url(socket));
+        let public_base_url =
+            lookup("ORTYO_PUBLIC_BASE_URL").unwrap_or_else(|| local_public_base_url(socket));
         if !public_base_url.starts_with("http://") && !public_base_url.starts_with("https://") {
-            return Err(
-                "ORTYO_PUBLIC_BASE_URL must start with http:// or https://".to_owned(),
-            );
+            return Err("ORTYO_PUBLIC_BASE_URL must start with http:// or https://".to_owned());
         }
 
         Ok(Self {
