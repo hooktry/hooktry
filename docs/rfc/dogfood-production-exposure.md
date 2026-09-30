@@ -37,7 +37,7 @@ ortyo://secrets/dogfood-runtime-capability
 The proof is opt-in. Set:
 
 - `ORTYO_BOOTSTRAP_WORKSPACE` to the workspace slug
-- `ORTYO_DOGFOOD_EXPOSURE_PORT` to the target port
+- `ORTYO_DOGFOOD_EXPOSURE_PORT` to a target port, or `self` to target the hosted service's own bound port
 - optionally `ORTYO_DOGFOOD_EXPOSURE_NAME`; default is `ortyo-dogfood`
 
 If dogfood is enabled without a bootstrap workspace, startup fails closed.
@@ -52,16 +52,36 @@ Logs contain only the Exposure ID, public URL, target port, and whether the reco
 
 ## Idempotence and readiness
 
-Before provisioning, ORTYO checks the Workspace's durable Exposure records. An existing non-revoked Exposure with the same name and target port is reused.
+Before provisioning, ORTYO checks the Workspace's durable Exposure records. A matching Exposure is reused only when the encrypted `dogfood-runtime-capability` still authorizes that exact Exposure. Stale same-name records and capabilities are revoked before reprovisioning.
 
-A new deployment can begin before its public URL is ready to accept the self-request. DOGFOOD1 therefore performs a bounded readiness retry: at most 20 attempts with 500 ms between attempts. It does not run as an unbounded background monitor.
+A new deployment can begin before its public URL is ready to accept the self-request. Provisioning therefore performs a bounded readiness retry: at most 20 attempts with 500 ms between attempts.
 
-## Scope of this proof
+## DOGFOOD2 data-plane proof
 
-DOGFOOD1 proves the control-plane loop:
+With `ORTYO_DOGFOOD_EXPOSURE_PORT=self`, ORTYO:
+
+1. resolves the captured runtime capability only inside the hosted process
+2. attaches a WebSocket runtime to the same process over a loopback runtime URL
+3. points the runtime target at the hosted process's own bound HTTP port
+4. requests `GET <public exposure>/healthz`
+5. accepts the proof only when the relayed response is the hosted relay health response
+
+The public verification is bounded to 60 attempts with one second between attempts so it can tolerate Render's rolling cutover without becoming a permanent monitor.
+
+The resulting proof is end-to-end:
 
 ```text
-bootstrap -> encrypted SecretRef -> authenticated execution -> durable Exposure
+bootstrap
+  -> encrypted API SecretRef
+  -> authenticated hosted execution
+  -> durable Exposure
+  -> encrypted runtime-capability SecretRef
+  -> WebSocket runtime registration
+  -> public ingress
+  -> relay broker
+  -> runtime proxy
+  -> 127.0.0.1:<hosted-port>/healthz
+  -> relayed 200 response
 ```
 
-It does not by itself prove the relay data plane. The Exposure becomes a working tunnel only when a runtime connects with its captured runtime capability and forwards traffic to the configured target port.
+Neither the API token nor runtime capability is included in startup logs, execution evidence, or readiness logs.
