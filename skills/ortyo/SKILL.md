@@ -97,7 +97,9 @@ An ORTYO execution attempt may end as:
 - `rejected` with a typed policy/request error;
 - `failed` with a typed provider/runtime error.
 
-Use `execution_id` to correlate the attempted action with its Evidence and future approval/audit data. Do not invent resumable, blocked, or workflow states unless the API explicitly exposes them.
+Use `execution_id` to correlate the attempted action with its Evidence and approval/audit data. Hosted execution lifecycle is durable and queryable at `GET /_ortyo/hosted/executions/{execution_id}` with `requests:execute`.
+
+A durable `started` execution means ORTYO has no committed terminal proof. Do not describe it as still running after a disconnect or restart, and do not automatically retry it. `completed` contains the terminal EXEC4 outcome.
 
 ## Safety and sharp edges
 
@@ -106,7 +108,7 @@ Use `execution_id` to correlate the attempted action with its Evidence and futur
 - Do not follow redirects around ORTYO destination policy.
 - Do not replace `observed_sequence` with UUIDv7 ordering for deterministic event order.
 - Do not bypass ORTYO by talking directly to a compute provider when the task is about an ORTYO Boundary.
-- Do not assume persistence/query APIs exist for ExecutionRecord merely because the lifecycle envelope exists.
+- Do not treat a durable `started` execution as permission to retry a possibly side-effecting action.
 - Do not give an ordinary agent credential `requests:approve` merely to simplify automation; keep approve and execute separable unless the operator intentionally combines them.
 
 ## Discovery
