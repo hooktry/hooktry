@@ -4,6 +4,18 @@ use uuid::Uuid;
 pub enum Command {
     Serve,
     Interactions,
+    Expose {
+        name: String,
+        port: u16,
+        verify: bool,
+    },
+    Exposures,
+    ExposureGet {
+        id: Uuid,
+    },
+    ExposureRevoke {
+        id: Uuid,
+    },
     Mcp,
     Assert {
         contract_id: Uuid,
@@ -39,6 +51,34 @@ impl Cli {
         let command = match remaining.as_slice() {
             [command] if command == "serve" => Command::Serve,
             [command] if command == "interactions" => Command::Interactions,
+            [command] if command == "exposures" => Command::Exposures,
+            [command, id] if command == "exposure-get" => Command::ExposureGet {
+                id: id
+                    .parse()
+                    .map_err(|_| "exposure-get requires a valid UUID".to_owned())?,
+            },
+            [command, id] if command == "exposure-revoke" => Command::ExposureRevoke {
+                id: id
+                    .parse()
+                    .map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
+            },
+            [command, port] if command == "expose" => Command::Expose {
+                name: "web".to_owned(),
+                port: parse_port(port)?,
+                verify: true,
+            },
+            [command, port, name] if command == "expose" => Command::Expose {
+                name: name.clone(),
+                port: parse_port(port)?,
+                verify: true,
+            },
+            [command, port, name, flag] if command == "expose" && flag == "--no-verify" => {
+                Command::Expose {
+                    name: name.clone(),
+                    port: parse_port(port)?,
+                    verify: false,
+                }
+            }
             [command] if command == "mcp" => Command::Mcp,
             [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
                 contract_id: contract_id
@@ -56,7 +96,15 @@ impl Cli {
     }
 }
 
+fn parse_port(value: &str) -> Result<u16, String> {
+    value
+        .parse::<u16>()
+        .ok()
+        .filter(|port| *port > 0)
+        .ok_or_else(|| "expose requires a valid non-zero port".to_owned())
+}
+
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|mcp|interactions|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }

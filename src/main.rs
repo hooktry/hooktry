@@ -17,6 +17,14 @@ async fn main() {
     let result = match cli.command {
         Command::Serve => serve().await,
         Command::Interactions => get_json(&format!("{}/_ortyo/interactions", cli.base_url)).await,
+        Command::Exposures => get_json(&format!("{}/_ortyo/exposures", cli.base_url)).await,
+        Command::ExposureGet { id } => {
+            get_json(&format!("{}/_ortyo/exposures/{id}", cli.base_url)).await
+        }
+        Command::ExposureRevoke { id } => {
+            delete_json(&format!("{}/_ortyo/exposures/{id}", cli.base_url)).await
+        }
+        Command::Expose { name, port, verify } => expose(&cli.base_url, &name, port, verify).await,
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await,
         Command::Assert {
             contract_id,
@@ -55,6 +63,65 @@ async fn serve() -> Result<(), String> {
 
 async fn get_json(url: &str) -> Result<(), String> {
     emit_response(reqwest::get(url).await.map_err(|error| error.to_string())?).await
+}
+
+async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(), String> {
+    let response = reqwest::Client::new()
+        .post(format!("{base_url}/_ortyo/exposures"))
+        .json(&serde_json::json!({
+            "name": name,
+            "port": port,
+            "mode": "forward",
+            "access": "private"
+        }))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    let status = response.status();
+    let exposure: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|error| format!("invalid exposure response: {error}"))?;
+    if !status.is_success() {
+        return Err(format!("HTTP {status}: {exposure}"));
+    }
+
+    let url = exposure["url"]
+        .as_str()
+        .ok_or_else(|| "exposure response is missing url".to_owned())?;
+    let verified = if verify {
+        reqwest::get(format!("{url}/_ortyo_verify"))
+            .await
+            .map(|response| response.status().is_success())
+            .unwrap_or(false)
+    } else {
+        false
+    };
+
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "exposure_id": exposure["id"],
+            "name": exposure["name"],
+            "url": url,
+            "access": exposure["access"],
+            "mode": exposure["mode"],
+            "target_port": port,
+            "verified": verified
+        }))
+        .map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+async fn delete_json(url: &str) -> Result<(), String> {
+    let response = reqwest::Client::new()
+        .delete(url)
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+    emit_response(response).await
 }
 
 async fn post_json(url: &str) -> Result<(), String> {
