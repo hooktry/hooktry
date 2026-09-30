@@ -5,7 +5,7 @@ use axum::{
     body::{Body, Bytes},
     extract::{OriginalUri, Path, State},
     http::{
-        HeaderMap, Method, StatusCode,
+        HeaderMap, HeaderName, HeaderValue, Method, StatusCode,
         header::{CONNECTION, CONTENT_LENGTH, HOST, TRANSFER_ENCODING},
     },
     response::{IntoResponse, Response},
@@ -17,8 +17,12 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    domain::{Direction, Exposure, Interaction, Origin, Protocol, Recording, Session},
-    exposure::{ExposureError, ExposureService},
+    domain::{
+        Direction, Exposure, ExposureAccess, ExposureMode, ExposureTarget, Interaction, Origin,
+        Protocol, Recording, Session,
+    },
+    exposure::{CreateExposure, ExposureError, ExposureService},
+    relay::{RelayRequest, RelayResponse},
     store::InteractionStore,
 };
 
@@ -48,6 +52,23 @@ impl Default for AppState {
 struct CreateExposureRequest {
     name: String,
     port: u16,
+    mode: Option<ExposureMode>,
+    access: Option<ExposureAccess>,
+}
+
+struct ForwardHttpRequest {
+    method: Method,
+    path: String,
+    query: Option<String>,
+    headers: HeaderMap,
+    body: Bytes,
+    relay_request_id: Option<Uuid>,
+}
+
+struct ProxiedHttpResponse {
+    status: StatusCode,
+    headers: HeaderMap,
+    body: Bytes,
 }
 
 pub fn app(state: AppState) -> Router {
@@ -149,9 +170,19 @@ async fn create_exposure(
     State(state): State<AppState>,
     Json(request): Json<CreateExposureRequest>,
 ) -> Result<(StatusCode, Json<Exposure>), StatusCode> {
+    let create = CreateExposure {
+        name: request.name,
+        target: ExposureTarget {
+            host: "127.0.0.1".to_owned(),
+            port: request.port,
+        },
+        mode: request.mode.unwrap_or(ExposureMode::Forward),
+        access: request.access.unwrap_or(ExposureAccess::Private),
+    };
+
     state
         .exposures
-        .create(state.session.id, request.name, request.port)
+        .create_with(state.session.id, create)
         .map(|exposure| (StatusCode::CREATED, Json(exposure)))
         .map_err(exposure_error_status)
 }
@@ -191,26 +222,95 @@ async fn proxy_exposure(
     body: Bytes,
 ) -> Result<Response, StatusCode> {
     let exposure = state.exposures.active(id).map_err(exposure_error_status)?;
+    let proxied = forward_and_record(
+        &state,
+        &exposure,
+        ForwardHttpRequest {
+            method,
+            path: format!("/{path}"),
+            query: uri.query().map(ToOwned::to_owned),
+            headers,
+            body,
+            relay_request_id: None,
+        },
+    )
+    .await?;
 
+    build_response(proxied)
+}
+
+pub async fn proxy_relay_request(
+    state: &AppState,
+    request: &RelayRequest,
+) -> Result<RelayResponse, StatusCode> {
+    let exposure = state
+        .exposures
+        .active(request.exposure_id)
+        .map_err(exposure_error_status)?;
+    if exposure.mode != ExposureMode::Relay {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    let method =
+        Method::from_bytes(request.method.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let mut headers = HeaderMap::new();
+    for (name, value) in &request.headers {
+        let name = HeaderName::from_bytes(name.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST)?;
+        let value = HeaderValue::from_str(value).map_err(|_| StatusCode::BAD_REQUEST)?;
+        headers.append(name, value);
+    }
+
+    let path = if request.path.starts_with('/') {
+        request.path.clone()
+    } else {
+        format!("/{}", request.path)
+    };
+
+    let proxied = forward_and_record(
+        state,
+        &exposure,
+        ForwardHttpRequest {
+            method,
+            path,
+            query: request.query.clone(),
+            headers,
+            body: Bytes::from(request.body.clone()),
+            relay_request_id: Some(request.id),
+        },
+    )
+    .await?;
+
+    Ok(RelayResponse {
+        request_id: request.id,
+        status: proxied.status.as_u16(),
+        headers: headers_to_pairs(&proxied.headers),
+        body: proxied.body.to_vec(),
+    })
+}
+
+async fn forward_and_record(
+    state: &AppState,
+    exposure: &Exposure,
+    request: ForwardHttpRequest,
+) -> Result<ProxiedHttpResponse, StatusCode> {
     let started = Instant::now();
     let started_at = Utc::now();
-    let target_path = format!("/{path}");
-    let target_url = match uri.query() {
+    let target_url = match request.query.as_deref() {
         Some(query) => format!(
             "http://{}:{}{}?{}",
-            exposure.target.host, exposure.target.port, target_path, query
+            exposure.target.host, exposure.target.port, request.path, query
         ),
         None => format!(
             "http://{}:{}{}",
-            exposure.target.host, exposure.target.port, target_path
+            exposure.target.host, exposure.target.port, request.path
         ),
     };
 
     let mut outgoing = state
         .client
-        .request(method.clone(), &target_url)
-        .body(body.clone());
-    for (name, value) in &headers {
+        .request(request.method.clone(), &target_url)
+        .body(request.body.clone());
+    for (name, value) in &request.headers {
         if name != HOST && name != CONTENT_LENGTH && name != CONNECTION && name != TRANSFER_ENCODING
         {
             outgoing = outgoing.header(name, value);
@@ -231,16 +331,17 @@ async fn proxy_exposure(
         protocol: Protocol::Http,
         direction: Direction::Inbound,
         origin: Origin::Proxied,
-        operation: format!("{} {}", method, target_path),
+        operation: format!("{} {}", request.method, request.path),
         started_at,
         duration_ms: started.elapsed().as_millis() as u64,
         request: json!({
-            "exposure_id": id,
-            "method": method.as_str(),
-            "path": target_path,
-            "query": uri.query(),
-            "headers": headers_to_json(&headers),
-            "body": String::from_utf8_lossy(&body)
+            "exposure_id": exposure.id,
+            "relay_request_id": request.relay_request_id,
+            "method": request.method.as_str(),
+            "path": request.path,
+            "query": request.query,
+            "headers": headers_to_json(&request.headers),
+            "body": String::from_utf8_lossy(&request.body)
         }),
         response: json!({
             "status": status.as_u16(),
@@ -250,15 +351,23 @@ async fn proxy_exposure(
         source_interaction_id: None,
     });
 
-    let mut response = Response::builder().status(status);
-    for (name, value) in &response_headers {
+    Ok(ProxiedHttpResponse {
+        status,
+        headers: response_headers,
+        body: response_body,
+    })
+}
+
+fn build_response(proxied: ProxiedHttpResponse) -> Result<Response, StatusCode> {
+    let mut response = Response::builder().status(proxied.status);
+    for (name, value) in &proxied.headers {
         if name != CONTENT_LENGTH && name != CONNECTION && name != TRANSFER_ENCODING {
             response = response.header(name, value);
         }
     }
 
     response
-        .body(Body::from(response_body))
+        .body(Body::from(proxied.body))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
@@ -271,6 +380,18 @@ fn exposure_error_status(error: ExposureError) -> StatusCode {
         ExposureError::Inactive => StatusCode::GONE,
         ExposureError::Provider(_) => StatusCode::BAD_GATEWAY,
     }
+}
+
+fn headers_to_pairs(headers: &HeaderMap) -> Vec<(String, String)> {
+    headers
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.to_string(),
+                value.to_str().unwrap_or("<binary>").to_owned(),
+            )
+        })
+        .collect()
 }
 
 fn headers_to_json(headers: &HeaderMap) -> Value {
