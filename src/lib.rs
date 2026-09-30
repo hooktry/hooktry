@@ -4,6 +4,7 @@ pub mod domain;
 pub mod exposure;
 pub mod http;
 pub mod mcp;
+pub mod recording;
 pub mod relay;
 pub mod relay_auth;
 pub mod relay_ingress;
