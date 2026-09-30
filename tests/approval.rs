@@ -111,8 +111,15 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
         "https://api.example.com/v1/run?token=query-secret",
         "different-body",
     );
+    let execution_id = Uuid::now_v7();
     assert_eq!(
-        store.consume(workspace_id, created.approval_id, executor_id, &changed),
+        store.consume(
+            workspace_id,
+            created.approval_id,
+            executor_id,
+            execution_id,
+            &changed
+        ),
         Err(ApprovalError::RequestMismatch)
     );
     assert_eq!(
@@ -125,13 +132,26 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     );
 
     let consumed = store
-        .consume(workspace_id, created.approval_id, executor_id, &request)
+        .consume(
+            workspace_id,
+            created.approval_id,
+            executor_id,
+            execution_id,
+            &request,
+        )
         .unwrap();
     assert_eq!(consumed.state, ApprovalState::Consumed);
     assert_eq!(consumed.consumed_by_credential_id, Some(executor_id));
+    assert_eq!(consumed.execution_id, Some(execution_id));
 
     assert_eq!(
-        store.consume(workspace_id, created.approval_id, executor_id, &request),
+        store.consume(
+            workspace_id,
+            created.approval_id,
+            executor_id,
+            Uuid::now_v7(),
+            &request
+        ),
         Err(ApprovalError::Consumed)
     );
 
@@ -185,7 +205,13 @@ fn denied_and_cross_workspace_approvals_fail_closed() {
     assert_eq!(denied.state, ApprovalState::Denied);
 
     assert_eq!(
-        store.consume(workspace_id, approval.approval_id, Uuid::now_v7(), &request),
+        store.consume(
+            workspace_id,
+            approval.approval_id,
+            Uuid::now_v7(),
+            Uuid::now_v7(),
+            &request
+        ),
         Err(ApprovalError::Denied)
     );
     assert_eq!(
