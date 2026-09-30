@@ -226,7 +226,7 @@ pub struct ScenarioRun {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioCheckOutcome {
     pub contract_id: Uuid,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "InteractionCardinality::is_default")]
     pub cardinality: InteractionCardinality,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub candidate_interaction_ids: Vec<Uuid>,
