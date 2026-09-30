@@ -42,6 +42,10 @@ impl InteractionStore {
             );
             CREATE INDEX IF NOT EXISTS interactions_session_started
                 ON interactions(session_id, started_at);
+            CREATE TABLE IF NOT EXISTS interaction_order (
+                sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                interaction_id TEXT UNIQUE NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS recordings (
                 id TEXT PRIMARY KEY,
                 created_at TEXT NOT NULL,
@@ -80,6 +84,16 @@ impl InteractionStore {
             CREATE INDEX IF NOT EXISTS scenario_outcomes_scenario
                 ON scenario_outcomes(scenario_id);",
         )?;
+        connection.execute(
+            "INSERT INTO interaction_order (interaction_id)
+             SELECT interactions.id
+             FROM interactions
+             LEFT JOIN interaction_order
+               ON interaction_order.interaction_id = interactions.id
+             WHERE interaction_order.interaction_id IS NULL
+             ORDER BY interactions.rowid",
+            [],
+        )?;
 
         let (interaction_revision, _) = watch::channel(0);
         Ok(Self {
@@ -90,20 +104,29 @@ impl InteractionStore {
 
     pub fn record(&self, interaction: Interaction) {
         let payload = serde_json::to_string(&interaction).expect("serialize interaction");
-        self.connection
-            .lock()
-            .expect("interaction store poisoned")
+        let interaction_id = interaction.id.to_string();
+        let mut connection = self.connection.lock().expect("interaction store poisoned");
+        let transaction = connection.transaction().expect("begin interaction transaction");
+        transaction
             .execute(
                 "INSERT INTO interactions (id, session_id, started_at, payload)
                  VALUES (?1, ?2, ?3, ?4)",
                 params![
-                    interaction.id.to_string(),
+                    interaction_id,
                     interaction.session_id.to_string(),
                     interaction.started_at.to_rfc3339(),
                     payload
                 ],
             )
             .expect("persist interaction");
+        transaction
+            .execute(
+                "INSERT INTO interaction_order (interaction_id) VALUES (?1)",
+                [interaction.id.to_string()],
+            )
+            .expect("persist interaction order");
+        transaction.commit().expect("commit interaction transaction");
+        drop(connection);
 
         let revision = *self.interaction_revision.borrow();
         self.interaction_revision
@@ -286,6 +309,27 @@ impl InteractionStore {
             )
             .ok()
             .map(|payload| serde_json::from_str(&payload).expect("deserialize scenario outcome"))
+    }
+
+    pub fn all_recorded(&self) -> Vec<Interaction> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        let mut statement = connection
+            .prepare(
+                "SELECT interactions.payload
+                 FROM interaction_order
+                 JOIN interactions ON interactions.id = interaction_order.interaction_id
+                 ORDER BY interaction_order.sequence",
+            )
+            .expect("prepare interaction persistence-order query");
+
+        statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("query interactions in persistence order")
+            .map(|payload| {
+                serde_json::from_str(&payload.expect("read interaction payload"))
+                    .expect("deserialize interaction")
+            })
+            .collect()
     }
 
     pub fn all(&self) -> Vec<Interaction> {
