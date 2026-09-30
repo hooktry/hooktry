@@ -1,8 +1,6 @@
 use chrono::Utc;
 use ortyo::{
-    domain::{
-        ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState,
-    },
+    domain::{ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState},
     scenario_run::{environment, exit_code, report},
 };
 use uuid::Uuid;
