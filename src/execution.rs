@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeMap,
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -251,9 +251,11 @@ impl HttpExecutionProvider {
         if !matches!(url.scheme(), "http" | "https") {
             return Err(ExecutionError::InvalidRequest);
         }
-        if enforce_public_destination {
-            validate_public_destination(&url).await?;
-        }
+        let client = if enforce_public_destination {
+            client_for_public_destination(&url).await?
+        } else {
+            self.client.clone()
+        };
         let request_origin = url.origin().ascii_serialization();
 
         let body = request
@@ -272,8 +274,7 @@ impl HttpExecutionProvider {
             return Err(ExecutionError::InvalidRequest);
         }
 
-        let mut builder = self
-            .client
+        let mut builder = client
             .request(method, url)
             .timeout(Duration::from_millis(request.timeout_ms));
         for (name, value) in request.headers {
@@ -435,25 +436,57 @@ fn secret_name_from_ref(secret_ref: &str) -> Result<&str, ExecutionError> {
     Ok(name)
 }
 
-async fn validate_public_destination(url: &Url) -> Result<(), ExecutionError> {
+async fn client_for_public_destination(url: &Url) -> Result<reqwest::Client, ExecutionError> {
     if url.scheme() != "https" && url.scheme() != "http" {
         return Err(ExecutionError::InvalidRequest);
     }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(ExecutionError::InvalidRequest);
+    }
+
     let host = url.host_str().ok_or(ExecutionError::InvalidRequest)?;
     if host.eq_ignore_ascii_case("localhost") || host.ends_with(".localhost") {
         return Err(ExecutionError::UnsafeDestination);
     }
+
     let port = url
         .port_or_known_default()
         .ok_or(ExecutionError::InvalidRequest)?;
-    let addresses = lookup_host((host, port))
-        .await
-        .map_err(|_| ExecutionError::RequestFailed)?
-        .collect::<Vec<_>>();
+
+    let addresses = if let Ok(ip) = host.parse::<IpAddr>() {
+        vec![SocketAddr::new(ip, port)]
+    } else {
+        lookup_host((host, port))
+            .await
+            .map_err(|_| ExecutionError::RequestFailed)?
+            .collect::<Vec<_>>()
+    };
+
+    validate_public_addresses(&addresses)?;
+
+    if host.parse::<IpAddr>().is_ok() {
+        return reqwest::Client::builder()
+            .redirect(Policy::none())
+            .build()
+            .map_err(|_| ExecutionError::RequestFailed);
+    }
+
+    pinned_client(host, &addresses)
+}
+
+fn validate_public_addresses(addresses: &[SocketAddr]) -> Result<(), ExecutionError> {
     if addresses.is_empty() || addresses.iter().any(|address| !is_public_ip(address.ip())) {
         return Err(ExecutionError::UnsafeDestination);
     }
     Ok(())
+}
+
+fn pinned_client(host: &str, addresses: &[SocketAddr]) -> Result<reqwest::Client, ExecutionError> {
+    reqwest::Client::builder()
+        .redirect(Policy::none())
+        .resolve_to_addrs(host, addresses)
+        .build()
+        .map_err(|_| ExecutionError::RequestFailed)
 }
 
 fn is_public_ip(ip: IpAddr) -> bool {
@@ -471,6 +504,9 @@ fn is_public_ip(ip: IpAddr) -> bool {
                 || ip.octets()[0] == 169 && ip.octets()[1] == 254)
         }
         IpAddr::V6(ip) => {
+            if let Some(ipv4) = ip.to_ipv4_mapped() {
+                return is_public_ip(IpAddr::V4(ipv4));
+            }
             !(ip.is_loopback()
                 || ip.is_unspecified()
                 || ip.is_multicast()
@@ -530,4 +566,61 @@ fn unix_time_ms() -> u64 {
 
 fn default_timeout_ms() -> u64 {
     10_000
+}
+
+#[cfg(test)]
+mod destination_tests {
+    use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+
+    use axum::{Router, routing::get};
+    use tokio::net::TcpListener;
+
+    use super::{ExecutionError, is_public_ip, pinned_client, validate_public_addresses};
+
+    #[test]
+    fn rejects_mixed_public_and_private_resolution() {
+        let addresses = [
+            "8.8.8.8:443".parse::<SocketAddr>().unwrap(),
+            "127.0.0.1:443".parse::<SocketAddr>().unwrap(),
+        ];
+
+        assert_eq!(
+            validate_public_addresses(&addresses),
+            Err(ExecutionError::UnsafeDestination)
+        );
+    }
+
+    #[test]
+    fn ipv4_mapped_ipv6_uses_ipv4_safety_rules() {
+        let loopback = Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 0x0001);
+        let private = Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0a00, 0x0001);
+        let public = Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0808, 0x0808);
+
+        assert!(!is_public_ip(IpAddr::V6(loopback)));
+        assert!(!is_public_ip(IpAddr::V6(private)));
+        assert!(is_public_ip(IpAddr::V6(public)));
+    }
+
+    #[tokio::test]
+    async fn pinned_client_uses_the_validated_address_without_dns_lookup() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                Router::new().route("/", get(|| async { "pinned" })),
+            )
+            .await
+            .unwrap();
+        });
+
+        let client = pinned_client("rebinding.invalid", &[address]).unwrap();
+        let response = client
+            .get(format!("http://rebinding.invalid:{}/", address.port()))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.text().await.unwrap(), "pinned");
+    }
 }
