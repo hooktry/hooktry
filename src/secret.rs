@@ -237,10 +237,10 @@ impl SecretStore {
         let secret = self
             .find(workspace_id, name)?
             .ok_or(SecretError::NotFound)?;
-        if let Some(allowed_origin) = secret.reference.allowed_origin.as_deref() {
-            if allowed_origin != destination_origin {
-                return Err(SecretError::DestinationDenied);
-            }
+        if let Some(allowed_origin) = secret.reference.allowed_origin.as_deref()
+            && allowed_origin != destination_origin
+        {
+            return Err(SecretError::DestinationDenied);
         }
         self.decrypt_secret(workspace_id, name, &secret)
     }
