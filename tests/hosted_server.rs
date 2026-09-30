@@ -1,3 +1,5 @@
+mod common;
+
 use ortyo::{
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_server::HostedServerConfig,
@@ -112,10 +114,13 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
         .await
         .unwrap();
     assert_eq!(unauthorized.status(), reqwest::StatusCode::UNAUTHORIZED);
+    let unauthorized_body: serde_json::Value = unauthorized.json().await.unwrap();
+    assert_eq!(unauthorized_body["error"]["code"], "unauthorized");
 
+    let credential = common::issue_full_access_token(&format!("http://{addr}")).await;
     let provision: ProvisionedExposure = client
         .post(format!("http://{addr}/_ortyo/hosted/exposures"))
-        .bearer_auth("test-control-token")
+        .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "app",
             "target_port": 3000
