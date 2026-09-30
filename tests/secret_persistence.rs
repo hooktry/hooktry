@@ -72,3 +72,54 @@ fn overwrite_rotates_ciphertext_and_reference() {
 
     let _ = fs::remove_file(path);
 }
+
+
+#[test]
+fn bound_secret_origin_survives_restart_and_fails_closed_elsewhere() {
+    let path = std::env::temp_dir().join(format!("ortyo-secret-bound-{}.db", Uuid::now_v7()));
+    let workspace = Uuid::now_v7();
+    let store = SecretStore::open(&path, [53u8; 32]).unwrap();
+
+    let reference = store
+        .put_bound(
+            workspace,
+            "provider-token",
+            "hidden-value",
+            "https://api.example.com/v1/token",
+        )
+        .unwrap();
+    assert_eq!(
+        reference.allowed_origin.as_deref(),
+        Some("https://api.example.com")
+    );
+    assert_eq!(
+        store
+            .resolve_for_origin(workspace, "provider-token", "https://api.example.com/other")
+            .unwrap(),
+        "hidden-value"
+    );
+    assert_eq!(
+        store.resolve_for_origin(
+            workspace,
+            "provider-token",
+            "https://other.example.com"
+        ),
+        Err(SecretError::DestinationDenied)
+    );
+
+    drop(store);
+    let reopened = SecretStore::open(&path, [53u8; 32]).unwrap();
+    let reopened_ref = reopened.get_ref(workspace, "provider-token").unwrap();
+    assert_eq!(
+        reopened_ref.allowed_origin.as_deref(),
+        Some("https://api.example.com")
+    );
+    assert_eq!(
+        reopened
+            .resolve_for_origin(workspace, "provider-token", "https://api.example.com")
+            .unwrap(),
+        "hidden-value"
+    );
+
+    let _ = fs::remove_file(path);
+}
