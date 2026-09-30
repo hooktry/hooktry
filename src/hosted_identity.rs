@@ -321,6 +321,60 @@ impl HostedIdentityStore {
         Ok((workspace, issued))
     }
 
+    pub fn find_workspace_by_slug(&self, slug: &str) -> Result<Option<Workspace>, IdentityError> {
+        let slug = normalize_slug(slug)?;
+        match &self.backend {
+            IdentityBackend::Memory(inner) => {
+                let inner = inner.read().expect("identity store poisoned");
+                Ok(inner
+                    .slugs
+                    .get(&slug)
+                    .and_then(|id| inner.workspaces.get(id))
+                    .cloned())
+            }
+            IdentityBackend::Sqlite(connection) => connection
+                .lock()
+                .expect("identity store poisoned")
+                .query_row(
+                    "SELECT id, status FROM hosted_workspaces WHERE slug = ?1",
+                    params![slug],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .optional()
+                .map_err(|error| IdentityError::Storage(error.to_string()))?
+                .map(|(id, status)| {
+                    Ok(Workspace {
+                        id: id.parse().map_err(|error| {
+                            IdentityError::Storage(format!("invalid workspace id: {error}"))
+                        })?,
+                        slug,
+                        status: parse_workspace_status(&status)?,
+                    })
+                })
+                .transpose(),
+            IdentityBackend::Postgres(client) => {
+                let row = client
+                    .lock()
+                    .expect("identity store poisoned")
+                    .query_opt(
+                        "SELECT id, status FROM hosted_workspaces WHERE slug = $1",
+                        &[&slug],
+                    )
+                    .map_err(|error| IdentityError::Storage(error.to_string()))?;
+                row.map(|row| {
+                    Ok(Workspace {
+                        id: row.get::<_, String>(0).parse().map_err(|error| {
+                            IdentityError::Storage(format!("invalid workspace id: {error}"))
+                        })?,
+                        slug,
+                        status: parse_workspace_status(row.get::<_, String>(1).as_str())?,
+                    })
+                })
+                .transpose()
+            }
+        }
+    }
+
     pub async fn create_workspace_async(&self, slug: String) -> Result<Workspace, IdentityError> {
         let store = self.clone();
         tokio::task::spawn_blocking(move || store.create_workspace(&slug))
