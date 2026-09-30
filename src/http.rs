@@ -21,9 +21,8 @@ use crate::{
     contract::assert_interaction,
     domain::{
         AssertionResult, Contract, CorrelationContext, Direction, Exposure, ExposureAccess,
-        ExposureMode,
-        ExposureTarget, Interaction, Origin, Protocol, Recording, Scenario, ScenarioOutcome,
-        ScenarioRun, Session,
+        ExposureMode, ExposureTarget, Interaction, Origin, Protocol, Recording, Scenario,
+        ScenarioOutcome, ScenarioRun, Session,
     },
     exposure::{CreateExposure, ExposureError, ExposureService},
     hosted::ProvisionedExposure,
