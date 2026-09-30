@@ -346,9 +346,9 @@ impl HostedIdentityStore {
                 .map_err(|error| IdentityError::Storage(error.to_string()))?
                 .map(|(id, status)| {
                     Ok(Workspace {
-                        id: id
-                            .parse()
-                            .map_err(|error| IdentityError::Storage(format!("invalid workspace id: {error}")))?,
+                        id: id.parse().map_err(|error| {
+                            IdentityError::Storage(format!("invalid workspace id: {error}"))
+                        })?,
                         slug,
                         status: parse_workspace_status(&status)?,
                     })
@@ -365,10 +365,9 @@ impl HostedIdentityStore {
                     .map_err(|error| IdentityError::Storage(error.to_string()))?;
                 row.map(|row| {
                     Ok(Workspace {
-                        id: row
-                            .get::<_, String>(0)
-                            .parse()
-                            .map_err(|error| IdentityError::Storage(format!("invalid workspace id: {error}")))?,
+                        id: row.get::<_, String>(0).parse().map_err(|error| {
+                            IdentityError::Storage(format!("invalid workspace id: {error}"))
+                        })?,
                         slug,
                         status: parse_workspace_status(row.get::<_, String>(1).as_str())?,
                     })
