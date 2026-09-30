@@ -10,7 +10,7 @@ axum = { version = "0.8", features = ["ws"] }
 chrono = { version = "0.4", features = ["serde"] }
 futures-util = "0.3"
 postgres = "0.19"
-rand = "0.9"
+rand = "0.10"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 ring = "0.17"
 rusqlite = { version = "0.37", features = ["bundled"] }

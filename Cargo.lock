@@ -871,7 +871,7 @@ dependencies = [
  "futures-util",
  "http-body-util",
  "postgres",
- "rand 0.9.5",
+ "rand 0.10.3",
  "reqwest",
  "ring",
  "rusqlite",
