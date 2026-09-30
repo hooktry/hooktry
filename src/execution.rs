@@ -174,16 +174,6 @@ impl HttpExecutionProvider {
         .await
     }
 
-    pub(crate) async fn execute_recorded_with_id(
-        &self,
-        workspace_id: Uuid,
-        request: HttpExecutionRequest,
-        execution_id: Uuid,
-    ) -> ExecutionRecord {
-        self.execute_recorded_inner_with_id(workspace_id, request, true, execution_id)
-            .await
-    }
-
     pub(crate) async fn execute_recorded_with_envelope(
         &self,
         workspace_id: Uuid,
