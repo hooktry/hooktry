@@ -80,10 +80,10 @@ impl HostedExposureStore {
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 params![
                     record.exposure_id.to_string(),
-                    record.name,
+                    &record.name,
                     i64::from(record.target_port),
-                    record.public_url,
-                    record.runtime_url,
+                    &record.public_url,
+                    &record.runtime_url,
                     i64::try_from(record.capability_expires_at_unix_seconds)
                         .map_err(|error| HostedStateError::InvalidRecord(error.to_string()))?,
                     record.revoked
