@@ -1,6 +1,8 @@
 use ortyo::{
     cli::{Cli, Command, usage},
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
+    hosted::ProvisionedExposure,
+    hosted_runtime::HostedRuntimeStatus,
     hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
@@ -38,8 +40,17 @@ async fn main() {
                 .await
                 .map(|_| 0)
         }
-        Command::Expose { name, port, verify } => {
-            expose(&cli.base_url, &name, port, verify).await.map(|_| 0)
+        Command::Expose {
+            name,
+            port,
+            verify,
+            public,
+        } => {
+            if public {
+                expose_public(&cli.base_url, &name, port).await.map(|_| 0)
+            } else {
+                expose(&cli.base_url, &name, port, verify).await.map(|_| 0)
+            }
         }
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
@@ -149,6 +160,45 @@ async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(
         .map_err(|error| error.to_string())?
     );
     Ok(())
+}
+
+async fn expose_public(base_url: &str, name: &str, port: u16) -> Result<(), String> {
+    let hosted_url = std::env::var("ORTYO_HOSTED_URL")
+        .unwrap_or_else(|_| "https://ortyo.onrender.com".to_owned())
+        .trim_end_matches('/')
+        .to_owned();
+    let control_token = std::env::var("ORTYO_CONTROL_TOKEN")
+        .ok()
+        .filter(|token| !token.trim().is_empty())
+        .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required for --public".to_owned())?;
+
+    let provision_response = reqwest::Client::new()
+        .post(format!("{hosted_url}/_ortyo/hosted/exposures"))
+        .bearer_auth(control_token)
+        .json(&serde_json::json!({
+            "name": name,
+            "target_port": port
+        }))
+        .send()
+        .await
+        .map_err(|error| format!("provision hosted exposure: {error}"))?;
+    let provision_value = response_value(provision_response).await?;
+    let provision: ProvisionedExposure = serde_json::from_value(provision_value)
+        .map_err(|error| format!("invalid hosted provisioning response: {error}"))?;
+
+    let attach_response = reqwest::Client::new()
+        .post(format!("{base_url}/_ortyo/hosted-runtimes"))
+        .json(&provision)
+        .send()
+        .await
+        .map_err(|error| format!("attach hosted runtime to local daemon: {error}"))?;
+    let status_value = response_value(attach_response).await?;
+    let status: HostedRuntimeStatus = serde_json::from_value(status_value)
+        .map_err(|error| format!("invalid hosted runtime response: {error}"))?;
+
+    let value = serde_json::to_value(status)
+        .map_err(|error| format!("serialize hosted runtime status: {error}"))?;
+    print_json(&value)
 }
 
 fn load_scenario_manifest(path: &str) -> Result<CreateScenario, String> {
