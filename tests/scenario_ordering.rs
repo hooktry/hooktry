@@ -23,7 +23,7 @@ async fn declared_order_passes_when_matching_interactions_follow_manifest_order(
 
     let order = outcome.order.unwrap();
     assert!(order.passed);
-    assert_eq!(order.observed_interaction_ids.len(), 2);
+    assert_eq!(order.observed_source_interaction_ids.len(), 2);
     assert!(order.violations.is_empty());
 }
 
@@ -42,7 +42,7 @@ async fn declared_order_fails_when_contracts_pass_but_evidence_arrives_reversed(
 
     let order = outcome.order.unwrap();
     assert!(!order.passed);
-    assert_eq!(order.observed_interaction_ids.len(), 2);
+    assert_eq!(order.observed_source_interaction_ids.len(), 2);
     assert_eq!(order.violations.len(), 1);
 
     let violation = &order.violations[0];
@@ -55,12 +55,12 @@ async fn declared_order_fails_when_contracts_pass_but_evidence_arrives_reversed(
         outcome.checks[1].contract_id
     );
     assert_eq!(
-        violation.expected_after_interaction_id,
-        order.observed_interaction_ids[0]
+        violation.expected_after_source_interaction_id,
+        order.observed_source_interaction_ids[0]
     );
     assert_eq!(
-        violation.expected_before_interaction_id,
-        order.observed_interaction_ids[1]
+        violation.expected_before_source_interaction_id,
+        order.observed_source_interaction_ids[1]
     );
 }
 
