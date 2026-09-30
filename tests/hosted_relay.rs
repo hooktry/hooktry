@@ -93,7 +93,10 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
         )
         .unwrap();
 
-    let runtime_stream = TcpStream::connect(&provision.relay_addr).await.unwrap();
+    let runtime_stream =
+        TcpStream::connect(provision.relay_addr.as_deref().expect("TCP relay address"))
+            .await
+            .unwrap();
     let runtime_state_for_task = runtime_state.clone();
     let exposure_id = provision.exposure_id;
     let capability = provision.runtime_capability.clone();

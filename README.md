@@ -33,6 +33,18 @@ ortyo --base-url http://127.0.0.1:7777 interactions
 
 Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling. `ortyo expose 3000` creates a private local exposure and returns `exposure_id`, `url`, `access`, `mode`, `target_port`, and a fail-closed `verified` result.
 
+### Hosted relay
+
+Run provisioning, public ingress, and the authenticated WebSocket runtime tunnel on one HTTP listener:
+
+```sh
+ORTYO_BIND=0.0.0.0:8080 \
+ORTYO_PUBLIC_BASE_URL=https://relay.example \
+ortyo hosted
+```
+
+Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`.
+
 ### MCP
 
 `ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, and create/assert Contracts without bypassing ORTYO's HTTP boundary.
