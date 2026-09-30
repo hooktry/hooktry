@@ -43,10 +43,7 @@ fn deletion_is_workspace_scoped_and_idempotent() {
         store.resolve(owner, "shared-name"),
         Err(SecretError::NotFound)
     );
-    assert_eq!(
-        store.resolve(other, "shared-name").unwrap(),
-        "other-value"
-    );
+    assert_eq!(store.resolve(other, "shared-name").unwrap(), "other-value");
 }
 
 #[test]
@@ -63,7 +60,11 @@ fn metadata_listing_is_workspace_scoped_sorted_and_non_secret() {
     assert_eq!(metadata.len(), 2);
     assert_eq!(metadata[0].reference.name, "a-token");
     assert_eq!(metadata[1].reference.name, "z-token");
-    assert!(metadata.iter().all(|item| item.reference.workspace_id == workspace));
+    assert!(
+        metadata
+            .iter()
+            .all(|item| item.reference.workspace_id == workspace)
+    );
     assert!(metadata.iter().all(|item| item.key_version == 1));
 
     let debug = format!("{metadata:?}");
