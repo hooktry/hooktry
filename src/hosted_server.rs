@@ -305,6 +305,15 @@ fn ensure_operator_bootstrap(
             secrets
                 .bind_origin(workspace.id, SECRET_NAME, allowed_origin)
                 .map_err(|error| format!("bind bootstrap credential origin: {error:?}"))?;
+            let token = secrets
+                .resolve(workspace.id, SECRET_NAME)
+                .map_err(|error| format!("resolve bootstrap credential for scope upgrade: {error:?}"))?;
+            identities
+                .ensure_scope(
+                    &token,
+                    crate::hosted_identity::ApiScope::RequestsApprove,
+                )
+                .map_err(|error| format!("upgrade bootstrap credential scopes: {error:?}"))?;
             return Ok(());
         }
         let credential = identities
@@ -316,6 +325,7 @@ fn ensure_operator_bootstrap(
                     crate::hosted_identity::ApiScope::ExposuresRead,
                     crate::hosted_identity::ApiScope::ExposuresRevoke,
                     crate::hosted_identity::ApiScope::RequestsExecute,
+                    crate::hosted_identity::ApiScope::RequestsApprove,
                 ],
             )
             .map_err(|error| format!("issue bootstrap recovery credential: {error:?}"))?;
