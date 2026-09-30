@@ -6,9 +6,9 @@ use tokio::sync::{Mutex, oneshot};
 use tokio_tungstenite::{
     connect_async,
     tungstenite::{
+        Message as TungsteniteMessage,
         client::IntoClientRequest,
         http::{HeaderValue, header::AUTHORIZATION},
-        Message as TungsteniteMessage,
     },
 };
 use uuid::Uuid;
@@ -42,16 +42,11 @@ pub async fn serve_websocket(
     let mut runtime = broker.register(exposure_id).await;
     let registration_id = runtime.registration_id();
 
-    send_axum_frame(
-        &writer,
-        RelayFrame::Registered { exposure_id },
-    )
-    .await?;
+    send_axum_frame(&writer, RelayFrame::Registered { exposure_id }).await?;
 
-    let pending = Arc::new(Mutex::new(HashMap::<
-        Uuid,
-        oneshot::Sender<RelayResponse>,
-    >::new()));
+    let pending = Arc::new(Mutex::new(
+        HashMap::<Uuid, oneshot::Sender<RelayResponse>>::new(),
+    ));
 
     let result = async {
         loop {
@@ -216,12 +211,7 @@ pub async fn run_websocket_runtime(
     while let Some(message) = reader.next().await {
         match message.map_err(|error| WebSocketTransportError::Transport(error.to_string()))? {
             TungsteniteMessage::Text(text) => {
-                handle_runtime_frame(
-                    serde_json::from_str(text.as_str())?,
-                    &writer,
-                    &state,
-                )
-                .await?;
+                handle_runtime_frame(serde_json::from_str(text.as_str())?, &writer, &state).await?;
             }
             TungsteniteMessage::Binary(data) => {
                 handle_runtime_frame(serde_json::from_slice(&data)?, &writer, &state).await?;
@@ -249,10 +239,8 @@ async fn handle_runtime_frame<S>(
     state: &AppState,
 ) -> Result<(), WebSocketTransportError>
 where
-    S: futures_util::Sink<
-            TungsteniteMessage,
-            Error = tokio_tungstenite::tungstenite::Error,
-        > + Unpin
+    S: futures_util::Sink<TungsteniteMessage, Error = tokio_tungstenite::tungstenite::Error>
+        + Unpin
         + Send
         + 'static,
 {
@@ -270,11 +258,7 @@ where
                         body: Vec::new(),
                     },
                 };
-                let _ = send_tungstenite_frame(
-                    &writer,
-                    RelayFrame::Response { response },
-                )
-                .await;
+                let _ = send_tungstenite_frame(&writer, RelayFrame::Response { response }).await;
             });
         }
         RelayFrame::Ping { nonce } => {
@@ -290,10 +274,8 @@ async fn send_tungstenite_frame<S>(
     frame: RelayFrame,
 ) -> Result<(), WebSocketTransportError>
 where
-    S: futures_util::Sink<
-            TungsteniteMessage,
-            Error = tokio_tungstenite::tungstenite::Error,
-        > + Unpin,
+    S: futures_util::Sink<TungsteniteMessage, Error = tokio_tungstenite::tungstenite::Error>
+        + Unpin,
 {
     let payload = serde_json::to_string(&frame)?;
     writer
