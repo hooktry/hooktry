@@ -15,6 +15,7 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
                 {
                     "name": "payment accepted",
                     "operation": "POST /webhook",
+                    "count": 1,
                     "request": {"body": {"event": "payment.created"}},
                     "response": {"status": 202}
                 }
@@ -29,6 +30,7 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
     assert_eq!(request.port, 3000);
     assert_eq!(request.contracts.len(), 1);
     assert_eq!(request.contracts[0].operation, "POST /webhook");
+    assert_eq!(request.contracts[0].count, Some(1));
     assert_eq!(
         request.contracts[0].response.as_ref().unwrap()["status"],
         202
