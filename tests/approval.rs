@@ -170,6 +170,60 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
 }
 
 #[test]
+fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace() {
+    let path = std::env::temp_dir().join(format!("ortyo-approval-inbox-{}.db", Uuid::now_v7()));
+    let workspace_id = Uuid::now_v7();
+    let other_workspace_id = Uuid::now_v7();
+    let requester_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+
+    let store = ApprovalStore::open(&path).unwrap();
+    let first = store.create(workspace_id, requester_id, &request).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(2));
+    let second = store.create(workspace_id, requester_id, &request).unwrap();
+    let other = store
+        .create(other_workspace_id, requester_id, &request)
+        .unwrap();
+
+    assert_eq!(
+        store
+            .list_pending(workspace_id)
+            .unwrap()
+            .iter()
+            .map(|approval| approval.approval_id)
+            .collect::<Vec<_>>(),
+        vec![first.approval_id, second.approval_id]
+    );
+    assert_eq!(
+        store
+            .list_pending(other_workspace_id)
+            .unwrap()
+            .iter()
+            .map(|approval| approval.approval_id)
+            .collect::<Vec<_>>(),
+        vec![other.approval_id]
+    );
+
+    store
+        .decide(
+            workspace_id,
+            first.approval_id,
+            Uuid::now_v7(),
+            ApprovalDecision::Deny,
+        )
+        .unwrap();
+    drop(store);
+
+    let reopened = ApprovalStore::open(&path).unwrap();
+    let inbox = reopened.list_pending(workspace_id).unwrap();
+    assert_eq!(inbox.len(), 1);
+    assert_eq!(inbox[0].approval_id, second.approval_id);
+    assert_eq!(inbox[0].state, ApprovalState::Pending);
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
 fn denied_and_cross_workspace_approvals_fail_closed() {
     let store = ApprovalStore::default();
     let workspace_id = Uuid::now_v7();
