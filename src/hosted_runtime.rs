@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::task::AbortHandle;
 use uuid::Uuid;
 
@@ -23,7 +23,7 @@ pub enum HostedRuntimeError {
     Transport(String),
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HostedRuntimeStatus {
     pub exposure_id: Uuid,
     pub name: String,
