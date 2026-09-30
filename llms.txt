@@ -56,13 +56,14 @@ Hosted execution distinguishes:
 - rejected - ORTYO rejected the attempted action under its request/security contract;
 - failed - provider/runtime work did not produce valid successful evidence.
 
-Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and start/completion timestamps.
+Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and lifecycle timestamps. Hosted executions are durable: query `GET /_ortyo/hosted/executions/{execution_id}` with `requests:execute`. A durable `started` record means no terminal proof was committed yet; it does not imply the attempt is still running.
 
 ## Canonical source docs
 
 - README: https://github.com/ortyohq/ortyo/blob/main/README.md
 - Hosted execution and SecretRefs: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/hosted-execution.md
 - Execution lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/execution-lifecycle.md
+- Durable execution evidence: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/durable-execution-evidence.md
 - Approval gate: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-gate.md
 - Service access / Exposure boundary: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/service-access.md
 - Runtime capabilities: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/runtime-capabilities.md
