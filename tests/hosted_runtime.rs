@@ -126,4 +126,16 @@ async fn daemon_owns_public_runtime_after_provisioning() {
         unavailable,
         "revoked exposure left hosted runtime connected"
     );
+
+    let reconnect = ortyo::websocket_transport::run_websocket_runtime(
+        &provision.runtime_url,
+        provision.exposure_id,
+        &provision.runtime_capability,
+        AppState::default(),
+    )
+    .await;
+    assert!(
+        reconnect.is_err(),
+        "revoked runtime capability was accepted again"
+    );
 }

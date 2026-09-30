@@ -83,7 +83,7 @@ A successful public expose returns:
 
 ## Lifecycle
 
-`ortyo exposure-revoke <id>` revokes the local Exposure and aborts the daemon-owned WebSocket runtime task. The hosted broker observes the disconnect and stops routing traffic to that runtime.
+`ortyo exposure-revoke <id>` first self-revokes the per-Exposure runtime capability at the hosted relay, removes the broker registration, then aborts the daemon-owned reconnect task and revokes the local Exposure. The old capability cannot reconnect.
 
 Runtime reconnection uses capped exponential backoff after a disconnect.
 
@@ -91,6 +91,5 @@ Runtime reconnection uses capped exponential backoff after a disconnect.
 
 - replace the shared control token with workspace/user identity and scoped API credentials
 - durable hosted provisioning state
-- explicit remote capability revocation
 - daemon restart recovery
 - custom domains and stable aliases
