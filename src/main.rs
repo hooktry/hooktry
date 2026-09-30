@@ -24,9 +24,7 @@ async fn main() {
         Command::ExposureRevoke { id } => {
             delete_json(&format!("{}/_ortyo/exposures/{id}", cli.base_url)).await
         }
-        Command::Expose { name, port, verify } => {
-            expose(&cli.base_url, &name, port, verify).await
-        }
+        Command::Expose { name, port, verify } => expose(&cli.base_url, &name, port, verify).await,
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await,
         Command::Assert {
             contract_id,
