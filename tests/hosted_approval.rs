@@ -232,10 +232,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
         .await
         .unwrap();
     assert_eq!(durable.state, DurableExecutionState::Completed);
-    assert_eq!(
-        durable.terminal_record(),
-        Some(proof.execution.clone())
-    );
+    assert_eq!(durable.terminal_record(), Some(proof.execution.clone()));
 
     let hidden_execution = client
         .get(format!(
