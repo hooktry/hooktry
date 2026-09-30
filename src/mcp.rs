@@ -29,6 +29,16 @@ pub async fn run_stdio(base_url: &str) -> Result<(), String> {
 }
 
 pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, String> {
+    let hosted = HostedClient::from_env(base_url);
+    handle_with_hosted_client(base_url, &hosted, request).await
+}
+
+#[doc(hidden)]
+pub async fn handle_with_hosted_client(
+    base_url: &str,
+    hosted: &HostedClient,
+    request: Value,
+) -> Result<Option<Value>, String> {
     let id = request.get("id").cloned();
     let method = request
         .get("method")
@@ -50,6 +60,7 @@ pub async fn handle(base_url: &str, request: Value) -> Result<Option<Value>, Str
         "tools/call" => {
             call_tool(
                 base_url,
+                hosted,
                 request.get("params").cloned().unwrap_or(Value::Null),
             )
             .await?
@@ -343,7 +354,7 @@ fn uuid_schema(name: &str) -> Value {
     json!({name: {"type": "string", "format": "uuid"}})
 }
 
-async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
+async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Result<Value, String> {
     let name = params
         .get("name")
         .and_then(Value::as_str)
@@ -356,37 +367,25 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
     let value = match name {
         "approval_create" => {
             let request = http_execution_request_argument(&arguments)?;
-            return hosted_tool_result(
-                HostedClient::from_env(base_url)
-                    .create_approval(&request)
-                    .await,
-            );
+            return hosted_tool_result(hosted.create_approval(&request).await);
         }
         "approval_get" => {
             let id = uuid_argument(&arguments, "approval_id")?;
-            return hosted_tool_result(HostedClient::from_env(base_url).get_approval(id).await);
+            return hosted_tool_result(hosted.get_approval(id).await);
         }
         "approval_decide" => {
             let id = uuid_argument(&arguments, "approval_id")?;
             let decision = approval_decision_argument(&arguments)?;
-            return hosted_tool_result(
-                HostedClient::from_env(base_url)
-                    .decide_approval(id, decision)
-                    .await,
-            );
+            return hosted_tool_result(hosted.decide_approval(id, decision).await);
         }
         "approval_execute" => {
             let id = uuid_argument(&arguments, "approval_id")?;
             let request = http_execution_request_argument(&arguments)?;
-            return hosted_tool_result(
-                HostedClient::from_env(base_url)
-                    .execute_approved(id, &request)
-                    .await,
-            );
+            return hosted_tool_result(hosted.execute_approved(id, &request).await);
         }
         "execution_get" => {
             let id = uuid_argument(&arguments, "execution_id")?;
-            return hosted_tool_result(HostedClient::from_env(base_url).get_execution(id).await);
+            return hosted_tool_result(hosted.get_execution(id).await);
         }
         "scenario_create" => {
             let scenario_name = string_argument(&arguments, "name")?;
