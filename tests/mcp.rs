@@ -18,7 +18,7 @@ async fn initialize_advertises_tools_capability() {
 }
 
 #[tokio::test]
-async fn tools_list_exposes_interactions_and_contract_assert() {
+async fn tools_list_exposes_complete_evidence_workflow() {
     let response = handle(
         "http://127.0.0.1:7777",
         json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
@@ -27,10 +27,49 @@ async fn tools_list_exposes_interactions_and_contract_assert() {
     .unwrap()
     .unwrap();
 
+    let names = response["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        names,
+        vec![
+            "interactions_list",
+            "recording_create",
+            "recording_replay",
+            "contract_create",
+            "contract_get",
+            "contract_assert",
+            "assertion_get",
+        ]
+    );
+}
+
+#[tokio::test]
+async fn tool_schemas_require_identity_arguments() {
+    let response = handle(
+        "http://127.0.0.1:7777",
+        json!({"jsonrpc":"2.0","id":3,"method":"tools/list","params":{}}),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
     let tools = response["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 2);
-    assert_eq!(tools[0]["name"], "interactions_list");
-    assert_eq!(tools[1]["name"], "contract_assert");
+    let replay = tools
+        .iter()
+        .find(|tool| tool["name"] == "recording_replay")
+        .unwrap();
+    assert_eq!(replay["inputSchema"]["required"], json!(["recording_id"]));
+
+    let create = tools
+        .iter()
+        .find(|tool| tool["name"] == "contract_create")
+        .unwrap();
+    assert_eq!(create["inputSchema"]["required"], json!(["name"]));
 }
 
 #[tokio::test]
@@ -49,7 +88,7 @@ async fn notifications_do_not_emit_responses() {
 async fn unknown_method_returns_json_rpc_error() {
     let response = handle(
         "http://127.0.0.1:7777",
-        json!({"jsonrpc":"2.0","id":3,"method":"unknown"}),
+        json!({"jsonrpc":"2.0","id":4,"method":"unknown"}),
     )
     .await
     .unwrap()
