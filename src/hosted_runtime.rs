@@ -97,7 +97,8 @@ impl HostedRuntimeManager {
         let exposure_id = provision.exposure_id;
         let runtime_url = provision.runtime_url;
         let capability = provision.runtime_capability;
-        let revoke_url = runtime_http_url(&runtime_url).ok_or(HostedRuntimeError::InvalidProvision)?;
+        let revoke_url =
+            runtime_http_url(&runtime_url).ok_or(HostedRuntimeError::InvalidProvision)?;
         let runtime_url_for_task = runtime_url.clone();
         let capability_for_task = capability.clone();
         let runtime_state = state.clone();
