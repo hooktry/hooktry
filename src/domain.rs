@@ -4,15 +4,26 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Protocol { Http }
+pub enum Protocol {
+    Http,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Direction { Inbound, Outbound }
+pub enum Direction {
+    Inbound,
+    Outbound,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Origin { Observed, Proxied, Emulated, Replayed, Generated }
+pub enum Origin {
+    Observed,
+    Proxied,
+    Emulated,
+    Replayed,
+    Generated,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Interaction {
@@ -29,4 +40,7 @@ pub struct Interaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Session { pub id: Uuid, pub started_at: DateTime<Utc> }
+pub struct Session {
+    pub id: Uuid,
+    pub started_at: DateTime<Utc>,
+}
