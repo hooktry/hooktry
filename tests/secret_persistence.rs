@@ -72,3 +72,105 @@ fn overwrite_rotates_ciphertext_and_reference() {
 
     let _ = fs::remove_file(path);
 }
+
+
+#[test]
+fn bound_secret_origin_survives_restart_and_fails_closed_elsewhere() {
+    let path = std::env::temp_dir().join(format!("ortyo-secret-bound-{}.db", Uuid::now_v7()));
+    let workspace = Uuid::now_v7();
+    let store = SecretStore::open(&path, [53u8; 32]).unwrap();
+
+    let reference = store
+        .put_bound(
+            workspace,
+            "provider-token",
+            "hidden-value",
+            "https://api.example.com/v1/token",
+        )
+        .unwrap();
+    assert_eq!(
+        reference.allowed_origin.as_deref(),
+        Some("https://api.example.com")
+    );
+    assert_eq!(
+        store
+            .resolve_for_origin(workspace, "provider-token", "https://api.example.com/other")
+            .unwrap(),
+        "hidden-value"
+    );
+    assert_eq!(
+        store.resolve_for_origin(
+            workspace,
+            "provider-token",
+            "https://other.example.com"
+        ),
+        Err(SecretError::DestinationDenied)
+    );
+
+    drop(store);
+    let reopened = SecretStore::open(&path, [53u8; 32]).unwrap();
+    let reopened_ref = reopened.get_ref(workspace, "provider-token").unwrap();
+    assert_eq!(
+        reopened_ref.allowed_origin.as_deref(),
+        Some("https://api.example.com")
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn rotation_preserves_secret_origin_binding() {
+    let workspace = Uuid::now_v7();
+    let store = SecretStore::default();
+    store
+        .put_bound(
+            workspace,
+            "provider-token",
+            "first-value",
+            "https://api.example.com",
+        )
+        .unwrap();
+
+    let rotated = store
+        .rotate(workspace, "provider-token", "second-value")
+        .unwrap();
+
+    assert_eq!(
+        rotated.allowed_origin.as_deref(),
+        Some("https://api.example.com")
+    );
+    assert_eq!(
+        store
+            .resolve_for_origin(workspace, "provider-token", "https://api.example.com")
+            .unwrap(),
+        "second-value"
+    );
+}
+
+#[test]
+fn delete_clears_secret_origin_binding() {
+    let path = std::env::temp_dir().join(format!("ortyo-secret-delete-bound-{}.db", Uuid::now_v7()));
+    let workspace = Uuid::now_v7();
+    let store = SecretStore::open(&path, [61u8; 32]).unwrap();
+
+    store
+        .put_bound(
+            workspace,
+            "reused-name",
+            "first-value",
+            "https://api.example.com",
+        )
+        .unwrap();
+    assert!(store.delete(workspace, "reused-name").unwrap());
+
+    let replacement = store
+        .put(workspace, "reused-name", "replacement-value")
+        .unwrap();
+    assert_eq!(replacement.allowed_origin, None);
+    assert_eq!(
+        store.resolve_for_origin(workspace, "reused-name", "https://api.example.com"),
+        Err(SecretError::DestinationDenied)
+    );
+
+    let _ = fs::remove_file(path);
+}
