@@ -15,6 +15,7 @@ use crate::{
     execution::{
         ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
     },
+    execution_store::{DurableExecutionState, ExecutionStore},
     hosted::{ApprovedExecution, HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::{HostedExposureRecord, HostedExposureStore},
@@ -150,7 +151,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .port();
     let local_runtime_base_url = format!("ws://127.0.0.1:{local_port}");
 
-    let (capabilities, exposures, identities, secrets, approvals, storage) =
+    let (capabilities, exposures, identities, secrets, approvals, executions, storage) =
         open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
@@ -173,7 +174,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         config.public_base_url.clone(),
         &config.control_token,
     )
-    .with_approval_store(approvals);
+    .with_approval_store(approvals)
+    .with_execution_store(executions);
 
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
@@ -235,6 +237,7 @@ async fn open_hosted_stores(
         HostedIdentityStore,
         SecretStore,
         ApprovalStore,
+        ExecutionStore,
         &'static str,
     ),
     String,
@@ -253,12 +256,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
             let approvals = ApprovalStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
+            let executions = ExecutionStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres execution store: {error:?}"))?;
             Ok((
                 capabilities,
                 exposures,
                 identities,
                 secrets,
                 approvals,
+                executions,
                 "postgres",
             ))
         })
@@ -278,12 +284,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
             let approvals = ApprovalStore::open(&db_path)
                 .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
+            let executions = ExecutionStore::open(&db_path)
+                .map_err(|error| format!("open SQLite execution store: {error:?}"))?;
             Ok((
                 capabilities,
                 exposures,
                 identities,
                 secrets,
                 approvals,
+                executions,
                 "sqlite",
             ))
         })
