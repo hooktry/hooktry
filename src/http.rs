@@ -333,10 +333,7 @@ async fn revoke_exposure(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Exposure>, StatusCode> {
-    let exposure = state
-        .exposures
-        .revoke(id)
-        .map_err(exposure_error_status)?;
+    let exposure = state.exposures.revoke(id).map_err(exposure_error_status)?;
     state.hosted_runtimes.stop(id);
     Ok(Json(exposure))
 }
