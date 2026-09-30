@@ -9,6 +9,7 @@ pub enum Command {
         name: String,
         port: u16,
         verify: bool,
+        public: bool,
     },
     Exposures,
     ExposureGet {
@@ -68,87 +69,106 @@ impl Cli {
             }
         }
 
-        let command = match remaining.as_slice() {
-            [command] if command == "serve" => Command::Serve,
-            [command] if command == "hosted" => Command::Hosted,
-            [command] if command == "interactions" => Command::Interactions,
-            [command] if command == "exposures" => Command::Exposures,
-            [command, id] if command == "exposure-get" => Command::ExposureGet {
-                id: id
-                    .parse()
-                    .map_err(|_| "exposure-get requires a valid UUID".to_owned())?,
-            },
-            [command, id] if command == "exposure-revoke" => Command::ExposureRevoke {
-                id: id
-                    .parse()
-                    .map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
-            },
-            [command, port] if command == "expose" => Command::Expose {
-                name: "web".to_owned(),
-                port: parse_port(port)?,
-                verify: true,
-            },
-            [command, port, name] if command == "expose" => Command::Expose {
-                name: name.clone(),
-                port: parse_port(port)?,
-                verify: true,
-            },
-            [command, port, name, flag] if command == "expose" && flag == "--no-verify" => {
-                Command::Expose {
-                    name: name.clone(),
-                    port: parse_port(port)?,
-                    verify: false,
+        let command = if remaining.first().is_some_and(|command| command == "expose") {
+            parse_expose(&remaining[1..])?
+        } else {
+            match remaining.as_slice() {
+                [command] if command == "serve" => Command::Serve,
+                [command] if command == "hosted" => Command::Hosted,
+                [command] if command == "interactions" => Command::Interactions,
+                [command] if command == "exposures" => Command::Exposures,
+                [command, id] if command == "exposure-get" => Command::ExposureGet {
+                    id: id
+                        .parse()
+                        .map_err(|_| "exposure-get requires a valid UUID".to_owned())?,
+                },
+                [command, id] if command == "exposure-revoke" => Command::ExposureRevoke {
+                    id: id
+                        .parse()
+                        .map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
+                },
+                [command] if command == "mcp" => Command::Mcp,
+                [group, command, path] if group == "scenario" && command == "create" => {
+                    Command::ScenarioCreate { path: path.clone() }
                 }
-            }
-            [command] if command == "mcp" => Command::Mcp,
-            [group, command, path] if group == "scenario" && command == "create" => {
-                Command::ScenarioCreate { path: path.clone() }
-            }
-            [group, command, path, separator, child @ ..]
-                if group == "scenario"
-                    && command == "run"
-                    && separator == "--"
-                    && !child.is_empty() =>
-            {
-                Command::ScenarioRun {
-                    path: path.clone(),
-                    command: child.to_vec(),
+                [group, command, path, separator, child @ ..]
+                    if group == "scenario"
+                        && command == "run"
+                        && separator == "--"
+                        && !child.is_empty() =>
+                {
+                    Command::ScenarioRun {
+                        path: path.clone(),
+                        command: child.to_vec(),
+                    }
                 }
-            }
-            [group, command, id] if group == "scenario" && command == "get" => {
-                Command::ScenarioGet {
-                    id: parse_uuid(id, "scenario get")?,
+                [group, command, id] if group == "scenario" && command == "get" => {
+                    Command::ScenarioGet {
+                        id: parse_uuid(id, "scenario get")?,
+                    }
                 }
-            }
-            [group, command, id] if group == "scenario" && command == "start" => {
-                Command::ScenarioStart {
-                    id: parse_uuid(id, "scenario start")?,
+                [group, command, id] if group == "scenario" && command == "start" => {
+                    Command::ScenarioStart {
+                        id: parse_uuid(id, "scenario start")?,
+                    }
                 }
-            }
-            [group, command, id] if group == "scenario" && command == "complete" => {
-                Command::ScenarioComplete {
-                    id: parse_uuid(id, "scenario complete")?,
+                [group, command, id] if group == "scenario" && command == "complete" => {
+                    Command::ScenarioComplete {
+                        id: parse_uuid(id, "scenario complete")?,
+                    }
                 }
-            }
-            [group, command, id] if group == "scenario" && command == "outcome" => {
-                Command::ScenarioOutcome {
-                    id: parse_uuid(id, "scenario outcome")?,
+                [group, command, id] if group == "scenario" && command == "outcome" => {
+                    Command::ScenarioOutcome {
+                        id: parse_uuid(id, "scenario outcome")?,
+                    }
                 }
+                [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
+                    contract_id: contract_id
+                        .parse()
+                        .map_err(|_| "assert requires a valid contract UUID".to_owned())?,
+                    interaction_id: interaction_id
+                        .parse()
+                        .map_err(|_| "assert requires a valid interaction UUID".to_owned())?,
+                },
+                [] => Command::Serve,
+                _ => return Err(usage()),
             }
-            [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
-                contract_id: contract_id
-                    .parse()
-                    .map_err(|_| "assert requires a valid contract UUID".to_owned())?,
-                interaction_id: interaction_id
-                    .parse()
-                    .map_err(|_| "assert requires a valid interaction UUID".to_owned())?,
-            },
-            [] => Command::Serve,
-            _ => return Err(usage()),
         };
 
         Ok(Self { base_url, command })
     }
+}
+
+fn parse_expose(args: &[String]) -> Result<Command, String> {
+    let port = args
+        .first()
+        .ok_or_else(usage)
+        .and_then(|value| parse_port(value))?;
+
+    let mut name = "web".to_owned();
+    let mut name_seen = false;
+    let mut verify = true;
+    let mut public = false;
+
+    for arg in &args[1..] {
+        match arg.as_str() {
+            "--no-verify" => verify = false,
+            "--public" => public = true,
+            flag if flag.starts_with('-') => return Err(format!("unknown expose flag: {flag}")),
+            value if !name_seen => {
+                name = value.to_owned();
+                name_seen = true;
+            }
+            _ => return Err("expose accepts at most one name".to_owned()),
+        }
+    }
+
+    Ok(Command::Expose {
+        name,
+        port,
+        verify,
+        public,
+    })
 }
 
 fn parse_uuid(value: &str, command: &str) -> Result<Uuid, String> {
@@ -166,6 +186,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
