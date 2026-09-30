@@ -19,6 +19,12 @@ pub struct SecretRef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SecretMetadata {
+    pub reference: SecretRef,
+    pub key_version: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SecretError {
     InvalidName,
     InvalidKey,
@@ -115,6 +121,15 @@ impl SecretStore {
         name: impl Into<String>,
         value: impl Into<String>,
     ) -> Result<SecretRef, SecretError> {
+        self.rotate(workspace_id, name, value)
+    }
+
+    pub fn rotate(
+        &self,
+        workspace_id: Uuid,
+        name: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Result<SecretRef, SecretError> {
         let name = name.into();
         if name.trim().is_empty() {
             return Err(SecretError::InvalidName);
@@ -155,10 +170,19 @@ impl SecretStore {
         name: String,
         value: String,
     ) -> Result<SecretRef, SecretError> {
+        self.rotate_async(workspace_id, name, value).await
+    }
+
+    pub async fn rotate_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        value: String,
+    ) -> Result<SecretRef, SecretError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || store.put(workspace_id, name, value))
+        tokio::task::spawn_blocking(move || store.rotate(workspace_id, name, value))
             .await
-            .map_err(|error| SecretError::Storage(format!("join secret put: {error}")))?
+            .map_err(|error| SecretError::Storage(format!("join secret rotate: {error}")))?
     }
 
     pub async fn resolve_async(
@@ -172,11 +196,151 @@ impl SecretStore {
             .map_err(|error| SecretError::Storage(format!("join secret resolve: {error}")))?
     }
 
+    pub async fn delete_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+    ) -> Result<bool, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.delete(workspace_id, &name))
+            .await
+            .map_err(|error| SecretError::Storage(format!("join secret delete: {error}")))?
+    }
+
+    pub async fn list_metadata_async(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<SecretMetadata>, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.list_metadata(workspace_id))
+            .await
+            .map_err(|error| SecretError::Storage(format!("join secret metadata list: {error}")))?
+    }
+
+    pub fn metadata(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+    ) -> Result<Option<SecretMetadata>, SecretError> {
+        Ok(self.find(workspace_id, name)?.map(|secret| SecretMetadata {
+            reference: secret.reference,
+            key_version: secret.key_version,
+        }))
+    }
+
+    pub fn list_metadata(&self, workspace_id: Uuid) -> Result<Vec<SecretMetadata>, SecretError> {
+        let mut metadata = match &self.backend {
+            SecretBackend::Memory(inner) => inner
+                .read()
+                .expect("secret store poisoned")
+                .values()
+                .filter(|secret| secret.reference.workspace_id == workspace_id)
+                .map(|secret| SecretMetadata {
+                    reference: secret.reference.clone(),
+                    key_version: secret.key_version,
+                })
+                .collect(),
+            SecretBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("secret store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT secret_id,name,key_version FROM hosted_secrets
+                         WHERE workspace_id=?1 ORDER BY name",
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map(params![workspace_id.to_string()], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i32>(2)?,
+                        ))
+                    })
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                let mut metadata = Vec::new();
+                for row in rows {
+                    let (id, name, key_version) =
+                        row.map_err(|error| SecretError::Storage(error.to_string()))?;
+                    metadata.push(SecretMetadata {
+                        reference: SecretRef {
+                            id: id.parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid secret id: {error}"))
+                            })?,
+                            workspace_id,
+                            name,
+                        },
+                        key_version,
+                    });
+                }
+                metadata
+            }
+            SecretBackend::Postgres(client) => {
+                let workspace = workspace_id.to_string();
+                client
+                    .lock()
+                    .expect("secret store poisoned")
+                    .query(
+                        "SELECT secret_id,name,key_version FROM hosted_secrets
+                         WHERE workspace_id=$1 ORDER BY name",
+                        &[&workspace],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?
+                    .into_iter()
+                    .map(|row| {
+                        Ok(SecretMetadata {
+                            reference: SecretRef {
+                                id: row.get::<_, String>(0).parse().map_err(|error| {
+                                    SecretError::Storage(format!("invalid secret id: {error}"))
+                                })?,
+                                workspace_id,
+                                name: row.get(1),
+                            },
+                            key_version: row.get(2),
+                        })
+                    })
+                    .collect::<Result<Vec<_>, SecretError>>()?
+            }
+        };
+        metadata.sort_by(|left, right| left.reference.name.cmp(&right.reference.name));
+        Ok(metadata)
+    }
+
+    pub fn delete(&self, workspace_id: Uuid, name: &str) -> Result<bool, SecretError> {
+        match &self.backend {
+            SecretBackend::Memory(inner) => Ok(inner
+                .write()
+                .expect("secret store poisoned")
+                .remove(&(workspace_id, name.to_owned()))
+                .is_some()),
+            SecretBackend::Sqlite(connection) => connection
+                .lock()
+                .expect("secret store poisoned")
+                .execute(
+                    "DELETE FROM hosted_secrets WHERE workspace_id=?1 AND name=?2",
+                    params![workspace_id.to_string(), name],
+                )
+                .map(|deleted| deleted > 0)
+                .map_err(|error| SecretError::Storage(error.to_string())),
+            SecretBackend::Postgres(client) => {
+                let workspace = workspace_id.to_string();
+                client
+                    .lock()
+                    .expect("secret store poisoned")
+                    .execute(
+                        "DELETE FROM hosted_secrets WHERE workspace_id=$1 AND name=$2",
+                        &[&workspace, &name],
+                    )
+                    .map(|deleted| deleted > 0)
+                    .map_err(|error| SecretError::Storage(error.to_string()))
+            }
+        }
+    }
+
     pub fn get_ref(&self, workspace_id: Uuid, name: &str) -> Option<SecretRef> {
-        self.find(workspace_id, name)
+        self.metadata(workspace_id, name)
             .ok()
             .flatten()
-            .map(|secret| secret.reference)
+            .map(|metadata| metadata.reference)
     }
 
     fn save(&self, secret: StoredSecret) -> Result<(), SecretError> {
