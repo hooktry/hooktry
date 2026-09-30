@@ -20,11 +20,13 @@ use crate::{
     contract::assert_interaction,
     domain::{
         AssertionResult, Contract, Direction, Exposure, ExposureAccess, ExposureMode,
-        ExposureTarget, Interaction, Origin, Protocol, Recording, Session,
+        ExposureTarget, Interaction, Origin, Protocol, Recording, Scenario, ScenarioOutcome,
+        ScenarioRun, Session,
     },
     exposure::{CreateExposure, ExposureError, ExposureService},
     recording::{ReplayError, replay, snapshot_all},
     relay::{RelayRequest, RelayResponse},
+    scenario::{CreateScenario, ScenarioError, complete as complete_scenario_run, create as create_scenario_definition, start as start_scenario_run},
     store::InteractionStore,
 };
 
@@ -93,6 +95,17 @@ pub fn app(state: AppState) -> Router {
             post(assert_contract),
         )
         .route("/_ortyo/assertions/{id}", get(get_assertion))
+        .route("/_ortyo/scenarios", post(create_scenario))
+        .route("/_ortyo/scenarios/{id}", get(get_scenario))
+        .route("/_ortyo/scenarios/{id}/start", post(start_scenario))
+        .route(
+            "/_ortyo/scenario-runs/{id}/complete",
+            post(complete_scenario),
+        )
+        .route(
+            "/_ortyo/scenario-runs/{id}/outcome",
+            get(get_scenario_outcome),
+        )
         .route(
             "/_ortyo/exposures",
             get(list_exposures).post(create_exposure),
@@ -207,6 +220,55 @@ async fn get_assertion(
     state
         .store
         .assertion(id)
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
+}
+
+async fn create_scenario(
+    State(state): State<AppState>,
+    Json(request): Json<CreateScenario>,
+) -> Result<(StatusCode, Json<Scenario>), StatusCode> {
+    create_scenario_definition(&state.store, request)
+        .map(|scenario| (StatusCode::CREATED, Json(scenario)))
+        .map_err(scenario_error_status)
+}
+
+async fn get_scenario(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Scenario>, StatusCode> {
+    state
+        .store
+        .scenario(id)
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
+}
+
+async fn start_scenario(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<(StatusCode, Json<ScenarioRun>), StatusCode> {
+    start_scenario_run(&state.store, &state.exposures, state.session.id, id)
+        .map(|run| (StatusCode::CREATED, Json(run)))
+        .map_err(scenario_error_status)
+}
+
+async fn complete_scenario(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ScenarioOutcome>, StatusCode> {
+    complete_scenario_run(&state.store, &state.exposures, state.session.id, id)
+        .map(Json)
+        .map_err(scenario_error_status)
+}
+
+async fn get_scenario_outcome(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ScenarioOutcome>, StatusCode> {
+    state
+        .store
+        .scenario_outcome(id)
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -414,6 +476,20 @@ fn build_response(proxied: ProxiedHttpResponse) -> Result<Response, StatusCode> 
     response
         .body(Body::from(proxied.body))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+fn scenario_error_status(error: ScenarioError) -> StatusCode {
+    match error {
+        ScenarioError::InvalidName
+        | ScenarioError::InvalidPort
+        | ScenarioError::ContractRequired
+        | ScenarioError::InvalidContractName
+        | ScenarioError::InvalidOperation => StatusCode::BAD_REQUEST,
+        ScenarioError::ScenarioNotFound | ScenarioError::RunNotFound => StatusCode::NOT_FOUND,
+        ScenarioError::ContractNotFound(_) => StatusCode::CONFLICT,
+        ScenarioError::Exposure(error) => exposure_error_status(error),
+        ScenarioError::Replay(error) => replay_error_status(error),
+    }
 }
 
 fn replay_error_status(error: ReplayError) -> StatusCode {
