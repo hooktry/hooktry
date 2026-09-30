@@ -25,6 +25,8 @@ use crate::{
         ScenarioRun, Session,
     },
     exposure::{CreateExposure, ExposureError, ExposureService},
+    hosted::ProvisionedExposure,
+    hosted_runtime::{HostedRuntimeError, HostedRuntimeManager, HostedRuntimeStatus},
     recording::{ReplayError, replay, snapshot_all},
     relay::{RelayRequest, RelayResponse},
     scenario::{
@@ -39,6 +41,7 @@ pub struct AppState {
     pub store: InteractionStore,
     pub session: Session,
     pub exposures: ExposureService,
+    pub hosted_runtimes: HostedRuntimeManager,
     pub client: reqwest::Client,
 }
 
@@ -51,6 +54,7 @@ impl Default for AppState {
                 started_at: Utc::now(),
             },
             exposures: ExposureService::default(),
+            hosted_runtimes: HostedRuntimeManager::default(),
             client: reqwest::Client::new(),
         }
     }
@@ -118,6 +122,7 @@ pub fn app(state: AppState) -> Router {
             "/_ortyo/exposures/{id}",
             get(get_exposure).delete(revoke_exposure),
         )
+        .route("/_ortyo/hosted-runtimes", post(attach_hosted_runtime))
         .route("/exposed/{id}/{*path}", any(proxy_exposure))
         .route("/boundary/{*path}", any(capture))
         .with_state(state)
@@ -299,6 +304,18 @@ async fn create_exposure(
         .map_err(exposure_error_status)
 }
 
+async fn attach_hosted_runtime(
+    State(state): State<AppState>,
+    Json(provision): Json<ProvisionedExposure>,
+) -> Result<(StatusCode, Json<HostedRuntimeStatus>), StatusCode> {
+    state
+        .hosted_runtimes
+        .attach(state.clone(), provision)
+        .await
+        .map(|status| (StatusCode::CREATED, Json(status)))
+        .map_err(hosted_runtime_error_status)
+}
+
 async fn list_exposures(State(state): State<AppState>) -> Json<Vec<Exposure>> {
     Json(state.exposures.all())
 }
@@ -318,11 +335,9 @@ async fn revoke_exposure(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Exposure>, StatusCode> {
-    state
-        .exposures
-        .revoke(id)
-        .map(Json)
-        .map_err(exposure_error_status)
+    let exposure = state.exposures.revoke(id).map_err(exposure_error_status)?;
+    state.hosted_runtimes.stop(id);
+    Ok(Json(exposure))
 }
 
 async fn proxy_exposure(
@@ -502,6 +517,14 @@ fn replay_error_status(error: ReplayError) -> StatusCode {
     match error {
         ReplayError::RecordingNotFound => StatusCode::NOT_FOUND,
         ReplayError::SourceInteractionNotFound(_) => StatusCode::CONFLICT,
+    }
+}
+
+fn hosted_runtime_error_status(error: HostedRuntimeError) -> StatusCode {
+    match error {
+        HostedRuntimeError::InvalidProvision => StatusCode::BAD_REQUEST,
+        HostedRuntimeError::Exposure(error) => exposure_error_status(error),
+        HostedRuntimeError::Transport(_) => StatusCode::BAD_GATEWAY,
     }
 }
 

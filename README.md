@@ -23,6 +23,7 @@ Run the local boundary with `ortyo` or `ortyo serve`. The CLI talks to the same 
 
 ```sh
 ortyo expose 3000
+ORTYO_CONTROL_TOKEN='<secret>' ortyo expose 3000 web --public
 ortyo exposures
 ortyo exposure-get <exposure-id>
 ortyo exposure-revoke <exposure-id>
@@ -31,7 +32,7 @@ ortyo assert <contract-id> <interaction-id>
 ortyo --base-url http://127.0.0.1:7777 interactions
 ```
 
-Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling. `ortyo expose 3000` creates a private local exposure and returns `exposure_id`, `url`, `access`, `mode`, `target_port`, and a fail-closed `verified` result.
+Successful command output is structured JSON, so the same surface is suitable for scripts and agent tooling. `ortyo expose 3000` creates a private local exposure. `ortyo expose 3000 web --public` provisions the hosted relay, attaches the exact Exposure to the local daemon, waits for authenticated WebSocket registration, and returns a public URL while `ortyo serve` keeps the tunnel alive.
 
 ### Hosted relay
 

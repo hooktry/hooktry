@@ -1,10 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use axum::extract::ws::{Message as AxumMessage, WebSocket};
-use futures_util::{SinkExt, StreamExt};
-use tokio::sync::{Mutex, oneshot};
+use futures_util::{
+    SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream},
+};
+use tokio::{
+    net::TcpStream,
+    sync::{Mutex, oneshot},
+};
 use tokio_tungstenite::{
-    connect_async,
+    MaybeTlsStream, WebSocketStream, connect_async,
     tungstenite::{
         Message as TungsteniteMessage,
         client::IntoClientRequest,
@@ -18,6 +24,8 @@ use crate::{
     relay::{RelayBroker, RelayResponse},
     relay_transport::RelayFrame,
 };
+
+type ClientSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 #[derive(Debug)]
 pub enum WebSocketTransportError {
@@ -158,12 +166,18 @@ where
         .map_err(|error| WebSocketTransportError::Transport(error.to_string()))
 }
 
-pub async fn run_websocket_runtime(
+pub struct ConnectedWebSocketRuntime {
+    reader: SplitStream<ClientSocket>,
+    writer: Arc<Mutex<SplitSink<ClientSocket, TungsteniteMessage>>>,
+    state: AppState,
+}
+
+pub async fn connect_websocket_runtime(
     runtime_url: &str,
     exposure_id: Uuid,
     capability: &str,
     state: AppState,
-) -> Result<(), WebSocketTransportError> {
+) -> Result<ConnectedWebSocketRuntime, WebSocketTransportError> {
     let mut request = runtime_url
         .into_client_request()
         .map_err(|error| WebSocketTransportError::Transport(error.to_string()))?;
@@ -208,29 +222,88 @@ pub async fn run_websocket_runtime(
         }
     }
 
-    while let Some(message) = reader.next().await {
-        match message.map_err(|error| WebSocketTransportError::Transport(error.to_string()))? {
-            TungsteniteMessage::Text(text) => {
-                handle_runtime_frame(serde_json::from_str(text.as_str())?, &writer, &state).await?;
+    Ok(ConnectedWebSocketRuntime {
+        reader,
+        writer,
+        state,
+    })
+}
+
+impl ConnectedWebSocketRuntime {
+    pub async fn run(mut self) -> Result<(), WebSocketTransportError> {
+        while let Some(message) = self.reader.next().await {
+            match message.map_err(|error| WebSocketTransportError::Transport(error.to_string()))? {
+                TungsteniteMessage::Text(text) => {
+                    handle_runtime_frame(
+                        serde_json::from_str(text.as_str())?,
+                        &self.writer,
+                        &self.state,
+                    )
+                    .await?;
+                }
+                TungsteniteMessage::Binary(data) => {
+                    handle_runtime_frame(serde_json::from_slice(&data)?, &self.writer, &self.state)
+                        .await?;
+                }
+                TungsteniteMessage::Ping(data) => {
+                    self.writer
+                        .lock()
+                        .await
+                        .send(TungsteniteMessage::Pong(data))
+                        .await
+                        .map_err(|error| WebSocketTransportError::Transport(error.to_string()))?;
+                }
+                TungsteniteMessage::Pong(_) => {}
+                TungsteniteMessage::Close(_) => break,
+                TungsteniteMessage::Frame(_) => {}
             }
-            TungsteniteMessage::Binary(data) => {
-                handle_runtime_frame(serde_json::from_slice(&data)?, &writer, &state).await?;
+        }
+
+        Ok(())
+    }
+}
+
+pub async fn run_websocket_runtime(
+    runtime_url: &str,
+    exposure_id: Uuid,
+    capability: &str,
+    state: AppState,
+) -> Result<(), WebSocketTransportError> {
+    connect_websocket_runtime(runtime_url, exposure_id, capability, state)
+        .await?
+        .run()
+        .await
+}
+
+pub async fn maintain_websocket_runtime(
+    initial: ConnectedWebSocketRuntime,
+    runtime_url: String,
+    exposure_id: Uuid,
+    capability: String,
+    state: AppState,
+    retry_delay: Duration,
+) {
+    let mut connection = Some(initial);
+    let mut delay = retry_delay;
+
+    loop {
+        if let Some(current) = connection.take() {
+            let _ = current.run().await;
+        }
+
+        tokio::time::sleep(delay).await;
+
+        match connect_websocket_runtime(&runtime_url, exposure_id, &capability, state.clone()).await
+        {
+            Ok(next) => {
+                connection = Some(next);
+                delay = retry_delay;
             }
-            TungsteniteMessage::Ping(data) => {
-                writer
-                    .lock()
-                    .await
-                    .send(TungsteniteMessage::Pong(data))
-                    .await
-                    .map_err(|error| WebSocketTransportError::Transport(error.to_string()))?;
+            Err(_) => {
+                delay = delay.saturating_mul(2).min(Duration::from_secs(30));
             }
-            TungsteniteMessage::Pong(_) => {}
-            TungsteniteMessage::Close(_) => break,
-            TungsteniteMessage::Frame(_) => {}
         }
     }
-
-    Ok(())
 }
 
 async fn handle_runtime_frame<S>(
