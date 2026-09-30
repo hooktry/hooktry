@@ -59,6 +59,8 @@ fn outcome(run: &ScenarioRun, passed: bool) -> ScenarioOutcome {
         scenario_id: run.scenario_id,
         completed_at: Utc::now(),
         passed,
+        observation: Default::default(),
+        observation_elapsed_ms: 0,
         recording_id: None,
         replayed_interaction_ids: Vec::new(),
         checks: vec![ScenarioCheckOutcome {
