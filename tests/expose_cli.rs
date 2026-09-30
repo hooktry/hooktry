@@ -2,12 +2,7 @@ use ortyo::cli::{Cli, Command};
 
 #[test]
 fn expose_defaults_to_web_and_verification() {
-    let cli = Cli::parse([
-        "ortyo".to_owned(),
-        "expose".to_owned(),
-        "3000".to_owned(),
-    ])
-    .unwrap();
+    let cli = Cli::parse(["ortyo".to_owned(), "expose".to_owned(), "3000".to_owned()]).unwrap();
 
     assert_eq!(
         cli.command,
