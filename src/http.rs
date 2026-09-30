@@ -17,9 +17,10 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
+    contract::assert_interaction,
     domain::{
-        Direction, Exposure, ExposureAccess, ExposureMode, ExposureTarget, Interaction, Origin,
-        Protocol, Recording, Session,
+        AssertionResult, Contract, Direction, Exposure, ExposureAccess, ExposureMode,
+        ExposureTarget, Interaction, Origin, Protocol, Recording, Session,
     },
     exposure::{CreateExposure, ExposureError, ExposureService},
     relay::{RelayRequest, RelayResponse},
@@ -56,6 +57,14 @@ struct CreateExposureRequest {
     access: Option<ExposureAccess>,
 }
 
+#[derive(Debug, Deserialize)]
+struct CreateContractRequest {
+    name: String,
+    operation: Option<Value>,
+    request: Option<Value>,
+    response: Option<Value>,
+}
+
 struct ForwardHttpRequest {
     method: Method,
     path: String,
@@ -76,6 +85,13 @@ pub fn app(state: AppState) -> Router {
         .route("/_ortyo/interactions", get(list_interactions))
         .route("/_ortyo/recordings", post(create_recording))
         .route("/_ortyo/recordings/{id}/replay", post(replay_recording))
+        .route("/_ortyo/contracts", post(create_contract))
+        .route("/_ortyo/contracts/{id}", get(get_contract))
+        .route(
+            "/_ortyo/contracts/{contract_id}/assert/{interaction_id}",
+            post(assert_contract),
+        )
+        .route("/_ortyo/assertions/{id}", get(get_assertion))
         .route(
             "/_ortyo/exposures",
             get(list_exposures).post(create_exposure),
@@ -164,6 +180,60 @@ async fn replay_recording(
     }
 
     Ok(Json(replayed))
+}
+
+async fn create_contract(
+    State(state): State<AppState>,
+    Json(request): Json<CreateContractRequest>,
+) -> (StatusCode, Json<Contract>) {
+    let contract = Contract {
+        id: Uuid::now_v7(),
+        name: request.name,
+        operation: request.operation,
+        request: request.request,
+        response: request.response,
+    };
+    state.store.save_contract(&contract);
+    (StatusCode::CREATED, Json(contract))
+}
+
+async fn get_contract(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Contract>, StatusCode> {
+    state
+        .store
+        .contract(id)
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
+}
+
+async fn assert_contract(
+    State(state): State<AppState>,
+    Path((contract_id, interaction_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<AssertionResult>, StatusCode> {
+    let contract = state
+        .store
+        .contract(contract_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let interaction = state
+        .store
+        .find(interaction_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let assertion = assert_interaction(&contract, &interaction);
+    state.store.save_assertion(&assertion);
+    Ok(Json(assertion))
+}
+
+async fn get_assertion(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<AssertionResult>, StatusCode> {
+    state
+        .store
+        .assertion(id)
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
 async fn create_exposure(
