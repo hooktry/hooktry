@@ -242,11 +242,12 @@ async fn runtime_websocket(
     ws: WebSocketUpgrade,
 ) -> Result<Response, StatusCode> {
     let capability = bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
-    active_hosted_exposure(&state, exposure_id)?;
+    active_hosted_exposure(&state, exposure_id).await?;
 
     state
         .capabilities
-        .authorize(exposure_id, capability)
+        .authorize_async(exposure_id, capability)
+        .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let broker = state.broker.clone();
