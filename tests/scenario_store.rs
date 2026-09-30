@@ -13,6 +13,7 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         name: "payment webhook".into(),
         port: 3000,
         contract_ids: vec![Uuid::now_v7()],
+        expectations: Vec::new(),
         created_at: Utc::now(),
     };
     let run = ScenarioRun {
@@ -32,6 +33,10 @@ fn scenario_run_and_outcome_survive_database_reopen() {
         replayed_interaction_ids: Vec::new(),
         checks: vec![ScenarioCheckOutcome {
             contract_id: scenario.contract_ids[0],
+            cardinality: Default::default(),
+            candidate_interaction_ids: Vec::new(),
+            matched_interaction_ids: Vec::new(),
+            assertion_ids: Vec::new(),
             interaction_id: None,
             assertion_id: None,
             passed: false,
