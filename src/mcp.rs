@@ -100,6 +100,19 @@ fn tools() -> Vec<Value> {
                             "operation": {"type": "string"},
                             "request": {},
                             "response": {},
+                            "context": {
+                    "type": "object",
+                    "properties": {
+                        "trace_id": {"type": "string"},
+                        "parent_span_id": {"type": "string"},
+                        "request_id": {"type": "string"},
+                        "correlation_id": {"type": "string"},
+                        "causation_id": {"type": "string"},
+                        "message_id": {"type": "string"},
+                        "idempotency_key": {"type": "string"}
+                    },
+                    "additionalProperties": false
+                },
                             "count": {"type": "integer", "minimum": 0},
                             "min": {"type": "integer", "minimum": 0},
                             "max": {"type": "integer", "minimum": 0}
@@ -147,12 +160,25 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "contract_create",
-            "Create a persisted contract. operation, request, and response are optional subset matchers.",
+            "Create a persisted contract. operation, request, response, and normalized correlation context are optional subset matchers.",
             json!({
                 "name": {"type": "string"},
                 "operation": {},
                 "request": {},
-                "response": {}
+                "response": {},
+                "context": {
+                    "type": "object",
+                    "properties": {
+                        "trace_id": {"type": "string"},
+                        "parent_span_id": {"type": "string"},
+                        "request_id": {"type": "string"},
+                        "correlation_id": {"type": "string"},
+                        "causation_id": {"type": "string"},
+                        "message_id": {"type": "string"},
+                        "idempotency_key": {"type": "string"}
+                    },
+                    "additionalProperties": false
+                }
             }),
         ),
         tool(
@@ -309,7 +335,8 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
                 "name": name,
                 "operation": arguments.get("operation").cloned(),
                 "request": arguments.get("request").cloned(),
-                "response": arguments.get("response").cloned()
+                "response": arguments.get("response").cloned(),
+                "context": arguments.get("context").cloned()
             });
             api_json("POST", &format!("{base_url}/_ortyo/contracts"), Some(body)).await?
         }
