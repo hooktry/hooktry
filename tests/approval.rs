@@ -75,7 +75,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
     let executor_id = Uuid::now_v7();
-    let request = request(
+    let request = http_request(
         "https://api.example.com/v1/run?token=query-secret",
         "body-secret",
     );
@@ -107,7 +107,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     assert_eq!(approved.state, ApprovalState::Approved);
     assert_eq!(approved.decided_by_credential_id, Some(approver_id));
 
-    let changed = request(
+    let changed = http_request(
         "https://api.example.com/v1/run?token=query-secret",
         "different-body",
     );
@@ -174,7 +174,7 @@ fn denied_and_cross_workspace_approvals_fail_closed() {
     let store = ApprovalStore::default();
     let workspace_id = Uuid::now_v7();
     let other_workspace_id = Uuid::now_v7();
-    let request = request("https://api.example.com/v1/run", "body");
+    let request = http_request("https://api.example.com/v1/run", "body");
 
     let approval = store
         .create(workspace_id, Uuid::now_v7(), &request)
@@ -225,7 +225,7 @@ fn denied_and_cross_workspace_approvals_fail_closed() {
     );
 }
 
-fn request(url: &str, body: &str) -> HttpExecutionRequest {
+fn http_request(url: &str, body: &str) -> HttpExecutionRequest {
     let mut headers = BTreeMap::new();
     headers.insert("x-api-key".to_owned(), "header-secret".to_owned());
 
