@@ -204,6 +204,10 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
         proof.approval.consumed_by_credential_id,
         Some(agent_a.credential_id)
     );
+    assert_eq!(
+        proof.approval.execution_id,
+        Some(proof.execution.execution_id)
+    );
     assert_eq!(proof.execution.workspace_id, workspace_a.id);
     assert_eq!(
         proof.execution.outcome,
