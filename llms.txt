@@ -43,11 +43,11 @@ Use MCP when available because `tools/list` is the authoritative machine-readabl
 
 ## Approval-gated hosted execution
 
-For sensitive hosted actions, prefer the one-shot approval flow:
+For sensitive hosted actions, prefer the one-shot agent-native approval flow:
 
-`POST /_ortyo/hosted/approvals -> inspect -> approve/deny -> POST /_ortyo/hosted/approvals/{id}/execute`
+`approval_create -> approval_get -> approval_decide -> approval_execute -> execution_get`
 
-The asking/acting credential needs `requests:execute`. The deciding credential needs the separate `requests:approve` scope. Approval is bound to the exact canonical request digest, stores only a redacted summary, and is consumed before the outbound attempt. Never treat an approval ID as authorization for a modified request.
+The asking/acting/query credential comes from `ORTYO_TOKEN` and needs `requests:execute`. The deciding credential comes from the separate `ORTYO_APPROVER_TOKEN` and needs `requests:approve`. `approval_decide` never falls back to `ORTYO_TOKEN`. Neither credential is an MCP tool argument or CLI argument. Approval is bound to the exact canonical request digest, stores only a redacted summary, and is consumed before the outbound attempt. Never treat an approval ID as authorization for a modified request.
 
 ## Failure semantics
 
@@ -64,6 +64,7 @@ Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provid
 - Hosted execution and SecretRefs: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/hosted-execution.md
 - Execution lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/execution-lifecycle.md
 - Durable execution evidence: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/durable-execution-evidence.md
+- Agent approval/execution surface: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/agent-control-surface.md
 - Approval gate: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-gate.md
 - Service access / Exposure boundary: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/service-access.md
 - Runtime capabilities: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/runtime-capabilities.md
