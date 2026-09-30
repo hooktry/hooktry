@@ -34,9 +34,9 @@ async fn main() {
                 .await
                 .map(|_| 0)
         }
-        Command::Expose { name, port, verify } => expose(&cli.base_url, &name, port, verify)
-            .await
-            .map(|_| 0),
+        Command::Expose { name, port, verify } => {
+            expose(&cli.base_url, &name, port, verify).await.map(|_| 0)
+        }
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
         Command::ScenarioGet { id } => get_json(&format!("{}/_ortyo/scenarios/{id}", cli.base_url))
@@ -48,14 +48,12 @@ async fn main() {
                 .map(|_| 0)
         }
         Command::ScenarioComplete { id } => scenario_complete(&cli.base_url, id).await,
-        Command::ScenarioOutcome { id } => {
-            get_json(&format!(
-                "{}/_ortyo/scenario-runs/{id}/outcome",
-                cli.base_url
-            ))
-            .await
-            .map(|_| 0)
-        }
+        Command::ScenarioOutcome { id } => get_json(&format!(
+            "{}/_ortyo/scenario-runs/{id}/outcome",
+            cli.base_url
+        ))
+        .await
+        .map(|_| 0),
         Command::Assert {
             contract_id,
             interaction_id,
@@ -149,8 +147,8 @@ async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(
 }
 
 async fn scenario_create(base_url: &str, path: &str) -> Result<(), String> {
-    let content =
-        std::fs::read_to_string(path).map_err(|error| format!("read Scenario manifest: {error}"))?;
+    let content = std::fs::read_to_string(path)
+        .map_err(|error| format!("read Scenario manifest: {error}"))?;
     let manifest: ScenarioManifest = serde_json::from_str(&content)
         .map_err(|error| format!("parse Scenario manifest JSON: {error}"))?;
     let request: CreateScenario = manifest.into();
