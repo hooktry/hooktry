@@ -18,6 +18,8 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
         .clone()
         .oneshot(
             Request::post("/boundary/stripe/payment_intents")
+                .header("x-correlation-id", "checkout-42")
+                .header("idempotency-key", "payment-42")
                 .body(Body::from(r#"{"amount":4999}"#))
                 .unwrap(),
         )
@@ -47,7 +49,11 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
                         "name": "stripe success",
                         "operation": "POST /stripe/payment_intents",
                         "request": {"method": "POST"},
-                        "response": {"status": 200}
+                        "response": {"status": 200},
+                        "context": {
+                            "correlation_id": "checkout-42",
+                            "idempotency_key": "payment-42"
+                        }
                     })
                     .to_string(),
                 ))
