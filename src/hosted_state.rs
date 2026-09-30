@@ -11,6 +11,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HostedExposureRecord {
     pub exposure_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<Uuid>,
     pub name: String,
     pub target_port: u16,
     pub public_url: String,
@@ -63,13 +65,17 @@ impl HostedExposureStore {
             .batch_execute(
                 "CREATE TABLE IF NOT EXISTS hosted_exposures (
                     exposure_id TEXT PRIMARY KEY,
+                    workspace_id TEXT,
                     name TEXT NOT NULL,
                     target_port INTEGER NOT NULL,
                     public_url TEXT NOT NULL,
                     runtime_url TEXT NOT NULL,
                     capability_expires_at BIGINT NOT NULL,
                     revoked BOOLEAN NOT NULL DEFAULT FALSE
-                );",
+                );
+                ALTER TABLE hosted_exposures ADD COLUMN IF NOT EXISTS workspace_id TEXT;
+                CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
+                    ON hosted_exposures(workspace_id);",
             )
             .map_err(|error| HostedStateError::Storage(error.to_string()))?;
 
@@ -83,15 +89,53 @@ impl HostedExposureStore {
             .execute_batch(
                 "CREATE TABLE IF NOT EXISTS hosted_exposures (
                     exposure_id TEXT PRIMARY KEY,
+                    workspace_id TEXT,
                     name TEXT NOT NULL,
                     target_port INTEGER NOT NULL,
                     public_url TEXT NOT NULL,
                     runtime_url TEXT NOT NULL,
                     capability_expires_at INTEGER NOT NULL,
                     revoked INTEGER NOT NULL DEFAULT 0
-                );",
+                );
+                CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
+                    ON hosted_exposures(workspace_id);",
             )
             .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+
+        let has_workspace_id = {
+            let mut statement = connection
+                .prepare("PRAGMA table_info(hosted_exposures)")
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+            let mut rows = statement
+                .query([])
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+            let mut found = false;
+            while let Some(row) = rows
+                .next()
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?
+            {
+                let name: String = row
+                    .get(1)
+                    .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                if name == "workspace_id" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_workspace_id {
+            connection
+                .execute("ALTER TABLE hosted_exposures ADD COLUMN workspace_id TEXT", [])
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+            connection
+                .execute(
+                    "CREATE INDEX IF NOT EXISTS hosted_exposures_workspace
+                     ON hosted_exposures(workspace_id)",
+                    [],
+                )
+                .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+        }
 
         Ok(Self {
             backend: HostedExposureBackend::Sqlite(Arc::new(Mutex::new(connection))),
@@ -134,11 +178,12 @@ impl HostedExposureStore {
                     .expect("hosted exposure store poisoned")
                     .execute(
                         "INSERT INTO hosted_exposures
-                            (exposure_id, name, target_port, public_url, runtime_url,
+                            (exposure_id, workspace_id, name, target_port, public_url, runtime_url,
                              capability_expires_at, revoked)
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                         params![
                             record.exposure_id.to_string(),
+                            record.workspace_id.map(|id| id.to_string()),
                             &record.name,
                             i64::from(record.target_port),
                             &record.public_url,
@@ -157,11 +202,12 @@ impl HostedExposureStore {
                     .expect("hosted exposure store poisoned")
                     .execute(
                         "INSERT INTO hosted_exposures
-                            (exposure_id, name, target_port, public_url, runtime_url,
+                            (exposure_id, workspace_id, name, target_port, public_url, runtime_url,
                              capability_expires_at, revoked)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
                         &[
                             &exposure_id,
+                            &record.workspace_id.map(|id| id.to_string()),
                             &record.name,
                             &target_port,
                             &record.public_url,
@@ -183,19 +229,21 @@ impl HostedExposureStore {
                     .lock()
                     .expect("hosted exposure store poisoned")
                     .query_row(
-                        "SELECT name, target_port, public_url, runtime_url,
+                        "SELECT workspace_id, name, target_port, public_url, runtime_url,
                                 capability_expires_at, revoked
                          FROM hosted_exposures
                          WHERE exposure_id = ?1",
                         [exposure_id.to_string()],
                         |row| {
-                            let name: String = row.get(0)?;
-                            let target_port: i64 = row.get(1)?;
-                            let public_url: String = row.get(2)?;
-                            let runtime_url: String = row.get(3)?;
-                            let capability_expires_at: i64 = row.get(4)?;
-                            let revoked: bool = row.get(5)?;
+                            let workspace_id: Option<String> = row.get(0)?;
+                            let name: String = row.get(1)?;
+                            let target_port: i64 = row.get(2)?;
+                            let public_url: String = row.get(3)?;
+                            let runtime_url: String = row.get(4)?;
+                            let capability_expires_at: i64 = row.get(5)?;
+                            let revoked: bool = row.get(6)?;
                             Ok((
+                                workspace_id,
                                 name,
                                 target_port,
                                 public_url,
@@ -217,7 +265,7 @@ impl HostedExposureStore {
                     .lock()
                     .expect("hosted exposure store poisoned")
                     .query_opt(
-                        "SELECT name, target_port, public_url, runtime_url,
+                        "SELECT workspace_id, name, target_port, public_url, runtime_url,
                                 capability_expires_at, revoked
                          FROM hosted_exposures
                          WHERE exposure_id = $1",
@@ -229,16 +277,116 @@ impl HostedExposureStore {
                     hosted_record_from_raw(
                         exposure_id,
                         (
-                            row.get::<_, String>(0),
-                            i64::from(row.get::<_, i32>(1)),
-                            row.get::<_, String>(2),
+                            row.get::<_, Option<String>>(0),
+                            row.get::<_, String>(1),
+                            i64::from(row.get::<_, i32>(2)),
                             row.get::<_, String>(3),
-                            row.get::<_, i64>(4),
-                            row.get::<_, bool>(5),
+                            row.get::<_, String>(4),
+                            row.get::<_, i64>(5),
+                            row.get::<_, bool>(6),
                         ),
                     )
                 })
                 .transpose()
+            }
+        }
+    }
+
+    pub async fn list_for_workspace_async(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<HostedExposureRecord>, HostedStateError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.list_for_workspace(workspace_id))
+            .await
+            .map_err(|error| HostedStateError::Storage(error.to_string()))?
+    }
+
+    pub fn list_for_workspace(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<HostedExposureRecord>, HostedStateError> {
+        let workspace_id_text = workspace_id.to_string();
+        match &self.backend {
+            HostedExposureBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("hosted exposure store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT exposure_id, workspace_id, name, target_port, public_url, runtime_url,
+                                capability_expires_at, revoked
+                         FROM hosted_exposures
+                         WHERE workspace_id = ?1
+                         ORDER BY exposure_id",
+                    )
+                    .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map([&workspace_id_text], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, Option<String>>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, i64>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, String>(5)?,
+                            row.get::<_, i64>(6)?,
+                            row.get::<_, bool>(7)?,
+                        ))
+                    })
+                    .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                rows.map(|row| {
+                    let (exposure_id, workspace_id, name, target_port, public_url, runtime_url, expires_at, revoked) =
+                        row.map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                    let exposure_id = exposure_id.parse().map_err(|error| {
+                        HostedStateError::InvalidRecord(format!("invalid exposure id: {error}"))
+                    })?;
+                    hosted_record_from_raw(
+                        exposure_id,
+                        (
+                            workspace_id,
+                            name,
+                            target_port,
+                            public_url,
+                            runtime_url,
+                            expires_at,
+                            revoked,
+                        ),
+                    )
+                })
+                .collect()
+            }
+            HostedExposureBackend::Postgres(client) => {
+                let rows = client
+                    .lock()
+                    .expect("hosted exposure store poisoned")
+                    .query(
+                        "SELECT exposure_id, workspace_id, name, target_port, public_url, runtime_url,
+                                capability_expires_at, revoked
+                         FROM hosted_exposures
+                         WHERE workspace_id = $1
+                         ORDER BY exposure_id",
+                        &[&workspace_id_text],
+                    )
+                    .map_err(|error| HostedStateError::Storage(error.to_string()))?;
+                rows.into_iter()
+                    .map(|row| {
+                        let exposure_id: String = row.get(0);
+                        let exposure_id = exposure_id.parse().map_err(|error| {
+                            HostedStateError::InvalidRecord(format!("invalid exposure id: {error}"))
+                        })?;
+                        hosted_record_from_raw(
+                            exposure_id,
+                            (
+                                row.get::<_, Option<String>>(1),
+                                row.get::<_, String>(2),
+                                i64::from(row.get::<_, i32>(3)),
+                                row.get::<_, String>(4),
+                                row.get::<_, String>(5),
+                                row.get::<_, i64>(6),
+                                row.get::<_, bool>(7),
+                            ),
+                        )
+                    })
+                    .collect()
             }
         }
     }
@@ -275,17 +423,26 @@ impl HostedExposureStore {
 
 fn hosted_record_from_raw(
     exposure_id: Uuid,
-    (name, target_port, public_url, runtime_url, capability_expires_at, revoked): (
-        String,
-        i64,
-        String,
-        String,
-        i64,
-        bool,
-    ),
+    (
+        workspace_id,
+        name,
+        target_port,
+        public_url,
+        runtime_url,
+        capability_expires_at,
+        revoked,
+    ): (Option<String>, String, i64, String, String, i64, bool),
 ) -> Result<HostedExposureRecord, HostedStateError> {
+    let workspace_id = workspace_id
+        .map(|id| {
+            id.parse()
+                .map_err(|error| HostedStateError::InvalidRecord(format!("invalid workspace id: {error}")))
+        })
+        .transpose()?;
+
     Ok(HostedExposureRecord {
         exposure_id,
+        workspace_id,
         name,
         target_port: u16::try_from(target_port)
             .map_err(|error| HostedStateError::InvalidRecord(error.to_string()))?,
