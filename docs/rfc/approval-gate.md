@@ -47,12 +47,22 @@ scope: requests:execute
 body: HttpExecutionRequest
 ```
 
-Inspect an approval:
+Inspect an approver inbox:
+
+```text
+GET /_ortyo/hosted/approvals
+scope: requests:approve
+returns: pending approvals for the caller's Workspace
+```
+
+Inspect one approval:
 
 ```text
 GET /_ortyo/hosted/approvals/{approval_id}
 scope: requests:execute OR requests:approve
 ```
+
+The pending inbox is defined by CONTROL2 in [approval-inbox.md](./approval-inbox.md).
 
 Decide:
 
