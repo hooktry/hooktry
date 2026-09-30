@@ -65,7 +65,11 @@ async fn captures_secret_and_redacts_evidence() {
             .unwrap(),
         "ortyo_super_secret"
     );
-    assert!(!serde_json::to_string(&result).unwrap().contains("ortyo_super_secret"));
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("ortyo_super_secret")
+    );
 }
 
 #[tokio::test]
@@ -113,9 +117,7 @@ async fn resolves_secret_header_without_returning_secret() {
 
     let workspace_id = Uuid::now_v7();
     let secrets = SecretStore::default();
-    secrets
-        .put(workspace_id, "auth", "Bearer hidden")
-        .unwrap();
+    secrets.put(workspace_id, "auth", "Bearer hidden").unwrap();
     let provider = HttpExecutionProvider::new(secrets);
     let mut secret_headers = BTreeMap::new();
     secret_headers.insert("authorization".to_owned(), "auth".to_owned());
