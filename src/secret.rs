@@ -203,6 +203,24 @@ impl SecretStore {
         self.decrypt_secret(workspace_id, name, &secret)
     }
 
+    pub fn resolve_legacy_for_origin(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        destination_origin: &str,
+    ) -> Result<String, SecretError> {
+        let destination_origin = normalize_http_origin(destination_origin)?;
+        let secret = self
+            .find(workspace_id, name)?
+            .ok_or(SecretError::NotFound)?;
+        if let Some(allowed_origin) = secret.reference.allowed_origin.as_deref()
+            && allowed_origin != destination_origin
+        {
+            return Err(SecretError::DestinationDenied);
+        }
+        self.decrypt_secret(workspace_id, name, &secret)
+    }
+
     pub fn bind_origin(
         &self,
         workspace_id: Uuid,
@@ -282,6 +300,20 @@ impl SecretStore {
         })
         .await
         .map_err(|error| SecretError::Storage(format!("join bound secret resolve: {error}")))?
+    }
+
+    pub async fn resolve_legacy_for_origin_async(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        destination_origin: String,
+    ) -> Result<String, SecretError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.resolve_legacy_for_origin(workspace_id, &name, &destination_origin)
+        })
+        .await
+        .map_err(|error| SecretError::Storage(format!("join legacy secret resolve: {error}")))?
     }
 
     pub fn get_ref(&self, workspace_id: Uuid, name: &str) -> Option<SecretRef> {
