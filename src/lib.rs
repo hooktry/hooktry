@@ -5,6 +5,7 @@ pub mod context;
 pub mod contract;
 pub mod domain;
 pub mod execution;
+pub mod execution_store;
 pub mod exposure;
 pub mod hosted;
 pub mod hosted_identity;

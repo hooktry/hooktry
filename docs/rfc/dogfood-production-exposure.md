@@ -106,9 +106,10 @@ The startup acceptance performs:
 5. act - resubmit the exact approved `/healthz` request
 6. prove - require a consumed ApprovalRecord and successful EXEC4 ExecutionRecord
 7. correlate - require `approval.execution_id == execution.execution_id`
-8. replay proof - reuse the consumed approval and require `approval_consumed`
+8. durable query - fetch `/_ortyo/hosted/executions/{execution_id}` and require its terminal projection to equal the immediate execution proof
+9. replay proof - reuse the consumed approval and require `approval_consumed`
 
-The ask step uses a bounded readiness retry because Render can start the new process before the public URL has switched to the new revision.
+Before the control-plane proof begins, ORTYO waits until public `/healthz.revision` matches the current `RENDER_GIT_COMMIT`. The ask step still has a bounded readiness retry. Together these prevent a Render rolling cutover from accidentally proving an older revision.
 
 The proof never resolves the API token into logs, generated evidence, or agent context. Every outer control request materializes the operator credential from its destination-bound SecretRef only inside `HttpExecutionProvider`.
 

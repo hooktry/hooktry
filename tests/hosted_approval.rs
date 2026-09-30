@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use ortyo::{
     approval::{ApprovalDecision, ApprovalRecord, ApprovalState},
     execution::{ExecutionError, ExecutionOutcome, HttpExecutionRequest},
+    execution_store::{DurableExecutionRecord, DurableExecutionState},
     hosted::{ApprovedExecution, HostedRelayState, hosted_relay_app},
     hosted_identity::{ApiScope, IssuedApiCredential, Workspace},
     relay::RelayBroker,
@@ -215,6 +216,34 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
             error: ExecutionError::UnsafeDestination
         }
     );
+
+    let durable: DurableExecutionRecord = client
+        .get(format!(
+            "http://{addr}/_ortyo/hosted/executions/{}",
+            proof.execution.execution_id
+        ))
+        .bearer_auth(&agent_a.token)
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(durable.state, DurableExecutionState::Completed);
+    assert_eq!(durable.terminal_record(), Some(proof.execution.clone()));
+
+    let hidden_execution = client
+        .get(format!(
+            "http://{addr}/_ortyo/hosted/executions/{}",
+            proof.execution.execution_id
+        ))
+        .bearer_auth(&agent_b.token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(hidden_execution.status(), reqwest::StatusCode::NOT_FOUND);
 
     let replay = client
         .post(format!(

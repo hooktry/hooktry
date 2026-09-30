@@ -15,6 +15,7 @@ use crate::{
     execution::{
         ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
     },
+    execution_store::{DurableExecutionState, ExecutionStore},
     hosted::{ApprovedExecution, HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::{HostedExposureRecord, HostedExposureStore},
@@ -151,7 +152,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .port();
     let local_runtime_base_url = format!("ws://127.0.0.1:{local_port}");
 
-    let (capabilities, exposures, identities, secrets, approvals, storage) =
+    let (capabilities, exposures, identities, secrets, approvals, executions, storage) =
         open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
@@ -174,7 +175,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         config.public_base_url.clone(),
         &config.control_token,
     )
-    .with_approval_store(approvals);
+    .with_approval_store(approvals)
+    .with_execution_store(executions);
 
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
@@ -191,6 +193,17 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
                     "{}",
                     json!({
                         "event": "dogfood_data_plane_failed",
+                        "error": error
+                    })
+                );
+                return;
+            }
+
+            if let Err(error) = wait_for_public_revision(&dogfood_state).await {
+                eprintln!(
+                    "{}",
+                    json!({
+                        "event": "dogfood_control_plane_failed",
                         "error": error
                     })
                 );
@@ -236,6 +249,7 @@ async fn open_hosted_stores(
         HostedIdentityStore,
         SecretStore,
         ApprovalStore,
+        ExecutionStore,
         &'static str,
     ),
     String,
@@ -254,12 +268,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
             let approvals = ApprovalStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
+            let executions = ExecutionStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres execution store: {error:?}"))?;
             Ok((
                 capabilities,
                 exposures,
                 identities,
                 secrets,
                 approvals,
+                executions,
                 "postgres",
             ))
         })
@@ -279,12 +296,15 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
             let approvals = ApprovalStore::open(&db_path)
                 .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
+            let executions = ExecutionStore::open(&db_path)
+                .map_err(|error| format!("open SQLite execution store: {error:?}"))?;
             Ok((
                 capabilities,
                 exposures,
                 identities,
                 secrets,
                 approvals,
+                executions,
                 "sqlite",
             ))
         })
@@ -429,8 +449,10 @@ async fn run_dogfood_approval_gate(
                 workspace_id,
                 "POST",
                 "/_ortyo/hosted/approvals",
-                serde_json::to_value(&inner_request)
-                    .map_err(|error| format!("serialize dogfood approval request: {error}"))?,
+                Some(
+                    serde_json::to_value(&inner_request)
+                        .map_err(|error| format!("serialize dogfood approval request: {error}"))?,
+                ),
             )
             .await?;
 
@@ -476,7 +498,7 @@ async fn run_dogfood_approval_gate(
         workspace_id,
         "POST",
         &format!("/_ortyo/hosted/approvals/{}/decision", approval.approval_id),
-        json!({"decision": "approve"}),
+        Some(json!({"decision": "approve"})),
     )
     .await?;
     if decision.status != 200 {
@@ -501,8 +523,10 @@ async fn run_dogfood_approval_gate(
         workspace_id,
         "POST",
         &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
-        serde_json::to_value(mismatched)
-            .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
+        Some(
+            serde_json::to_value(mismatched)
+                .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
+        ),
     )
     .await?;
     if mismatch.status != 409 || mismatch.body["error"]["code"] != "approval_request_mismatch" {
@@ -517,8 +541,10 @@ async fn run_dogfood_approval_gate(
         workspace_id,
         "POST",
         &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
-        serde_json::to_value(&inner_request)
-            .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
+        Some(
+            serde_json::to_value(&inner_request)
+                .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
+        ),
     )
     .await?;
     if act.status != 200 {
@@ -553,13 +579,40 @@ async fn run_dogfood_approval_gate(
         }
     };
 
+    let durable = execute_dogfood_control_request(
+        state,
+        workspace_id,
+        "GET",
+        &format!("/_ortyo/hosted/executions/{}", proof.execution.execution_id),
+        None,
+    )
+    .await?;
+    if durable.status != 200 {
+        return Err(format!(
+            "dogfood durable execution query returned HTTP {}: {}",
+            durable.status, durable.body
+        ));
+    }
+    let durable: crate::execution_store::DurableExecutionRecord =
+        serde_json::from_value(durable.body)
+            .map_err(|error| format!("parse dogfood durable execution: {error}"))?;
+    if durable.state != DurableExecutionState::Completed
+        || durable.execution_id != proof.execution.execution_id
+        || durable.workspace_id != workspace_id
+        || durable.terminal_record() != Some(proof.execution.clone())
+    {
+        return Err("dogfood durable execution did not match immediate proof".to_owned());
+    }
+
     let replay = execute_dogfood_control_request(
         state,
         workspace_id,
         "POST",
         &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
-        serde_json::to_value(&inner_request)
-            .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
+        Some(
+            serde_json::to_value(&inner_request)
+                .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
+        ),
     )
     .await?;
     if replay.status != 409 || replay.body["error"]["code"] != "approval_consumed" {
@@ -588,7 +641,7 @@ async fn execute_dogfood_control_request(
     workspace_id: Uuid,
     method: &str,
     path: &str,
-    body: serde_json::Value,
+    body: Option<serde_json::Value>,
 ) -> Result<crate::execution::ExecutionEvidence, String> {
     let mut secret_headers = BTreeMap::new();
     secret_headers.insert(
@@ -608,7 +661,7 @@ async fn execute_dogfood_control_request(
                 method: method.to_owned(),
                 url: format!("{}{}", state.public_base_url, path),
                 headers: BTreeMap::new(),
-                body: Some(body),
+                body,
                 secret_headers,
                 capture: vec![],
                 timeout_ms: 5_000,
@@ -616,6 +669,38 @@ async fn execute_dogfood_control_request(
         )
         .await
         .map_err(|error| format!("dogfood control request failed: {error:?}"))
+}
+
+async fn wait_for_public_revision(state: &HostedRelayState) -> Result<(), String> {
+    const ATTEMPTS: usize = 60;
+    let Some(expected) = render_revision() else {
+        return Ok(());
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(3))
+        .build()
+        .map_err(|error| format!("build public revision client: {error}"))?;
+
+    for attempt in 0..ATTEMPTS {
+        if let Ok(response) = client
+            .get(format!("{}/healthz", state.public_base_url))
+            .send()
+            .await
+            && response.status().is_success()
+            && let Ok(body) = response.json::<serde_json::Value>().await
+            && body["revision"].as_str() == Some(expected.as_str())
+        {
+            return Ok(());
+        }
+        if attempt + 1 < ATTEMPTS {
+            sleep(Duration::from_secs(1)).await;
+        }
+    }
+
+    Err(format!(
+        "public revision did not converge to deployment {expected}"
+    ))
 }
 
 async fn provision_dogfood_exposure(

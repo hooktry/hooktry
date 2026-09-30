@@ -15,9 +15,10 @@ use crate::{
     approval::{ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
     execution::{
-        ExecutionError, ExecutionEvidence, ExecutionRecord, HttpExecutionProvider,
-        HttpExecutionRequest,
+        ExecutionError, ExecutionEvidence, ExecutionProviderKind, ExecutionRecord,
+        HttpExecutionProvider, HttpExecutionRequest,
     },
+    execution_store::{DurableExecutionRecord, ExecutionStore, ExecutionStoreError},
     hosted_identity::{
         ApiAuthorization, ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential,
         Workspace,
@@ -42,6 +43,7 @@ pub struct HostedRelayState {
     pub exposures: HostedExposureStore,
     pub executor: HttpExecutionProvider,
     pub approvals: ApprovalStore,
+    pub executions: ExecutionStore,
     control_token_digest: [u8; 32],
 }
 
@@ -66,6 +68,7 @@ impl HostedRelayState {
             exposures: HostedExposureStore::default(),
             executor: HttpExecutionProvider::new(SecretStore::default()),
             approvals: ApprovalStore::default(),
+            executions: ExecutionStore::default(),
             control_token_digest: token_digest(control_token),
         }
     }
@@ -125,12 +128,18 @@ impl HostedRelayState {
             exposures,
             executor: HttpExecutionProvider::new(secrets),
             approvals: ApprovalStore::default(),
+            executions: ExecutionStore::default(),
             control_token_digest: token_digest(control_token),
         }
     }
 
     pub fn with_approval_store(mut self, approvals: ApprovalStore) -> Self {
         self.approvals = approvals;
+        self
+    }
+
+    pub fn with_execution_store(mut self, executions: ExecutionStore) -> Self {
+        self.executions = executions;
         self
     }
 }
@@ -201,11 +210,21 @@ pub struct ProvisionedExposure {
 struct HostedApiError {
     status: StatusCode,
     code: &'static str,
+    execution_id: Option<Uuid>,
 }
 
 impl HostedApiError {
     fn new(status: StatusCode, code: &'static str) -> Self {
-        Self { status, code }
+        Self {
+            status,
+            code,
+            execution_id: None,
+        }
+    }
+
+    fn with_execution_id(mut self, execution_id: Uuid) -> Self {
+        self.execution_id = Some(execution_id);
+        self
     }
 
     fn unauthorized() -> Self {
@@ -227,12 +246,16 @@ impl HostedApiError {
 
 impl IntoResponse for HostedApiError {
     fn into_response(self) -> Response {
+        let mut error = serde_json::json!({
+            "code": self.code
+        });
+        if let Some(execution_id) = self.execution_id {
+            error["execution_id"] = serde_json::json!(execution_id);
+        }
         (
             self.status,
             Json(serde_json::json!({
-                "error": {
-                    "code": self.code
-                }
+                "error": error
             })),
         )
             .into_response()
@@ -254,6 +277,10 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             post(issue_credential),
         )
         .route("/_ortyo/hosted/execute", post(execute_http))
+        .route(
+            "/_ortyo/hosted/executions/{execution_id}",
+            get(get_execution),
+        )
         .route("/_ortyo/hosted/approvals", post(create_approval))
         .route("/_ortyo/hosted/approvals/{approval_id}", get(get_approval))
         .route(
@@ -405,7 +432,17 @@ async fn execute_approved(
 ) -> Result<Json<ApprovedExecution>, HostedApiError> {
     let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
     let execution_id = Uuid::now_v7();
-    let approval = state
+    let reserved = state
+        .executions
+        .reserve_async(
+            authorization.workspace_id,
+            execution_id,
+            ExecutionProviderKind::Http,
+        )
+        .await
+        .map_err(execution_store_error)?;
+
+    let approval = match state
         .approvals
         .consume_async(
             authorization.workspace_id,
@@ -415,12 +452,31 @@ async fn execute_approved(
             request.clone(),
         )
         .await
-        .map_err(approval_error)?;
+    {
+        Ok(approval) => approval,
+        Err(error) => {
+            let _ = state
+                .executions
+                .discard_started_async(authorization.workspace_id, execution_id)
+                .await;
+            return Err(approval_error(error));
+        }
+    };
 
     let execution = state
         .executor
-        .execute_recorded_with_id(authorization.workspace_id, request, execution_id)
+        .execute_recorded_with_envelope(
+            authorization.workspace_id,
+            request,
+            execution_id,
+            reserved.started_at_unix_ms,
+        )
         .await;
+    state
+        .executions
+        .complete_async(execution.clone())
+        .await
+        .map_err(execution_store_error)?;
 
     Ok(Json(ApprovedExecution {
         approval,
@@ -434,12 +490,58 @@ async fn execute_http(
     Json(request): Json<HttpExecutionRequest>,
 ) -> Result<(StatusCode, Json<ExecutionEvidence>), HostedApiError> {
     let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
-    let evidence = state
-        .executor
-        .execute(authorization.workspace_id, request)
+    let execution_id = Uuid::now_v7();
+    let reserved = state
+        .executions
+        .reserve_async(
+            authorization.workspace_id,
+            execution_id,
+            ExecutionProviderKind::Http,
+        )
         .await
-        .map_err(execution_error)?;
+        .map_err(execution_store_error)?;
+    let execution = state
+        .executor
+        .execute_recorded_with_envelope(
+            authorization.workspace_id,
+            request,
+            execution_id,
+            reserved.started_at_unix_ms,
+        )
+        .await;
+    state
+        .executions
+        .complete_async(execution.clone())
+        .await
+        .map_err(execution_store_error)?;
+    let evidence = execution
+        .into_result()
+        .map_err(|error| execution_error(error).with_execution_id(execution_id))?;
     Ok((StatusCode::OK, Json(evidence)))
+}
+
+async fn get_execution(
+    State(state): State<HostedRelayState>,
+    Path(execution_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<Json<DurableExecutionRecord>, HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let execution = state
+        .executions
+        .get_async(authorization.workspace_id, execution_id)
+        .await
+        .map_err(execution_store_error)?
+        .ok_or_else(HostedApiError::not_found)?;
+    Ok(Json(execution))
+}
+
+fn execution_store_error(error: ExecutionStoreError) -> HostedApiError {
+    match error {
+        ExecutionStoreError::NotFound => HostedApiError::not_found(),
+        ExecutionStoreError::AlreadyCompleted
+        | ExecutionStoreError::InvalidRecord(_)
+        | ExecutionStoreError::Storage(_) => HostedApiError::internal(),
+    }
 }
 
 fn execution_error(error: ExecutionError) -> HostedApiError {

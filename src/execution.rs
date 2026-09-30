@@ -105,7 +105,7 @@ pub struct ExecutionRecord {
 }
 
 impl ExecutionRecord {
-    fn into_result(self) -> Result<ExecutionEvidence, ExecutionError> {
+    pub(crate) fn into_result(self) -> Result<ExecutionEvidence, ExecutionError> {
         match self.outcome {
             ExecutionOutcome::Succeeded { evidence } => Ok(evidence),
             ExecutionOutcome::Rejected { error } | ExecutionOutcome::Failed { error } => Err(error),
@@ -174,14 +174,21 @@ impl HttpExecutionProvider {
         .await
     }
 
-    pub(crate) async fn execute_recorded_with_id(
+    pub(crate) async fn execute_recorded_with_envelope(
         &self,
         workspace_id: Uuid,
         request: HttpExecutionRequest,
         execution_id: Uuid,
+        started_at_unix_ms: u64,
     ) -> ExecutionRecord {
-        self.execute_recorded_inner_with_id(workspace_id, request, true, execution_id)
-            .await
+        self.execute_recorded_inner_with_envelope(
+            workspace_id,
+            request,
+            true,
+            execution_id,
+            started_at_unix_ms,
+        )
+        .await
     }
 
     async fn execute_recorded_inner_with_id(
@@ -191,7 +198,24 @@ impl HttpExecutionProvider {
         enforce_public_destination: bool,
         execution_id: Uuid,
     ) -> ExecutionRecord {
-        let started_at_unix_ms = unix_time_ms();
+        self.execute_recorded_inner_with_envelope(
+            workspace_id,
+            request,
+            enforce_public_destination,
+            execution_id,
+            unix_time_ms(),
+        )
+        .await
+    }
+
+    async fn execute_recorded_inner_with_envelope(
+        &self,
+        workspace_id: Uuid,
+        request: HttpExecutionRequest,
+        enforce_public_destination: bool,
+        execution_id: Uuid,
+        started_at_unix_ms: u64,
+    ) -> ExecutionRecord {
         let outcome = match self
             .execute_inner(
                 workspace_id,
