@@ -54,8 +54,8 @@ impl Default for CapabilityStore {
 
 impl CapabilityStore {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CapabilityError> {
-        let connection = Connection::open(path)
-            .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+        let connection =
+            Connection::open(path).map_err(|error| CapabilityError::Storage(error.to_string()))?;
         connection
             .execute_batch(
                 "CREATE TABLE IF NOT EXISTS runtime_capabilities (
@@ -138,11 +138,7 @@ impl CapabilityStore {
         }
     }
 
-    fn insert(
-        &self,
-        digest: [u8; 32],
-        record: &CapabilityRecord,
-    ) -> Result<(), CapabilityError> {
+    fn insert(&self, digest: [u8; 32], record: &CapabilityRecord) -> Result<(), CapabilityError> {
         match &self.backend {
             CapabilityBackend::Memory(inner) => {
                 inner
@@ -197,15 +193,13 @@ impl CapabilityStore {
                 .optional()
                 .map_err(|error| CapabilityError::Storage(error.to_string()))?
                 .map(|(exposure_id, expires_at, revoked)| {
-                    let exposure_id = exposure_id
-                        .parse()
-                        .map_err(|error| CapabilityError::Storage(format!("invalid exposure id: {error}")))?;
+                    let exposure_id = exposure_id.parse().map_err(|error| {
+                        CapabilityError::Storage(format!("invalid exposure id: {error}"))
+                    })?;
                     let expires_at = UNIX_EPOCH
-                        + Duration::from_secs(
-                            u64::try_from(expires_at).map_err(|error| {
-                                CapabilityError::Storage(format!("invalid capability expiry: {error}"))
-                            })?,
-                        );
+                        + Duration::from_secs(u64::try_from(expires_at).map_err(|error| {
+                            CapabilityError::Storage(format!("invalid capability expiry: {error}"))
+                        })?);
                     Ok(CapabilityRecord {
                         exposure_id,
                         expires_at,
