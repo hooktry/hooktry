@@ -1,9 +1,4 @@
-use axum::{
-    Json, Router,
-    body::Bytes,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
 use ortyo::{
     domain::{ExposureAccess, ExposureMode, Origin},
     http::{AppState, proxy_relay_request},
