@@ -212,11 +212,21 @@ pub struct ProvisionedExposure {
 struct HostedApiError {
     status: StatusCode,
     code: &'static str,
+    execution_id: Option<Uuid>,
 }
 
 impl HostedApiError {
     fn new(status: StatusCode, code: &'static str) -> Self {
-        Self { status, code }
+        Self {
+            status,
+            code,
+            execution_id: None,
+        }
+    }
+
+    fn with_execution_id(mut self, execution_id: Uuid) -> Self {
+        self.execution_id = Some(execution_id);
+        self
     }
 
     fn unauthorized() -> Self {
@@ -238,12 +248,16 @@ impl HostedApiError {
 
 impl IntoResponse for HostedApiError {
     fn into_response(self) -> Response {
+        let mut error = serde_json::json!({
+            "code": self.code
+        });
+        if let Some(execution_id) = self.execution_id {
+            error["execution_id"] = serde_json::json!(execution_id);
+        }
         (
             self.status,
             Json(serde_json::json!({
-                "error": {
-                    "code": self.code
-                }
+                "error": error
             })),
         )
             .into_response()
@@ -502,7 +516,9 @@ async fn execute_http(
         .complete_async(execution.clone())
         .await
         .map_err(execution_store_error)?;
-    let evidence = execution.into_result().map_err(execution_error)?;
+    let evidence = execution
+        .into_result()
+        .map_err(|error| execution_error(error).with_execution_id(execution_id))?;
     Ok((StatusCode::OK, Json(evidence)))
 }
 
