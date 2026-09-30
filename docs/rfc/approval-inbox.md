@@ -121,11 +121,11 @@ The proof checks membership of the newly-created approval rather than requiring 
 
 ## Notification boundary
 
-The inbox is the durable source of truth for future human notifications.
+The inbox remains the durable source of truth for human decision state.
 
-Telegram, Slack, email, webhook, or other notification providers should notify that an approval exists and point back to this durable record. Provider delivery state must not become approval state.
+CONTROL3 adds a transactional `approval_requested` outbox intent in the same database commit as each new pending ApprovalRecord. Telegram, Slack, email, webhook, or other providers must consume that durable intent rather than fire-and-forget from approval creation.
 
-CONTROL2 deliberately does not add notification providers yet.
+Provider delivery state must not become approval state. See [approval-notification-outbox.md](./approval-notification-outbox.md).
 
 ## Out of scope
 
