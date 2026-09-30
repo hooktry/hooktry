@@ -1,3 +1,4 @@
+pub mod mcp;
 pub mod cli;
 pub mod contract;
 pub mod domain;
