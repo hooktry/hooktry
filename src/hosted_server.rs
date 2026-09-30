@@ -13,8 +13,7 @@ use crate::{
     approval::{ApprovalRecord, ApprovalState, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
     execution::{
-        ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture,
-        SecretHeaderBinding,
+        ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
     },
     hosted::{ApprovedExecution, HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_identity::{HostedIdentityStore, IdentityError},
@@ -179,14 +178,13 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
         tokio::spawn(async move {
-            if let Err(error) =
-                run_dogfood_exposure(
-                    &dogfood_state,
-                    workspace_id,
-                    dogfood,
-                    local_runtime_base_url,
-                )
-                .await
+            if let Err(error) = run_dogfood_exposure(
+                &dogfood_state,
+                workspace_id,
+                dogfood,
+                local_runtime_base_url,
+            )
+            .await
             {
                 eprintln!(
                     "{}",
@@ -467,17 +465,16 @@ async fn run_dogfood_approval_gate(
         || !approval.summary.header_names.is_empty()
         || !approval.summary.secret_header_names.is_empty()
     {
-        return Err("dogfood approval summary was not the expected redacted health action".to_owned());
+        return Err(
+            "dogfood approval summary was not the expected redacted health action".to_owned(),
+        );
     }
 
     let decision = execute_dogfood_control_request(
         state,
         workspace_id,
         "POST",
-        &format!(
-            "/_ortyo/hosted/approvals/{}/decision",
-            approval.approval_id
-        ),
+        &format!("/_ortyo/hosted/approvals/{}/decision", approval.approval_id),
         json!({"decision": "approve"}),
     )
     .await?;
@@ -502,10 +499,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!(
-            "/_ortyo/hosted/approvals/{}/execute",
-            approval.approval_id
-        ),
+        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
         serde_json::to_value(mismatched)
             .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
     )
@@ -521,10 +515,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!(
-            "/_ortyo/hosted/approvals/{}/execute",
-            approval.approval_id
-        ),
+        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
         serde_json::to_value(&inner_request)
             .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
     )
@@ -559,10 +550,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!(
-            "/_ortyo/hosted/approvals/{}/execute",
-            approval.approval_id
-        ),
+        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
         serde_json::to_value(&inner_request)
             .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
     )
