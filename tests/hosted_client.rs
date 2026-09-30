@@ -10,9 +10,7 @@ use axum::{
     routing::{get, post},
 };
 use ortyo::{
-    approval::ApprovalDecision,
-    execution::HttpExecutionRequest,
-    hosted_client::HostedClient,
+    approval::ApprovalDecision, execution::HttpExecutionRequest, hosted_client::HostedClient,
 };
 use serde_json::json;
 use tokio::net::TcpListener;
