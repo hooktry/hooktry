@@ -54,6 +54,10 @@ fn outcome(passed: bool) -> ScenarioOutcome {
         replayed_interaction_ids: Vec::new(),
         checks: vec![ScenarioCheckOutcome {
             contract_id: Uuid::now_v7(),
+            cardinality: Default::default(),
+            candidate_interaction_ids: Vec::new(),
+            matched_interaction_ids: Vec::new(),
+            assertion_ids: Vec::new(),
             interaction_id: None,
             assertion_id: None,
             passed,
