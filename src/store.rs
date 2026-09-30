@@ -4,7 +4,6 @@ use std::{
 };
 
 use rusqlite::{Connection, params};
-
 use uuid::Uuid;
 
 use crate::domain::{Interaction, Recording};
@@ -88,7 +87,11 @@ impl InteractionStore {
             .expect("interaction store poisoned")
             .execute(
                 "INSERT INTO recordings (id, created_at, payload) VALUES (?1, ?2, ?3)",
-                params![\n                    recording.id.to_string(),\n                    recording.created_at.to_rfc3339(),\n                    payload\n                ],
+                params![
+                    recording.id.to_string(),
+                    recording.created_at.to_rfc3339(),
+                    payload
+                ],
             )
             .expect("persist recording");
     }
