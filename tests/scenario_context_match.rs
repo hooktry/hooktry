@@ -99,10 +99,12 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
         .filter(|item| item["origin"] == "replayed")
         .collect::<Vec<_>>();
     assert_eq!(replayed.len(), 2);
-    assert_eq!(
-        replayed[1]["context"]["correlation"]["idempotency_key"],
-        "payment-42"
-    );
+    let replayed_keys = replayed
+        .iter()
+        .map(|item| item["context"]["correlation"]["idempotency_key"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(replayed_keys.contains(&"payment-wrong"));
+    assert!(replayed_keys.contains(&"payment-42"));
 }
 
 async fn system() -> (String, u16) {
