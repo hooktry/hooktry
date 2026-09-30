@@ -66,10 +66,7 @@ async fn webhook_delivery_uses_redacted_approval_and_idempotency_key() {
             &HttpExecutionRequest {
                 method: "POST".to_owned(),
                 url: "https://api.example.com/danger?token=query-secret".to_owned(),
-                headers: BTreeMap::from([(
-                    "x-sensitive".to_owned(),
-                    "header-secret".to_owned(),
-                )]),
+                headers: BTreeMap::from([("x-sensitive".to_owned(), "header-secret".to_owned())]),
                 body: Some(json!({"secret":"body-secret"})),
                 secret_headers: BTreeMap::new(),
                 capture: vec![],
@@ -126,8 +123,10 @@ async fn webhook_delivery_uses_redacted_approval_and_idempotency_key() {
 
 #[tokio::test]
 async fn webhook_url_is_encrypted_at_rest() {
-    let path =
-        std::env::temp_dir().join(format!("ortyo-approval-webhook-secret-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-webhook-secret-{}.db",
+        Uuid::now_v7()
+    ));
     let workspace_id = Uuid::now_v7();
     let url = "https://hooks.example.com/private/secret-token?key=do-not-store-plain";
     let store = SecretStore::open(&path, [0x37; 32]).unwrap();
