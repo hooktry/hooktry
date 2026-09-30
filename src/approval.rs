@@ -862,7 +862,11 @@ impl ApprovalStore {
                             lease_token=excluded.lease_token,
                             lease_expires_at=excluded.lease_expires_at,
                             last_error=NULL",
-                        params![&selected.notification_id, claim_token.to_string(), lease_expires_at],
+                        params![
+                            &selected.notification_id,
+                            claim_token.to_string(),
+                            lease_expires_at
+                        ],
                     )
                     .map_err(|error| ApprovalError::Storage(error.to_string()))?;
                 let attempt_count: i64 = transaction
@@ -935,7 +939,11 @@ impl ApprovalStore {
                             lease_expires_at=EXCLUDED.lease_expires_at,
                             last_error=NULL
                          RETURNING attempt_count",
-                        &[&selected.notification_id, &claim_token.to_string(), &lease_expires_at],
+                        &[
+                            &selected.notification_id,
+                            &claim_token.to_string(),
+                            &lease_expires_at,
+                        ],
                     )
                     .map_err(|error| ApprovalError::Storage(error.to_string()))?;
                 let attempt_count: i64 = row.get(0);
@@ -1082,13 +1090,7 @@ impl ApprovalStore {
                            WHERE n.notification_id=?3 AND n.workspace_id=?5
                              AND n.delivered_at IS NULL
                        )",
-                    params![
-                        next_attempt_at,
-                        error_code,
-                        notification,
-                        claim,
-                        workspace
-                    ],
+                    params![next_attempt_at, error_code, notification, claim, workspace],
                 )
                 .map_err(|error| ApprovalError::Storage(error.to_string()))?,
             ApprovalBackend::Postgres(client) => usize::try_from(
