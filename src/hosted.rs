@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     domain::{ExposureAccess, ExposureMode},
+    execution::{ExecutionError, ExecutionEvidence, HttpExecutionProvider, HttpExecutionRequest},
     hosted_identity::{
         ApiAuthorization, ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential,
         Workspace,
@@ -20,6 +21,7 @@ use crate::{
     relay::RelayBroker,
     relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
+    secret::SecretStore,
     websocket_transport::serve_websocket,
 };
 
@@ -33,6 +35,7 @@ pub struct HostedRelayState {
     pub runtime_ws_base_url: String,
     pub capability_ttl: Duration,
     pub exposures: HostedExposureStore,
+    pub executor: HttpExecutionProvider,
     control_token_digest: [u8; 32],
 }
 
@@ -55,6 +58,7 @@ impl HostedRelayState {
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
             exposures: HostedExposureStore::default(),
+            executor: HttpExecutionProvider::new(SecretStore::default()),
             control_token_digest: token_digest(control_token),
         }
     }
@@ -110,6 +114,7 @@ impl HostedRelayState {
             runtime_ws_base_url,
             capability_ttl: Duration::from_secs(15 * 60),
             exposures,
+            executor: HttpExecutionProvider::new(SecretStore::default()),
             control_token_digest: token_digest(control_token),
         }
     }
@@ -219,6 +224,7 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             "/_ortyo/admin/workspaces/{workspace_id}/credentials",
             post(issue_credential),
         )
+        .route("/_ortyo/hosted/execute", post(execute_http))
         .route(
             "/_ortyo/hosted/exposures",
             get(list_hosted_exposures).post(provision_exposure),
@@ -287,6 +293,43 @@ async fn issue_credential(
         .await
         .map_err(identity_admin_error)?;
     Ok((StatusCode::CREATED, Json(credential)))
+}
+
+async fn execute_http(
+    State(state): State<HostedRelayState>,
+    headers: HeaderMap,
+    Json(request): Json<HttpExecutionRequest>,
+) -> Result<(StatusCode, Json<ExecutionEvidence>), HostedApiError> {
+    let authorization = authorize_api(&state, &headers, ApiScope::RequestsExecute).await?;
+    let evidence = state
+        .executor
+        .execute(authorization.workspace_id, request)
+        .await
+        .map_err(execution_error)?;
+    Ok((StatusCode::OK, Json(evidence)))
+}
+
+fn execution_error(error: ExecutionError) -> HostedApiError {
+    match error {
+        ExecutionError::InvalidRequest => {
+            HostedApiError::new(StatusCode::BAD_REQUEST, "invalid_request")
+        }
+        ExecutionError::UnsafeDestination => {
+            HostedApiError::new(StatusCode::FORBIDDEN, "unsafe_destination")
+        }
+        ExecutionError::SecretNotFound => {
+            HostedApiError::new(StatusCode::BAD_REQUEST, "secret_not_found")
+        }
+        ExecutionError::ResponseTooLarge => {
+            HostedApiError::new(StatusCode::BAD_GATEWAY, "response_too_large")
+        }
+        ExecutionError::CaptureFailed => {
+            HostedApiError::new(StatusCode::BAD_GATEWAY, "capture_failed")
+        }
+        ExecutionError::RequestFailed => {
+            HostedApiError::new(StatusCode::BAD_GATEWAY, "request_failed")
+        }
+    }
 }
 
 async fn provision_exposure(
