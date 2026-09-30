@@ -1,9 +1,10 @@
 use ortyo::{
     cli::{Cli, Command, usage},
-    domain::ScenarioOutcome,
+    domain::{Scenario, ScenarioOutcome, ScenarioRun},
     hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
+    scenario_run::{environment as scenario_environment, exit_code as scenario_run_exit_code, report as scenario_run_report},
     store::InteractionStore,
 };
 
@@ -39,6 +40,9 @@ async fn main() {
         }
         Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
+        Command::ScenarioRun { path, command } => {
+            scenario_run(&cli.base_url, &path, command).await
+        }
         Command::ScenarioGet { id } => get_json(&format!("{}/_ortyo/scenarios/{id}", cli.base_url))
             .await
             .map(|_| 0),
@@ -146,33 +150,124 @@ async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(
     Ok(())
 }
 
-async fn scenario_create(base_url: &str, path: &str) -> Result<(), String> {
+fn load_scenario_manifest(path: &str) -> Result<CreateScenario, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|error| format!("read Scenario manifest: {error}"))?;
     let manifest: ScenarioManifest = serde_json::from_str(&content)
         .map_err(|error| format!("parse Scenario manifest JSON: {error}"))?;
-    let request: CreateScenario = manifest.into();
+    Ok(manifest.into())
+}
 
+async fn scenario_create_request(base_url: &str, path: &str) -> Result<Scenario, String> {
+    let request = load_scenario_manifest(path)?;
     let response = reqwest::Client::new()
         .post(format!("{base_url}/_ortyo/scenarios"))
         .json(&request)
         .send()
         .await
         .map_err(|error| error.to_string())?;
-    emit_response(response).await
+    let value = response_value(response).await?;
+    serde_json::from_value(value).map_err(|error| format!("invalid Scenario: {error}"))
 }
 
-async fn scenario_complete(base_url: &str, id: uuid::Uuid) -> Result<i32, String> {
+async fn scenario_start_request(base_url: &str, id: uuid::Uuid) -> Result<ScenarioRun, String> {
+    let response = reqwest::Client::new()
+        .post(format!("{base_url}/_ortyo/scenarios/{id}/start"))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+    let value = response_value(response).await?;
+    serde_json::from_value(value).map_err(|error| format!("invalid ScenarioRun: {error}"))
+}
+
+async fn scenario_complete_request(
+    base_url: &str,
+    id: uuid::Uuid,
+) -> Result<ScenarioOutcome, String> {
     let response = reqwest::Client::new()
         .post(format!("{base_url}/_ortyo/scenario-runs/{id}/complete"))
         .send()
         .await
         .map_err(|error| error.to_string())?;
     let value = response_value(response).await?;
-    let outcome: ScenarioOutcome = serde_json::from_value(value.clone())
-        .map_err(|error| format!("invalid ScenarioOutcome: {error}"))?;
+    serde_json::from_value(value).map_err(|error| format!("invalid ScenarioOutcome: {error}"))
+}
+
+async fn scenario_create(base_url: &str, path: &str) -> Result<(), String> {
+    let scenario = scenario_create_request(base_url, path).await?;
+    let value =
+        serde_json::to_value(scenario).map_err(|error| format!("serialize Scenario: {error}"))?;
+    print_json(&value)
+}
+
+async fn scenario_complete(base_url: &str, id: uuid::Uuid) -> Result<i32, String> {
+    let outcome = scenario_complete_request(base_url, id).await?;
+    let value = serde_json::to_value(&outcome)
+        .map_err(|error| format!("serialize ScenarioOutcome: {error}"))?;
     print_json(&value)?;
     Ok(outcome_exit_code(&outcome))
+}
+
+async fn scenario_run(
+    base_url: &str,
+    path: &str,
+    command: Vec<String>,
+) -> Result<i32, String> {
+    let scenario = scenario_create_request(base_url, path).await?;
+    let run = scenario_start_request(base_url, scenario.id).await?;
+    let program = command
+        .first()
+        .ok_or_else(|| "scenario run requires a child command".to_owned())?;
+
+    let output = std::process::Command::new(program)
+        .args(&command[1..])
+        .envs(scenario_environment(base_url, &run))
+        .output();
+
+    let output = match output {
+        Ok(output) => output,
+        Err(error) => {
+            let _ = scenario_complete_request(base_url, run.id).await;
+            let _ = revoke_exposure(base_url, run.exposure_id).await;
+            return Err(format!("run child command: {error}"));
+        }
+    };
+
+    if !output.stdout.is_empty() {
+        eprint!("{}", String::from_utf8_lossy(&output.stdout));
+    }
+    if !output.stderr.is_empty() {
+        eprint!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+
+    let outcome = match scenario_complete_request(base_url, run.id).await {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            let _ = revoke_exposure(base_url, run.exposure_id).await;
+            return Err(error);
+        }
+    };
+    let report = scenario_run_report(&run, command, output.status.code(), outcome);
+    let value = serde_json::to_value(&report)
+        .map_err(|error| format!("serialize ScenarioRunReport: {error}"))?;
+    print_json(&value)?;
+    Ok(scenario_run_exit_code(&report))
+}
+
+async fn revoke_exposure(base_url: &str, id: uuid::Uuid) -> Result<(), String> {
+    let response = reqwest::Client::new()
+        .delete(format!("{base_url}/_ortyo/exposures/{id}"))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    if response.status().is_success() || response.status() == reqwest::StatusCode::GONE {
+        Ok(())
+    } else {
+        let status = response.status();
+        let body = response.text().await.map_err(|error| error.to_string())?;
+        Err(format!("HTTP {status}: {body}"))
+    }
 }
 
 async fn post_assertion(
