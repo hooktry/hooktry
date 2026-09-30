@@ -1,3 +1,5 @@
+mod common;
+
 use std::time::Duration;
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
@@ -45,9 +47,11 @@ async fn daemon_owns_public_runtime_after_provisioning() {
     });
 
     let client = reqwest::Client::new();
+    let credential =
+        common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
     let provision: ProvisionedExposure = client
         .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
-        .bearer_auth("test-control-token")
+        .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "stripe",
             "target_port": target_port
