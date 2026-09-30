@@ -64,11 +64,13 @@ impl Cli {
                 port: parse_port(port)?,
                 verify: true,
             },
-            [command, port, name, flag] if command == "expose" && flag == "--no-verify" => Command::Expose {
-                name: name.clone(),
-                port: parse_port(port)?,
-                verify: false,
-            },
+            [command, port, name, flag] if command == "expose" && flag == "--no-verify" => {
+                Command::Expose {
+                    name: name.clone(),
+                    port: parse_port(port)?,
+                    verify: false,
+                }
+            }
             [command] if command == "mcp" => Command::Mcp,
             [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
                 contract_id: contract_id
