@@ -77,6 +77,49 @@ fn tools() -> Vec<Value> {
             uuid_schema("exposure_id"),
         ),
         tool(
+            "scenario_create",
+            "Create a reusable Scenario with an upstream port and inline contract definitions.",
+            json!({
+                "name": {"type": "string"},
+                "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+                "contracts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "operation": {"type": "string"},
+                            "request": {},
+                            "response": {}
+                        },
+                        "required": ["name", "operation"],
+                        "additionalProperties": false
+                    }
+                }
+            }),
+        ),
+        tool(
+            "scenario_get",
+            "Get a persisted Scenario definition.",
+            uuid_schema("scenario_id"),
+        ),
+        tool(
+            "scenario_start",
+            "Start a Scenario run and create its unique Exposure.",
+            uuid_schema("scenario_id"),
+        ),
+        tool(
+            "scenario_complete",
+            "Complete a Scenario run by recording its evidence, replaying it, asserting contracts, persisting the outcome, and revoking the Exposure.",
+            uuid_schema("run_id"),
+        ),
+        tool(
+            "scenario_outcome_get",
+            "Get a persisted Scenario outcome by run ID.",
+            uuid_schema("run_id"),
+        ),
+        tool(
             "interactions_list",
             "List canonical ORTYO interaction evidence.",
             json!({}),
@@ -126,7 +169,12 @@ fn tool(name: &str, description: &str, properties: Value) -> Value {
     let required = match &properties {
         Value::Object(items) => items
             .keys()
-            .filter(|key| *key == "name" || *key == "port" || key.ends_with("_id"))
+            .filter(|key| {
+                *key == "name"
+                    || *key == "port"
+                    || *key == "contracts"
+                    || key.ends_with("_id")
+            })
             .cloned()
             .map(Value::String)
             .collect::<Vec<_>>(),
@@ -160,6 +208,55 @@ async fn call_tool(base_url: &str, params: Value) -> Result<Value, String> {
         .unwrap_or_else(|| json!({}));
 
     let value = match name {
+        "scenario_create" => {
+            let scenario_name = string_argument(&arguments, "name")?;
+            let port = port_argument(&arguments)?;
+            let contracts = arguments
+                .get("contracts")
+                .cloned()
+                .ok_or_else(|| "contracts is required".to_owned())?;
+            api_json(
+                "POST",
+                &format!("{base_url}/_ortyo/scenarios"),
+                Some(json!({
+                    "name": scenario_name,
+                    "port": port,
+                    "contracts": contracts
+                })),
+            )
+            .await?
+        }
+        "scenario_get" => {
+            let id = uuid_argument(&arguments, "scenario_id")?;
+            api_json("GET", &format!("{base_url}/_ortyo/scenarios/{id}"), None).await?
+        }
+        "scenario_start" => {
+            let id = uuid_argument(&arguments, "scenario_id")?;
+            api_json(
+                "POST",
+                &format!("{base_url}/_ortyo/scenarios/{id}/start"),
+                None,
+            )
+            .await?
+        }
+        "scenario_complete" => {
+            let id = uuid_argument(&arguments, "run_id")?;
+            api_json(
+                "POST",
+                &format!("{base_url}/_ortyo/scenario-runs/{id}/complete"),
+                None,
+            )
+            .await?
+        }
+        "scenario_outcome_get" => {
+            let id = uuid_argument(&arguments, "run_id")?;
+            api_json(
+                "GET",
+                &format!("{base_url}/_ortyo/scenario-runs/{id}/outcome"),
+                None,
+            )
+            .await?
+        }
         "exposure_create" => {
             let name = string_argument(&arguments, "name")?;
             let port = port_argument(&arguments)?;
