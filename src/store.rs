@@ -288,6 +288,22 @@ impl InteractionStore {
             .map(|payload| serde_json::from_str(&payload).expect("deserialize scenario outcome"))
     }
 
+    pub fn all_recorded(&self) -> Vec<Interaction> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        let mut statement = connection
+            .prepare("SELECT payload FROM interactions ORDER BY rowid")
+            .expect("prepare interaction persistence-order query");
+
+        statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("query interactions in persistence order")
+            .map(|payload| {
+                serde_json::from_str(&payload.expect("read interaction payload"))
+                    .expect("deserialize interaction")
+            })
+            .collect()
+    }
+
     pub fn all(&self) -> Vec<Interaction> {
         let connection = self.connection.lock().expect("interaction store poisoned");
         let mut statement = connection
