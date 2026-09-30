@@ -33,6 +33,8 @@ pub enum ApiScope {
     ExposuresRead,
     #[serde(rename = "exposures:revoke")]
     ExposuresRevoke,
+    #[serde(rename = "requests:execute")]
+    RequestsExecute,
 }
 
 impl ApiScope {
@@ -41,6 +43,7 @@ impl ApiScope {
             Self::ExposuresCreate => "exposures:create",
             Self::ExposuresRead => "exposures:read",
             Self::ExposuresRevoke => "exposures:revoke",
+            Self::RequestsExecute => "requests:execute",
         }
     }
 
@@ -49,6 +52,7 @@ impl ApiScope {
             "exposures:create" => Some(Self::ExposuresCreate),
             "exposures:read" => Some(Self::ExposuresRead),
             "exposures:revoke" => Some(Self::ExposuresRevoke),
+            "requests:execute" => Some(Self::RequestsExecute),
             _ => None,
         }
     }
@@ -210,6 +214,7 @@ impl HostedIdentityStore {
                 ApiScope::ExposuresCreate,
                 ApiScope::ExposuresRead,
                 ApiScope::ExposuresRevoke,
+                ApiScope::RequestsExecute,
             ],
             revoked: false,
         };
@@ -640,6 +645,7 @@ fn canonical_scopes(scopes: &[ApiScope]) -> Vec<ApiScope> {
         ApiScope::ExposuresCreate,
         ApiScope::ExposuresRead,
         ApiScope::ExposuresRevoke,
+        ApiScope::RequestsExecute,
     ]
     .into_iter()
     .filter(|scope| scopes.contains(scope))
