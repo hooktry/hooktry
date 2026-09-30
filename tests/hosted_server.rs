@@ -8,7 +8,11 @@ use tokio::net::TcpListener;
 
 #[test]
 fn hosted_server_config_has_deployable_defaults() {
-    let config = HostedServerConfig::from_lookup(|_| None).unwrap();
+    let config = HostedServerConfig::from_lookup(|key| match key {
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        _ => None,
+    })
+    .unwrap();
 
     assert_eq!(config.bind, "0.0.0.0:8080");
     assert_eq!(config.public_base_url, "http://127.0.0.1:8080");
@@ -19,6 +23,7 @@ fn hosted_server_config_uses_port_and_public_url() {
     let config = HostedServerConfig::from_lookup(|key| match key {
         "PORT" => Some("9090".to_owned()),
         "ORTYO_PUBLIC_BASE_URL" => Some("https://relay.example/".to_owned()),
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
         _ => None,
     })
     .unwrap();
@@ -32,6 +37,7 @@ fn explicit_bind_wins_over_port() {
     let config = HostedServerConfig::from_lookup(|key| match key {
         "ORTYO_BIND" => Some("127.0.0.1:4242".to_owned()),
         "PORT" => Some("9090".to_owned()),
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
         _ => None,
     })
     .unwrap();
@@ -44,6 +50,7 @@ fn explicit_bind_wins_over_port() {
 fn hosted_server_config_rejects_invalid_public_url_scheme() {
     let error = HostedServerConfig::from_lookup(|key| match key {
         "ORTYO_PUBLIC_BASE_URL" => Some("relay.example".to_owned()),
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
         _ => None,
     })
     .unwrap_err();
@@ -62,6 +69,7 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
         RelayBroker::default(),
         CapabilityStore::default(),
         format!("http://{addr}"),
+        "test-control-token",
     );
 
     tokio::spawn(async move {
@@ -81,8 +89,21 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
     assert_eq!(health["ok"], true);
     assert_eq!(health["service"], "hosted_relay");
 
-    let provision: ProvisionedExposure = reqwest::Client::new()
+    let client = reqwest::Client::new();
+    let unauthorized = client
         .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .json(&serde_json::json!({
+            "name": "app",
+            "target_port": 3000
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(unauthorized.status(), reqwest::StatusCode::UNAUTHORIZED);
+
+    let provision: ProvisionedExposure = client
+        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .bearer_auth("test-control-token")
         .json(&serde_json::json!({
             "name": "app",
             "target_port": 3000
@@ -105,4 +126,11 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
         provision.public_url,
         format!("http://{addr}/e/{}", provision.exposure_id)
     );
+}
+
+
+#[test]
+fn hosted_server_config_requires_control_token() {
+    let error = HostedServerConfig::from_lookup(|_| None).unwrap_err();
+    assert_eq!(error, "ORTYO_CONTROL_TOKEN is required");
 }
