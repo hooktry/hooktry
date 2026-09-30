@@ -67,9 +67,9 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
 
     let target = Router::new().route(
         "/hook",
-        post(|body: Bytes| async move {
-            (StatusCode::ACCEPTED, [("x-restart", "recovered")], body)
-        }),
+        post(
+            |body: Bytes| async move { (StatusCode::ACCEPTED, [("x-restart", "recovered")], body) },
+        ),
     );
     let target_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let target_port = target_listener.local_addr().unwrap().port();
