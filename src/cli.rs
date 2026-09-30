@@ -3,6 +3,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Serve,
+    Hosted,
     Interactions,
     Expose {
         name: String,
@@ -50,6 +51,7 @@ impl Cli {
 
         let command = match remaining.as_slice() {
             [command] if command == "serve" => Command::Serve,
+            [command] if command == "hosted" => Command::Hosted,
             [command] if command == "interactions" => Command::Interactions,
             [command] if command == "exposures" => Command::Exposures,
             [command, id] if command == "exposure-get" => Command::ExposureGet {
@@ -105,6 +107,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
