@@ -6,6 +6,7 @@ use ortyo::{
     exposure::CreateExposure,
     http::AppState,
     relay::RelayBroker,
+    relay_auth::CapabilityStore,
     relay_ingress::{RelayIngressState, relay_ingress_app},
     relay_transport::{run_runtime_connection, serve_connection},
 };
@@ -44,18 +45,22 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
         .unwrap();
 
     let broker = RelayBroker::default();
+    let capabilities = CapabilityStore::default();
+    let capability = capabilities.issue(exposure.id, Duration::from_secs(60));
     let relay_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let relay_addr = relay_listener.local_addr().unwrap();
     let server_broker = broker.clone();
     tokio::spawn(async move {
         let (stream, _) = relay_listener.accept().await.unwrap();
-        serve_connection(stream, server_broker).await.unwrap();
+        serve_connection(stream, server_broker, capabilities)
+            .await
+            .unwrap();
     });
     tokio::spawn({
         let state = runtime_state.clone();
         async move {
             let stream = TcpStream::connect(relay_addr).await.unwrap();
-            run_runtime_connection(stream, exposure.id, state)
+            run_runtime_connection(stream, exposure.id, &capability.token, state)
                 .await
                 .unwrap();
         }
