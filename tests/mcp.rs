@@ -93,6 +93,12 @@ async fn tool_schemas_require_identity_arguments() {
         .find(|tool| tool["name"] == "contract_create")
         .unwrap();
     assert_eq!(create["inputSchema"]["required"], json!(["name"]));
+    assert!(create["inputSchema"]["properties"]["context"]["properties"]["idempotency_key"].is_object());
+
+    let scenario_context = &scenario["inputSchema"]["properties"]["contracts"]["items"]
+        ["properties"]["context"]["properties"];
+    assert!(scenario_context["correlation_id"].is_object());
+    assert!(scenario_context["trace_id"].is_object());
 }
 
 #[tokio::test]
