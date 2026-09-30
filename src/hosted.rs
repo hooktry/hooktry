@@ -324,6 +324,9 @@ fn execution_error(error: ExecutionError) -> HostedApiError {
         ExecutionError::UnsafeDestination => {
             HostedApiError::new(StatusCode::FORBIDDEN, "unsafe_destination")
         }
+        ExecutionError::SecretDestinationDenied => {
+            HostedApiError::new(StatusCode::FORBIDDEN, "secret_destination_denied")
+        }
         ExecutionError::SecretNotFound => {
             HostedApiError::new(StatusCode::BAD_REQUEST, "secret_not_found")
         }
