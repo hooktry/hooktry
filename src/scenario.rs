@@ -567,9 +567,9 @@ fn evaluate_declared_order(
             if latest_earlier_index >= earliest_later_index {
                 violations.push(ScenarioOrderViolation {
                     expected_before_contract_id: *earlier_contract_id,
-                    expected_before_interaction_id: latest_earlier_id,
+                    expected_before_source_interaction_id: latest_earlier_id,
                     expected_after_contract_id: *later_contract_id,
-                    expected_after_interaction_id: earliest_later_id,
+                    expected_after_source_interaction_id: earliest_later_id,
                 });
             }
         }
@@ -578,7 +578,7 @@ fn evaluate_declared_order(
     ScenarioOrderOutcome {
         policy: ScenarioOrdering::Declared,
         passed: violations.is_empty(),
-        observed_interaction_ids: observed.into_iter().map(|(_, id)| id).collect(),
+        observed_source_interaction_ids: observed.into_iter().map(|(_, id)| id).collect(),
         violations,
     }
 }
