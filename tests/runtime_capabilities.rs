@@ -41,6 +41,27 @@ fn capability_is_scoped_expires_and_can_be_revoked() {
     );
 }
 
+#[test]
+fn rotating_exposure_capability_revokes_previous_tokens() {
+    let store = CapabilityStore::default();
+    let exposure_id = Uuid::now_v7();
+
+    let first = store
+        .issue(exposure_id, Duration::from_secs(60))
+        .unwrap();
+    let second = store
+        .rotate_exposure(exposure_id, Duration::from_secs(60))
+        .unwrap();
+
+    assert_ne!(first.token, second.token);
+    assert_eq!(first.exposure_id, second.exposure_id);
+    assert_eq!(
+        store.authorize(exposure_id, &first.token),
+        Err(CapabilityError::Revoked)
+    );
+    assert_eq!(store.authorize(exposure_id, &second.token), Ok(()));
+}
+
 #[tokio::test]
 async fn relay_rejects_registration_without_valid_capability() {
     let broker = RelayBroker::default();
