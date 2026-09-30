@@ -130,6 +130,13 @@ pub struct ApprovalNotificationOutboxRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApprovalNotificationClaim {
+    pub record: ApprovalNotificationOutboxRecord,
+    pub claim_token: Uuid,
+    pub attempt_count: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalError {
     InvalidRequest,
     NotFound,
@@ -206,6 +213,19 @@ impl ApprovalStore {
                 CREATE INDEX IF NOT EXISTS hosted_approval_notification_pending
                     ON hosted_approval_notification_outbox(
                         workspace_id, delivered_at, created_at, notification_id
+                    );
+                CREATE TABLE IF NOT EXISTS hosted_approval_notification_delivery (
+                    notification_id TEXT PRIMARY KEY,
+                    attempt_count BIGINT NOT NULL DEFAULT 0,
+                    next_attempt_at BIGINT,
+                    lease_token TEXT,
+                    lease_expires_at BIGINT,
+                    cancelled_at BIGINT,
+                    last_error TEXT
+                );
+                CREATE INDEX IF NOT EXISTS hosted_approval_notification_delivery_due
+                    ON hosted_approval_notification_delivery(
+                        cancelled_at, next_attempt_at, lease_expires_at
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
@@ -247,6 +267,19 @@ impl ApprovalStore {
                 CREATE INDEX IF NOT EXISTS hosted_approval_notification_pending
                     ON hosted_approval_notification_outbox(
                         workspace_id, delivered_at, created_at, notification_id
+                    );
+                CREATE TABLE IF NOT EXISTS hosted_approval_notification_delivery (
+                    notification_id TEXT PRIMARY KEY,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    next_attempt_at INTEGER,
+                    lease_token TEXT,
+                    lease_expires_at INTEGER,
+                    cancelled_at INTEGER,
+                    last_error TEXT
+                );
+                CREATE INDEX IF NOT EXISTS hosted_approval_notification_delivery_due
+                    ON hosted_approval_notification_delivery(
+                        cancelled_at, next_attempt_at, lease_expires_at
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
@@ -309,6 +342,53 @@ impl ApprovalStore {
         let store = self.clone();
         tokio::task::spawn_blocking(move || {
             store.mark_notification_delivered(workspace_id, notification_id)
+        })
+        .await
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn claim_next_notification_async(
+        &self,
+        workspace_id: Uuid,
+        lease_ms: u64,
+    ) -> Result<Option<ApprovalNotificationClaim>, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.claim_next_notification(workspace_id, lease_ms))
+            .await
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn complete_notification_claim_async(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+    ) -> Result<ApprovalNotificationOutboxRecord, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.complete_notification_claim(workspace_id, notification_id, claim_token)
+        })
+        .await
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn fail_notification_claim_async(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+        retry_after_ms: u64,
+        error_code: String,
+    ) -> Result<(), ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.fail_notification_claim(
+                workspace_id,
+                notification_id,
+                claim_token,
+                retry_after_ms,
+                &error_code,
+            )
         })
         .await
         .map_err(|error| ApprovalError::Storage(error.to_string()))?
