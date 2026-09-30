@@ -18,6 +18,25 @@ pub enum Command {
     ExposureRevoke {
         id: Uuid,
     },
+    ApprovalCreate {
+        path: String,
+    },
+    ApprovalGet {
+        id: Uuid,
+    },
+    ApprovalApprove {
+        id: Uuid,
+    },
+    ApprovalDeny {
+        id: Uuid,
+    },
+    ApprovalExecute {
+        id: Uuid,
+        path: String,
+    },
+    ExecutionGet {
+        id: Uuid,
+    },
     Mcp,
     ScenarioCreate {
         path: String,
@@ -87,6 +106,35 @@ impl Cli {
                         .parse()
                         .map_err(|_| "exposure-revoke requires a valid UUID".to_owned())?,
                 },
+                [group, command, path] if group == "approval" && command == "create" => {
+                    Command::ApprovalCreate { path: path.clone() }
+                }
+                [group, command, id] if group == "approval" && command == "get" => {
+                    Command::ApprovalGet {
+                        id: parse_uuid(id, "approval get")?,
+                    }
+                }
+                [group, command, id] if group == "approval" && command == "approve" => {
+                    Command::ApprovalApprove {
+                        id: parse_uuid(id, "approval approve")?,
+                    }
+                }
+                [group, command, id] if group == "approval" && command == "deny" => {
+                    Command::ApprovalDeny {
+                        id: parse_uuid(id, "approval deny")?,
+                    }
+                }
+                [group, command, id, path] if group == "approval" && command == "execute" => {
+                    Command::ApprovalExecute {
+                        id: parse_uuid(id, "approval execute")?,
+                        path: path.clone(),
+                    }
+                }
+                [group, command, id] if group == "execution" && command == "get" => {
+                    Command::ExecutionGet {
+                        id: parse_uuid(id, "execution get")?,
+                    }
+                }
                 [command] if command == "mcp" => Command::Mcp,
                 [group, command, path] if group == "scenario" && command == "create" => {
                     Command::ScenarioCreate { path: path.clone() }
@@ -186,6 +234,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|approval create FILE|approval get ID|approval approve ID|approval deny ID|approval execute ID FILE|execution get ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
