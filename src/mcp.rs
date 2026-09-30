@@ -199,7 +199,9 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
         _ => return Err(format!("unsupported ORTYO API method: {method}")),
     };
     let request = if let Some(body) = body {
-        request.json(&body)
+        request
+            .header("content-type", "application/json")
+            .body(serde_json::to_vec(&body).map_err(|error| error.to_string())?)
     } else {
         request
     };
