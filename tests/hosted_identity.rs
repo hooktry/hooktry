@@ -219,6 +219,22 @@ fn api_credentials_survive_sqlite_reopen_without_persisting_raw_token() {
         Err(IdentityError::Forbidden)
     );
 
+    reopened
+        .ensure_scope(&credential.token, ApiScope::RequestsApprove)
+        .unwrap();
+    reopened
+        .ensure_scope(&credential.token, ApiScope::RequestsApprove)
+        .unwrap();
+    reopened
+        .authorize(&credential.token, ApiScope::RequestsApprove)
+        .unwrap();
+    drop(reopened);
+
+    let reopened = HostedIdentityStore::open(&path).unwrap();
+    reopened
+        .authorize(&credential.token, ApiScope::RequestsApprove)
+        .unwrap();
+
     let _ = fs::remove_file(path);
 }
 
