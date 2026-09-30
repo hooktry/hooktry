@@ -126,7 +126,7 @@ fn tool(name: &str, description: &str, properties: Value) -> Value {
     let required = match &properties {
         Value::Object(items) => items
             .keys()
-            .filter(|key| *key == "name" || key.ends_with("_id"))
+            .filter(|key| *key == "name" || *key == "port" || key.ends_with("_id"))
             .cloned()
             .map(Value::String)
             .collect::<Vec<_>>(),
