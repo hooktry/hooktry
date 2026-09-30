@@ -1,8 +1,6 @@
 use chrono::Utc;
 use ortyo::{
-    domain::{
-        Scenario, ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState,
-    },
+    domain::{Scenario, ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState},
     store::InteractionStore,
 };
 use uuid::Uuid;
