@@ -108,6 +108,17 @@ impl CapabilityStore {
             .map_err(|error| CapabilityError::Storage(error.to_string()))?
     }
 
+    pub async fn rotate_exposure_async(
+        &self,
+        exposure_id: Uuid,
+        ttl: Duration,
+    ) -> Result<RuntimeCapability, CapabilityError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.rotate_exposure(exposure_id, ttl))
+            .await
+            .map_err(|error| CapabilityError::Storage(error.to_string()))?
+    }
+
     pub async fn authorize_async(
         &self,
         exposure_id: Uuid,
@@ -148,6 +159,90 @@ impl CapabilityStore {
             revoked: false,
         };
         self.insert(token_digest(&token), &record)?;
+
+        Ok(RuntimeCapability {
+            token,
+            exposure_id,
+            expires_at,
+        })
+    }
+
+    pub fn rotate_exposure(
+        &self,
+        exposure_id: Uuid,
+        ttl: Duration,
+    ) -> Result<RuntimeCapability, CapabilityError> {
+        let token = random_token();
+        let expires_at = SystemTime::now() + ttl;
+        let digest = token_digest(&token);
+        let expires_at_unix = unix_seconds(expires_at)?;
+
+        match &self.backend {
+            CapabilityBackend::Memory(inner) => {
+                let mut store = inner.write().expect("capability store poisoned");
+                for record in store
+                    .values_mut()
+                    .filter(|record| record.exposure_id == exposure_id)
+                {
+                    record.revoked = true;
+                }
+                store.insert(
+                    digest,
+                    CapabilityRecord {
+                        exposure_id,
+                        expires_at,
+                        revoked: false,
+                    },
+                );
+            }
+            CapabilityBackend::Sqlite(connection) => {
+                let mut connection = connection.lock().expect("capability store poisoned");
+                let transaction = connection
+                    .transaction()
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "UPDATE runtime_capabilities SET revoked = 1 WHERE exposure_id = ?1",
+                        [exposure_id.to_string()],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO runtime_capabilities
+                            (token_digest, exposure_id, expires_at, revoked)
+                         VALUES (?1, ?2, ?3, 0)",
+                        params![digest.as_slice(), exposure_id.to_string(), expires_at_unix],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                transaction
+                    .commit()
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+            }
+            CapabilityBackend::Postgres(client) => {
+                let mut client = client.lock().expect("capability store poisoned");
+                let mut transaction = client
+                    .transaction()
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                let exposure_id_text = exposure_id.to_string();
+                transaction
+                    .execute(
+                        "UPDATE runtime_capabilities SET revoked = TRUE WHERE exposure_id = $1",
+                        &[&exposure_id_text],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO runtime_capabilities
+                            (token_digest, exposure_id, expires_at, revoked)
+                         VALUES ($1, $2, $3, FALSE)",
+                        &[&digest.as_slice(), &exposure_id_text, &expires_at_unix],
+                    )
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+                transaction
+                    .commit()
+                    .map_err(|error| CapabilityError::Storage(error.to_string()))?;
+            }
+        }
 
         Ok(RuntimeCapability {
             token,
