@@ -164,13 +164,9 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     if let (Some(workspace_id), Some(dogfood)) = (bootstrap_workspace_id, dogfood.clone()) {
         let dogfood_state = state.clone();
         tokio::spawn(async move {
-            if let Err(error) = run_dogfood_exposure(
-                dogfood_state,
-                workspace_id,
-                dogfood,
-                local_runtime_base_url,
-            )
-            .await
+            if let Err(error) =
+                run_dogfood_exposure(dogfood_state, workspace_id, dogfood, local_runtime_base_url)
+                    .await
             {
                 eprintln!(
                     "{}",
@@ -339,15 +335,8 @@ async fn run_dogfood_exposure(
     config: DogfoodExposureConfig,
     local_runtime_base_url: String,
 ) -> Result<(), String> {
-    let (exposure, created) =
-        provision_dogfood_exposure(&state, workspace_id, &config).await?;
-    attach_dogfood_runtime(
-        &state,
-        workspace_id,
-        &exposure,
-        &local_runtime_base_url,
-    )
-    .await?;
+    let (exposure, created) = provision_dogfood_exposure(&state, workspace_id, &config).await?;
+    attach_dogfood_runtime(&state, workspace_id, &exposure, &local_runtime_base_url).await?;
     verify_dogfood_data_plane(&exposure).await?;
     log_dogfood_exposure(&exposure, created, "dogfood_data_plane_ready");
     Ok(())
