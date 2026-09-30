@@ -25,6 +25,7 @@ fn interaction_survives_database_reopen() {
             duration_ms: 3,
             request: json!({"body": {"amount": 4999}}),
             response: json!({"status": 200}),
+            source_interaction_id: None,
         });
     }
 

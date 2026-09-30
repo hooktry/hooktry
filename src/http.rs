@@ -6,14 +6,14 @@ use axum::{
     extract::{Path, State},
     http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
-    routing::{any, get},
+    routing::{any, get, post},
 };
 use chrono::Utc;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    domain::{Direction, Interaction, Origin, Protocol, Session},
+    domain::{Direction, Interaction, Origin, Protocol, Recording, Session},
     store::InteractionStore,
 };
 
@@ -38,6 +38,8 @@ impl Default for AppState {
 pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/_ortyo/interactions", get(list_interactions))
+        .route("/_ortyo/recordings", post(create_recording))
+        .route("/_ortyo/recordings/{id}/replay", post(replay_recording))
         .route("/boundary/{*path}", any(capture))
         .with_state(state)
 }
@@ -74,9 +76,49 @@ async fn capture(
         duration_ms: started.elapsed().as_millis() as u64,
         request,
         response,
+        source_interaction_id: None,
     });
 
     (StatusCode::OK, Json(json!({"ok": true})))
+}
+
+async fn create_recording(State(state): State<AppState>) -> Json<Recording> {
+    let recording = Recording {
+        id: Uuid::now_v7(),
+        created_at: Utc::now(),
+        interaction_ids: state.store.all().into_iter().map(|item| item.id).collect(),
+    };
+    state.store.save_recording(&recording);
+    Json(recording)
+}
+
+async fn replay_recording(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<Interaction>>, StatusCode> {
+    let recording = state.store.recording(id).ok_or(StatusCode::NOT_FOUND)?;
+    let mut replayed = Vec::new();
+
+    for source_id in recording.interaction_ids {
+        let source = state.store.find(source_id).ok_or(StatusCode::CONFLICT)?;
+        let interaction = Interaction {
+            id: Uuid::now_v7(),
+            session_id: state.session.id,
+            protocol: source.protocol,
+            direction: source.direction,
+            origin: Origin::Replayed,
+            operation: source.operation,
+            started_at: Utc::now(),
+            duration_ms: 0,
+            request: source.request,
+            response: source.response,
+            source_interaction_id: Some(source.id),
+        };
+        state.store.record(interaction.clone());
+        replayed.push(interaction);
+    }
+
+    Ok(Json(replayed))
 }
 
 fn headers_to_json(headers: &HeaderMap) -> Value {

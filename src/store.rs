@@ -4,8 +4,9 @@ use std::{
 };
 
 use rusqlite::{Connection, params};
+use uuid::Uuid;
 
-use crate::domain::Interaction;
+use crate::domain::{Interaction, Recording};
 
 #[derive(Clone)]
 pub struct InteractionStore {
@@ -36,7 +37,12 @@ impl InteractionStore {
                 payload TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS interactions_session_started
-                ON interactions(session_id, started_at);",
+                ON interactions(session_id, started_at);
+            CREATE TABLE IF NOT EXISTS recordings (
+                id TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL,
+                payload TEXT NOT NULL
+            );",
         )?;
 
         Ok(Self {
@@ -60,6 +66,46 @@ impl InteractionStore {
                 ],
             )
             .expect("persist interaction");
+    }
+
+    pub fn find(&self, id: Uuid) -> Option<Interaction> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM interactions WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize interaction"))
+    }
+
+    pub fn save_recording(&self, recording: &Recording) {
+        let payload = serde_json::to_string(recording).expect("serialize recording");
+        self.connection
+            .lock()
+            .expect("interaction store poisoned")
+            .execute(
+                "INSERT INTO recordings (id, created_at, payload) VALUES (?1, ?2, ?3)",
+                params![
+                    recording.id.to_string(),
+                    recording.created_at.to_rfc3339(),
+                    payload
+                ],
+            )
+            .expect("persist recording");
+    }
+
+    pub fn recording(&self, id: Uuid) -> Option<Recording> {
+        let connection = self.connection.lock().expect("interaction store poisoned");
+        connection
+            .query_row(
+                "SELECT payload FROM recordings WHERE id = ?1",
+                [id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|payload| serde_json::from_str(&payload).expect("deserialize recording"))
     }
 
     pub fn all(&self) -> Vec<Interaction> {
