@@ -102,6 +102,23 @@ approval_decide deny
 
 Consumed approvals do not appear because they were already non-pending before consumption.
 
+## Production dogfood
+
+The hosted startup acceptance extends DOGFOOD3:
+
+```text
+ask
+  -> require new pending approval in inbox
+  -> approve
+  -> require approval absent from inbox
+  -> exact-request mismatch denial
+  -> act
+  -> durable execution query
+  -> replay denial
+```
+
+The proof checks membership of the newly-created approval rather than requiring the entire inbox to be empty, so unrelated pending records do not make deployment acceptance nondeterministic.
+
 ## Notification boundary
 
 The inbox is the durable source of truth for future human notifications.
