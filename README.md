@@ -70,6 +70,30 @@ persisted ScenarioOutcome + automatic Exposure revoke
 
 Scenario completion is idempotent. Evidence is scoped to the run's unique Exposure, so previous replays or unrelated traffic cannot enter the run. A run with no matching evidence completes as an explicit failed outcome rather than manufacturing evidence.
 
+Scenario contracts default to exactly one matching interaction. Cardinality can be made explicit without changing the single-interaction Contract matcher:
+
+```json
+{
+  "name": "payment side effect",
+  "operation": "POST /webhook",
+  "count": 1,
+  "request": {"body": "{\"event\":\"payment.created\"}"}
+}
+```
+
+Or define a range:
+
+```json
+{
+  "name": "bounded retry behavior",
+  "operation": "POST /webhook",
+  "min": 1,
+  "max": 3
+}
+```
+
+ORTYO evaluates every replayed interaction with the same operation, persists assertion evidence for every candidate, and applies `count`/`min`/`max` to the subset that actually matches the Contract. Scenario outcome evidence includes candidate, matched, and assertion IDs, so duplicate calls and payload mismatches remain distinguishable.
+
 Scenario definitions can live in the repository as portable JSON manifests:
 
 ```json
