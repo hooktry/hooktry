@@ -11,7 +11,6 @@ use axum::{
     routing::post,
 };
 use ortyo::{
-    approval::ApprovalStore,
     approval_webhook::{
         APPROVAL_WEBHOOK_SECRET_NAME, ensure_webhook_secret, process_one_for_test,
         retry_delay_ms_for_test,
