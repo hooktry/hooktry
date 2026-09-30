@@ -10,6 +10,7 @@ fn expose_defaults_to_web_and_verification() {
             name: "web".to_owned(),
             port: 3000,
             verify: true,
+            public: false,
         }
     );
 }
@@ -31,6 +32,7 @@ fn expose_accepts_name_and_no_verify() {
             name: "stripe".to_owned(),
             port: 8080,
             verify: false,
+            public: false,
         }
     );
 }
@@ -71,4 +73,48 @@ fn exposure_management_commands_are_typed() {
 fn hosted_command_is_typed() {
     let cli = Cli::parse(["ortyo".to_owned(), "hosted".to_owned()]).unwrap();
     assert_eq!(cli.command, Command::Hosted);
+}
+
+
+#[test]
+fn expose_public_is_typed_and_flags_can_follow_the_name() {
+    let cli = Cli::parse([
+        "ortyo".to_owned(),
+        "expose".to_owned(),
+        "3000".to_owned(),
+        "stripe".to_owned(),
+        "--public".to_owned(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        cli.command,
+        Command::Expose {
+            name: "stripe".to_owned(),
+            port: 3000,
+            verify: true,
+            public: true,
+        }
+    );
+}
+
+#[test]
+fn expose_public_can_use_default_name() {
+    let cli = Cli::parse([
+        "ortyo".to_owned(),
+        "expose".to_owned(),
+        "3000".to_owned(),
+        "--public".to_owned(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        cli.command,
+        Command::Expose {
+            name: "web".to_owned(),
+            port: 3000,
+            verify: true,
+            public: true,
+        }
+    );
 }
