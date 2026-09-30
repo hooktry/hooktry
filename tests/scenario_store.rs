@@ -66,7 +66,10 @@ fn scenario_run_and_outcome_survive_database_reopen() {
 
     assert_eq!(persisted_scenario.id, scenario.id);
     assert_eq!(persisted_scenario.contract_ids, scenario.contract_ids);
-    assert_eq!(persisted_scenario.ordering, Some(ScenarioOrdering::Declared));
+    assert_eq!(
+        persisted_scenario.ordering,
+        Some(ScenarioOrdering::Declared)
+    );
     assert_eq!(persisted_run.id, run.id);
     assert_eq!(persisted_run.exposure_id, run.exposure_id);
     assert_eq!(persisted_outcome.run_id, run.id);
