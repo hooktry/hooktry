@@ -91,6 +91,8 @@ pub struct ApprovalRecord {
     pub consumed_at_unix_ms: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consumed_by_credential_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -151,8 +153,10 @@ impl ApprovalStore {
                     decided_at BIGINT,
                     decided_by_credential_id TEXT,
                     consumed_at BIGINT,
-                    consumed_by_credential_id TEXT
+                    consumed_by_credential_id TEXT,
+                    execution_id TEXT
                 );
+                ALTER TABLE hosted_approvals ADD COLUMN IF NOT EXISTS execution_id TEXT;
                 CREATE INDEX IF NOT EXISTS hosted_approvals_workspace
                     ON hosted_approvals(workspace_id);",
             )
@@ -176,7 +180,8 @@ impl ApprovalStore {
                     decided_at INTEGER,
                     decided_by_credential_id TEXT,
                     consumed_at INTEGER,
-                    consumed_by_credential_id TEXT
+                    consumed_by_credential_id TEXT,
+                    execution_id TEXT
                 );
                 CREATE INDEX IF NOT EXISTS hosted_approvals_workspace
                     ON hosted_approvals(workspace_id);",
@@ -237,6 +242,7 @@ impl ApprovalStore {
         workspace_id: Uuid,
         approval_id: Uuid,
         consumed_by_credential_id: Uuid,
+        execution_id: Uuid,
         request: HttpExecutionRequest,
     ) -> Result<ApprovalRecord, ApprovalError> {
         let store = self.clone();
@@ -245,6 +251,7 @@ impl ApprovalStore {
                 workspace_id,
                 approval_id,
                 consumed_by_credential_id,
+                execution_id,
                 &request,
             )
         })
@@ -270,6 +277,7 @@ impl ApprovalStore {
             decided_by_credential_id: None,
             consumed_at_unix_ms: None,
             consumed_by_credential_id: None,
+            execution_id: None,
         };
         self.insert(&record)?;
         Ok(record)
@@ -287,7 +295,8 @@ impl ApprovalStore {
                 .query_row(
                     "SELECT workspace_id, requested_by_credential_id, request_digest,
                             summary_json, state, requested_at, decided_at,
-                            decided_by_credential_id, consumed_at, consumed_by_credential_id
+                            decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                            execution_id
                      FROM hosted_approvals WHERE approval_id=?1",
                     [approval_id.to_string()],
                     |row| {
@@ -302,6 +311,7 @@ impl ApprovalStore {
                             decided_by_credential_id: row.get(7)?,
                             consumed_at: row.get(8)?,
                             consumed_by_credential_id: row.get(9)?,
+                            execution_id: row.get(10)?,
                         })
                     },
                 )
@@ -313,7 +323,8 @@ impl ApprovalStore {
                 .query_opt(
                     "SELECT workspace_id, requested_by_credential_id, request_digest,
                             summary_json, state, requested_at, decided_at,
-                            decided_by_credential_id, consumed_at, consumed_by_credential_id
+                            decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                            execution_id
                      FROM hosted_approvals WHERE approval_id=$1",
                     &[&approval_id.to_string()],
                 )
@@ -329,6 +340,7 @@ impl ApprovalStore {
                     decided_by_credential_id: row.get(7),
                     consumed_at: row.get(8),
                     consumed_by_credential_id: row.get(9),
+                    execution_id: row.get(10),
                 }),
         };
 
@@ -432,6 +444,7 @@ impl ApprovalStore {
         workspace_id: Uuid,
         approval_id: Uuid,
         consumed_by_credential_id: Uuid,
+        execution_id: Uuid,
         request: &HttpExecutionRequest,
     ) -> Result<ApprovalRecord, ApprovalError> {
         let request_digest = request_digest(request)?;
@@ -450,11 +463,13 @@ impl ApprovalStore {
                 transaction
                     .execute(
                         "UPDATE hosted_approvals
-                         SET state='consumed', consumed_at=?1, consumed_by_credential_id=?2
-                         WHERE approval_id=?3 AND workspace_id=?4 AND state='approved'",
+                         SET state='consumed', consumed_at=?1, consumed_by_credential_id=?2,
+                             execution_id=?3
+                         WHERE approval_id=?4 AND workspace_id=?5 AND state='approved'",
                         params![
                             millis_i64(consumed_at)?,
                             consumed_by_credential_id.to_string(),
+                            execution_id.to_string(),
                             approval_id.to_string(),
                             workspace_id.to_string()
                         ],
@@ -475,7 +490,8 @@ impl ApprovalStore {
                     .query_opt(
                         "SELECT workspace_id, requested_by_credential_id, request_digest,
                                 summary_json, state, requested_at, decided_at,
-                                decided_by_credential_id, consumed_at, consumed_by_credential_id
+                                decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                                execution_id
                          FROM hosted_approvals WHERE approval_id=$1 FOR UPDATE",
                         &[&approval],
                     )
@@ -492,6 +508,7 @@ impl ApprovalStore {
                     decided_by_credential_id: row.get(7),
                     consumed_at: row.get(8),
                     consumed_by_credential_id: row.get(9),
+                    execution_id: row.get(10),
                 }
                 .into_record(approval_id)?;
                 if record.workspace_id != workspace_id {
@@ -503,9 +520,16 @@ impl ApprovalStore {
                 transaction
                     .execute(
                         "UPDATE hosted_approvals
-                         SET state='consumed', consumed_at=$1, consumed_by_credential_id=$2
-                         WHERE approval_id=$3 AND workspace_id=$4 AND state='approved'",
-                        &[&consumed_at, &consumed_by, &approval, &workspace],
+                         SET state='consumed', consumed_at=$1, consumed_by_credential_id=$2,
+                             execution_id=$3
+                         WHERE approval_id=$4 AND workspace_id=$5 AND state='approved'",
+                        &[
+                            &consumed_at,
+                            &consumed_by,
+                            &execution_id.to_string(),
+                            &approval,
+                            &workspace,
+                        ],
                     )
                     .map_err(|error| ApprovalError::Storage(error.to_string()))?;
                 transaction
@@ -583,6 +607,7 @@ struct StoredApprovalRow {
     decided_by_credential_id: Option<String>,
     consumed_at: Option<i64>,
     consumed_by_credential_id: Option<String>,
+    execution_id: Option<String>,
 }
 
 impl StoredApprovalRow {
@@ -606,6 +631,10 @@ impl StoredApprovalRow {
                 .consumed_by_credential_id
                 .map(|value| parse_uuid(&value))
                 .transpose()?,
+            execution_id: self
+                .execution_id
+                .map(|value| parse_uuid(&value))
+                .transpose()?,
         })
     }
 }
@@ -618,7 +647,8 @@ fn load_sqlite_record(
         .query_row(
             "SELECT workspace_id, requested_by_credential_id, request_digest,
                     summary_json, state, requested_at, decided_at,
-                    decided_by_credential_id, consumed_at, consumed_by_credential_id
+                    decided_by_credential_id, consumed_at, consumed_by_credential_id,
+                    execution_id
              FROM hosted_approvals WHERE approval_id=?1",
             [approval_id.to_string()],
             |row| {
@@ -633,6 +663,7 @@ fn load_sqlite_record(
                     decided_by_credential_id: row.get(7)?,
                     consumed_at: row.get(8)?,
                     consumed_by_credential_id: row.get(9)?,
+                    execution_id: row.get(10)?,
                 })
             },
         )
