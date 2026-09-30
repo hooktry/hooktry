@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     net::{IpAddr, SocketAddr},
-    time::Duration,
+    time::{Duration, UNIX_EPOCH},
 };
 
 use serde::Serialize;
@@ -457,38 +457,66 @@ async fn reusable_dogfood_exposure(
         .map_err(|error| format!("list dogfood exposures: {error:?}"))?;
     exposures.reverse();
 
-    for exposure in exposures
+    for mut exposure in exposures
         .into_iter()
         .filter(|exposure| !exposure.revoked && exposure.name == config.name)
     {
-        let capability = state
+        if exposure.target_port != config.target_port {
+            state
+                .capabilities
+                .revoke_exposure_async(exposure.exposure_id)
+                .await
+                .map_err(|error| format!("revoke mismatched dogfood capability: {error:?}"))?;
+            state
+                .exposures
+                .revoke_async(exposure.exposure_id)
+                .await
+                .map_err(|error| format!("revoke mismatched dogfood exposure: {error:?}"))?;
+            continue;
+        }
+
+        let stored_capability = state
             .executor
             .secret_store()
             .resolve_async(workspace_id, RUNTIME_CAPABILITY_SECRET.to_owned())
             .await;
-        let reusable = exposure.target_port == config.target_port
-            && match capability {
-                Ok(capability) => state
-                    .capabilities
-                    .authorize_async(exposure.exposure_id, &capability)
-                    .await
-                    .is_ok(),
-                Err(_) => false,
-            };
-        if reusable {
+        if let Ok(capability) = stored_capability
+            && state
+                .capabilities
+                .authorize_async(exposure.exposure_id, &capability)
+                .await
+                .is_ok()
+        {
             return Ok(Some(exposure));
         }
 
-        state
+        let rotated = state
             .capabilities
-            .revoke_exposure_async(exposure.exposure_id)
+            .rotate_exposure_async(exposure.exposure_id, state.capability_ttl)
             .await
-            .map_err(|error| format!("revoke stale dogfood capability: {error:?}"))?;
+            .map_err(|error| format!("rotate dogfood capability: {error:?}"))?;
+        let expires_at = rotated
+            .expires_at
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| format!("dogfood capability expiry before unix epoch: {error}"))?
+            .as_secs();
+        state
+            .executor
+            .secret_store()
+            .rotate_async(
+                workspace_id,
+                RUNTIME_CAPABILITY_SECRET.to_owned(),
+                rotated.token,
+            )
+            .await
+            .map_err(|error| format!("persist rotated dogfood capability: {error:?}"))?;
         state
             .exposures
-            .revoke_async(exposure.exposure_id)
+            .update_capability_expiry_async(exposure.exposure_id, expires_at)
             .await
-            .map_err(|error| format!("revoke stale dogfood exposure: {error:?}"))?;
+            .map_err(|error| format!("persist dogfood capability expiry: {error:?}"))?;
+        exposure.capability_expires_at_unix_seconds = expires_at;
+        return Ok(Some(exposure));
     }
 
     Ok(None)
@@ -599,12 +627,18 @@ fn local_public_base_url(socket: SocketAddr) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::{
         DogfoodExposureConfig, HostedServerConfig, dogfood_exposure_config,
-        ensure_operator_bootstrap_async, open_hosted_stores,
+        ensure_operator_bootstrap_async, open_hosted_stores, reusable_dogfood_exposure,
     };
     use crate::{
+        hosted::HostedRelayState,
         hosted_identity::{ApiScope, HostedIdentityStore},
+        hosted_state::{HostedExposureRecord, HostedExposureStore},
+        relay::RelayBroker,
+        relay_auth::{CapabilityError, CapabilityStore},
         secret::SecretStore,
     };
     use uuid::Uuid;
@@ -646,6 +680,81 @@ mod tests {
             token
         );
         let _ = std::fs::remove_file(path);
+    }
+
+    #[tokio::test]
+    async fn dogfood_rotation_preserves_exposure_identity_after_capability_expiry() {
+        let workspace_id = Uuid::now_v7();
+        let exposure_id = Uuid::now_v7();
+        let capabilities = CapabilityStore::default();
+        let exposures = HostedExposureStore::default();
+        let secrets = SecretStore::default();
+
+        let expired = capabilities.issue(exposure_id, Duration::ZERO).unwrap();
+        secrets
+            .put(
+                workspace_id,
+                "dogfood-runtime-capability",
+                expired.token.clone(),
+            )
+            .unwrap();
+        let original = HostedExposureRecord {
+            exposure_id,
+            workspace_id: Some(workspace_id),
+            name: "ortyo-dogfood".to_owned(),
+            target_port: 10000,
+            public_url: format!("https://ortyo.example/e/{exposure_id}"),
+            runtime_url: format!("wss://ortyo.example/_ortyo/runtime/{exposure_id}"),
+            capability_expires_at_unix_seconds: 0,
+            revoked: false,
+        };
+        exposures.save(&original).unwrap();
+
+        let mut state = HostedRelayState::websocket_only_with_stores(
+            RelayBroker::default(),
+            capabilities.clone(),
+            exposures.clone(),
+            HostedIdentityStore::default(),
+            secrets.clone(),
+            "https://ortyo.example",
+            "control-token",
+        );
+        state.capability_ttl = Duration::from_secs(60);
+
+        let reused = reusable_dogfood_exposure(
+            &state,
+            workspace_id,
+            &DogfoodExposureConfig {
+                name: "ortyo-dogfood".to_owned(),
+                target_port: 10000,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(reused.exposure_id, original.exposure_id);
+        assert_eq!(reused.public_url, original.public_url);
+        assert!(!reused.revoked);
+        assert!(reused.capability_expires_at_unix_seconds > 0);
+
+        let rotated = secrets
+            .resolve(workspace_id, "dogfood-runtime-capability")
+            .unwrap();
+        assert_ne!(rotated, expired.token);
+        assert_eq!(
+            capabilities.authorize(exposure_id, &expired.token),
+            Err(CapabilityError::Revoked)
+        );
+        assert_eq!(capabilities.authorize(exposure_id, &rotated), Ok(()));
+
+        let persisted = exposures.get(exposure_id).unwrap().unwrap();
+        assert_eq!(persisted.exposure_id, original.exposure_id);
+        assert_eq!(persisted.public_url, original.public_url);
+        assert_eq!(
+            persisted.capability_expires_at_unix_seconds,
+            reused.capability_expires_at_unix_seconds
+        );
     }
 
     #[test]
