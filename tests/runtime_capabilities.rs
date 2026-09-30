@@ -46,9 +46,7 @@ fn rotating_exposure_capability_revokes_previous_tokens() {
     let store = CapabilityStore::default();
     let exposure_id = Uuid::now_v7();
 
-    let first = store
-        .issue(exposure_id, Duration::from_secs(60))
-        .unwrap();
+    let first = store.issue(exposure_id, Duration::from_secs(60)).unwrap();
     let second = store
         .rotate_exposure(exposure_id, Duration::from_secs(60))
         .unwrap();
