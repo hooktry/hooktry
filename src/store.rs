@@ -4,6 +4,7 @@ use std::{
 };
 
 use rusqlite::{Connection, params};
+use tokio::sync::watch;
 use uuid::Uuid;
 
 use crate::domain::{
@@ -13,6 +14,7 @@ use crate::domain::{
 #[derive(Clone)]
 pub struct InteractionStore {
     connection: Arc<Mutex<Connection>>,
+    interaction_revision: watch::Sender<u64>,
 }
 
 impl Default for InteractionStore {
@@ -79,8 +81,10 @@ impl InteractionStore {
                 ON scenario_outcomes(scenario_id);",
         )?;
 
+        let (interaction_revision, _) = watch::channel(0);
         Ok(Self {
             connection: Arc::new(Mutex::new(connection)),
+            interaction_revision,
         })
     }
 
@@ -100,6 +104,14 @@ impl InteractionStore {
                 ],
             )
             .expect("persist interaction");
+
+        let revision = *self.interaction_revision.borrow();
+        self.interaction_revision
+            .send_replace(revision.wrapping_add(1));
+    }
+
+    pub fn subscribe_interactions(&self) -> watch::Receiver<u64> {
+        self.interaction_revision.subscribe()
     }
 
     pub fn find(&self, id: Uuid) -> Option<Interaction> {
