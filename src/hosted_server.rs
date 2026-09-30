@@ -92,19 +92,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .await
         .map_err(|error| format!("bind hosted relay {}: {error}", config.bind))?;
 
-    let (capabilities, exposures, storage) = if let Some(database_url) = &config.database_url {
-        let capabilities = CapabilityStore::open_postgres(database_url)
-            .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
-        let exposures = HostedExposureStore::open_postgres(database_url)
-            .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
-        (capabilities, exposures, "postgres")
-    } else {
-        let capabilities = CapabilityStore::open(&config.db_path)
-            .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
-        let exposures = HostedExposureStore::open(&config.db_path)
-            .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
-        (capabilities, exposures, "sqlite")
-    };
+    let (capabilities, exposures, storage) = open_hosted_stores(&config).await?;
     let state = HostedRelayState::websocket_only_with_store(
         RelayBroker::default(),
         capabilities,
@@ -130,6 +118,34 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .map_err(|error| format!("serve hosted relay: {error}"))
 }
 
+async fn open_hosted_stores(
+    config: &HostedServerConfig,
+) -> Result<(CapabilityStore, HostedExposureStore, &'static str), String> {
+    if let Some(database_url) = &config.database_url {
+        let database_url = database_url.clone();
+        tokio::task::spawn_blocking(move || {
+            let capabilities = CapabilityStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
+            let exposures = HostedExposureStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
+            Ok((capabilities, exposures, "postgres"))
+        })
+        .await
+        .map_err(|error| format!("join Postgres store initialization: {error}"))?
+    } else {
+        let db_path = config.db_path.clone();
+        tokio::task::spawn_blocking(move || {
+            let capabilities = CapabilityStore::open(&db_path)
+                .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
+            let exposures = HostedExposureStore::open(&db_path)
+                .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
+            Ok((capabilities, exposures, "sqlite"))
+        })
+        .await
+        .map_err(|error| format!("join SQLite store initialization: {error}"))?
+    }
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -146,4 +162,30 @@ fn local_public_base_url(socket: SocketAddr) -> String {
         IpAddr::V4(ip) => ip.to_string(),
     };
     format!("http://{host}:{}", socket.port())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{HostedServerConfig, open_hosted_stores};
+
+    #[tokio::test]
+    async fn postgres_initialization_fails_without_nested_runtime_panic() {
+        let config = HostedServerConfig {
+            bind: "127.0.0.1:0".to_owned(),
+            public_base_url: "http://127.0.0.1".to_owned(),
+            control_token: "test-control-token".to_owned(),
+            database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
+            db_path: "unused.db".to_owned(),
+        };
+
+        let error = open_hosted_stores(&config)
+            .await
+            .expect_err("unreachable Postgres should return an error");
+
+        assert!(
+            error.contains("open Postgres capability store"),
+            "unexpected error: {error}"
+        );
+    }
 }
