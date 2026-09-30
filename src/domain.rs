@@ -124,3 +124,52 @@ pub struct AssertionResult {
     pub passed: bool,
     pub mismatches: Vec<Mismatch>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Scenario {
+    pub id: Uuid,
+    pub name: String,
+    pub port: u16,
+    pub contract_ids: Vec<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ScenarioRunState {
+    AwaitingEvidence,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioRun {
+    pub id: Uuid,
+    pub scenario_id: Uuid,
+    pub exposure_id: Uuid,
+    pub exposure_url: String,
+    pub state: ScenarioRunState,
+    pub started_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioCheckOutcome {
+    pub contract_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interaction_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assertion_id: Option<Uuid>,
+    pub passed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioOutcome {
+    pub run_id: Uuid,
+    pub scenario_id: Uuid,
+    pub completed_at: DateTime<Utc>,
+    pub passed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recording_id: Option<Uuid>,
+    pub replayed_interaction_ids: Vec<Uuid>,
+    pub checks: Vec<ScenarioCheckOutcome>,
+}
