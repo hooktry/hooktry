@@ -35,6 +35,8 @@ pub enum ApiScope {
     ExposuresRevoke,
     #[serde(rename = "requests:execute")]
     RequestsExecute,
+    #[serde(rename = "requests:approve")]
+    RequestsApprove,
 }
 
 impl ApiScope {
@@ -44,6 +46,7 @@ impl ApiScope {
             Self::ExposuresRead => "exposures:read",
             Self::ExposuresRevoke => "exposures:revoke",
             Self::RequestsExecute => "requests:execute",
+            Self::RequestsApprove => "requests:approve",
         }
     }
 
@@ -53,6 +56,7 @@ impl ApiScope {
             "exposures:read" => Some(Self::ExposuresRead),
             "exposures:revoke" => Some(Self::ExposuresRevoke),
             "requests:execute" => Some(Self::RequestsExecute),
+            "requests:approve" => Some(Self::RequestsApprove),
             _ => None,
         }
     }
@@ -215,6 +219,7 @@ impl HostedIdentityStore {
                 ApiScope::ExposuresRead,
                 ApiScope::ExposuresRevoke,
                 ApiScope::RequestsExecute,
+                ApiScope::RequestsApprove,
             ],
             revoked: false,
         };
