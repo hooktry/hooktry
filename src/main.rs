@@ -1,7 +1,10 @@
 use ortyo::{
+    approval::ApprovalDecision,
     cli::{Cli, Command, usage},
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
+    execution::HttpExecutionRequest,
     hosted::ProvisionedExposure,
+    hosted_client::HostedClient,
     hosted_runtime::HostedRuntimeStatus,
     hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
@@ -40,6 +43,24 @@ async fn main() {
                 .await
                 .map(|_| 0)
         }
+        Command::ApprovalCreate { path } => {
+            approval_create(&cli.base_url, &path).await.map(|_| 0)
+        }
+        Command::ApprovalGet { id } => approval_get(&cli.base_url, id).await.map(|_| 0),
+        Command::ApprovalApprove { id } => {
+            approval_decide(&cli.base_url, id, ApprovalDecision::Approve)
+                .await
+                .map(|_| 0)
+        }
+        Command::ApprovalDeny { id } => {
+            approval_decide(&cli.base_url, id, ApprovalDecision::Deny)
+                .await
+                .map(|_| 0)
+        }
+        Command::ApprovalExecute { id, path } => {
+            approval_execute(&cli.base_url, id, &path).await.map(|_| 0)
+        }
+        Command::ExecutionGet { id } => execution_get(&cli.base_url, id).await.map(|_| 0),
         Command::Expose {
             name,
             port,
@@ -198,6 +219,50 @@ async fn expose_public(base_url: &str, name: &str, port: u16) -> Result<(), Stri
 
     let value = serde_json::to_value(status)
         .map_err(|error| format!("serialize hosted runtime status: {error}"))?;
+    print_json(&value)
+}
+
+fn load_http_execution_request(path: &str) -> Result<HttpExecutionRequest, String> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|error| format!("read HTTP execution request: {error}"))?;
+    serde_json::from_str(&content)
+        .map_err(|error| format!("parse HTTP execution request JSON: {error}"))
+}
+
+async fn approval_create(base_url: &str, path: &str) -> Result<(), String> {
+    let request = load_http_execution_request(path)?;
+    let value = HostedClient::from_env(base_url)
+        .create_approval(&request)
+        .await?;
+    print_json(&value)
+}
+
+async fn approval_get(base_url: &str, id: uuid::Uuid) -> Result<(), String> {
+    let value = HostedClient::from_env(base_url).get_approval(id).await?;
+    print_json(&value)
+}
+
+async fn approval_decide(
+    base_url: &str,
+    id: uuid::Uuid,
+    decision: ApprovalDecision,
+) -> Result<(), String> {
+    let value = HostedClient::from_env(base_url)
+        .decide_approval(id, decision)
+        .await?;
+    print_json(&value)
+}
+
+async fn approval_execute(base_url: &str, id: uuid::Uuid, path: &str) -> Result<(), String> {
+    let request = load_http_execution_request(path)?;
+    let value = HostedClient::from_env(base_url)
+        .execute_approved(id, &request)
+        .await?;
+    print_json(&value)
+}
+
+async fn execution_get(base_url: &str, id: uuid::Uuid) -> Result<(), String> {
+    let value = HostedClient::from_env(base_url).get_execution(id).await?;
     print_json(&value)
 }
 
