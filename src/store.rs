@@ -102,13 +102,21 @@ impl InteractionStore {
         })
     }
 
-    pub fn record(&self, interaction: Interaction) {
-        let payload = serde_json::to_string(&interaction).expect("serialize interaction");
+    pub fn record(&self, mut interaction: Interaction) {
         let interaction_id = interaction.id.to_string();
         let mut connection = self.connection.lock().expect("interaction store poisoned");
         let transaction = connection
             .transaction()
             .expect("begin interaction transaction");
+        transaction
+            .execute(
+                "INSERT INTO interaction_order (interaction_id) VALUES (?1)",
+                [interaction_id.clone()],
+            )
+            .expect("persist interaction order");
+        let sequence = transaction.last_insert_rowid() as u64;
+        interaction.observed_sequence = Some(sequence);
+        let payload = serde_json::to_string(&interaction).expect("serialize interaction");
         transaction
             .execute(
                 "INSERT INTO interactions (id, session_id, started_at, payload)
@@ -121,12 +129,6 @@ impl InteractionStore {
                 ],
             )
             .expect("persist interaction");
-        transaction
-            .execute(
-                "INSERT INTO interaction_order (interaction_id) VALUES (?1)",
-                [interaction.id.to_string()],
-            )
-            .expect("persist interaction order");
         transaction
             .commit()
             .expect("commit interaction transaction");
@@ -145,12 +147,15 @@ impl InteractionStore {
         let connection = self.connection.lock().expect("interaction store poisoned");
         connection
             .query_row(
-                "SELECT payload FROM interactions WHERE id = ?1",
+                "SELECT interactions.payload, interaction_order.sequence
+                 FROM interactions
+                 JOIN interaction_order ON interaction_order.interaction_id = interactions.id
+                 WHERE interactions.id = ?1",
                 [id.to_string()],
-                |row| row.get::<_, String>(0),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, u64>(1)?)),
             )
             .ok()
-            .map(|payload| serde_json::from_str(&payload).expect("deserialize interaction"))
+            .map(|(payload, sequence)| deserialize_interaction(&payload, sequence))
     }
 
     pub fn save_recording(&self, recording: &Recording) {
@@ -319,7 +324,7 @@ impl InteractionStore {
         let connection = self.connection.lock().expect("interaction store poisoned");
         let mut statement = connection
             .prepare(
-                "SELECT interactions.payload
+                "SELECT interactions.payload, interaction_order.sequence
                  FROM interaction_order
                  JOIN interactions ON interactions.id = interaction_order.interaction_id
                  ORDER BY interaction_order.sequence",
@@ -327,11 +332,13 @@ impl InteractionStore {
             .expect("prepare interaction persistence-order query");
 
         statement
-            .query_map([], |row| row.get::<_, String>(0))
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, u64>(1)?))
+            })
             .expect("query interactions in persistence order")
-            .map(|payload| {
-                serde_json::from_str(&payload.expect("read interaction payload"))
-                    .expect("deserialize interaction")
+            .map(|row| {
+                let (payload, sequence) = row.expect("read interaction payload and sequence");
+                deserialize_interaction(&payload, sequence)
             })
             .collect()
     }
@@ -339,16 +346,30 @@ impl InteractionStore {
     pub fn all(&self) -> Vec<Interaction> {
         let connection = self.connection.lock().expect("interaction store poisoned");
         let mut statement = connection
-            .prepare("SELECT payload FROM interactions ORDER BY started_at, id")
+            .prepare(
+                "SELECT interactions.payload, interaction_order.sequence
+                 FROM interactions
+                 JOIN interaction_order ON interaction_order.interaction_id = interactions.id
+                 ORDER BY interactions.started_at, interactions.id",
+            )
             .expect("prepare interaction query");
 
         statement
-            .query_map([], |row| row.get::<_, String>(0))
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, u64>(1)?))
+            })
             .expect("query interactions")
-            .map(|payload| {
-                serde_json::from_str(&payload.expect("read interaction payload"))
-                    .expect("deserialize interaction")
+            .map(|row| {
+                let (payload, sequence) = row.expect("read interaction payload and sequence");
+                deserialize_interaction(&payload, sequence)
             })
             .collect()
     }
+}
+
+fn deserialize_interaction(payload: &str, sequence: u64) -> Interaction {
+    let mut interaction: Interaction =
+        serde_json::from_str(payload).expect("deserialize interaction");
+    interaction.observed_sequence = Some(sequence);
+    interaction
 }
