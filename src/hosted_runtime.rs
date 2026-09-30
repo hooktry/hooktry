@@ -35,9 +35,15 @@ pub struct HostedRuntimeStatus {
     pub runtime_state: String,
 }
 
+struct HostedRuntimeHandle {
+    abort_handle: AbortHandle,
+    revoke_url: String,
+    capability: String,
+}
+
 #[derive(Clone, Default)]
 pub struct HostedRuntimeManager {
-    inner: Arc<Mutex<HashMap<Uuid, AbortHandle>>>,
+    inner: Arc<Mutex<HashMap<Uuid, HostedRuntimeHandle>>>,
 }
 
 impl HostedRuntimeManager {
@@ -91,13 +97,16 @@ impl HostedRuntimeManager {
         let exposure_id = provision.exposure_id;
         let runtime_url = provision.runtime_url;
         let capability = provision.runtime_capability;
+        let revoke_url = runtime_http_url(&runtime_url).ok_or(HostedRuntimeError::InvalidProvision)?;
+        let runtime_url_for_task = runtime_url.clone();
+        let capability_for_task = capability.clone();
         let runtime_state = state.clone();
         let task = tokio::spawn(async move {
             maintain_websocket_runtime(
                 connection,
-                runtime_url,
+                runtime_url_for_task,
                 exposure_id,
-                capability,
+                capability_for_task,
                 runtime_state,
                 Duration::from_secs(1),
             )
@@ -108,9 +117,16 @@ impl HostedRuntimeManager {
             .inner
             .lock()
             .expect("hosted runtime store poisoned")
-            .insert(exposure_id, task.abort_handle());
+            .insert(
+                exposure_id,
+                HostedRuntimeHandle {
+                    abort_handle: task.abort_handle(),
+                    revoke_url,
+                    capability,
+                },
+            );
         if let Some(previous) = previous {
-            previous.abort();
+            previous.abort_handle.abort();
         }
 
         Ok(HostedRuntimeStatus {
@@ -125,14 +141,31 @@ impl HostedRuntimeManager {
         })
     }
 
-    pub fn stop(&self, exposure_id: Uuid) {
-        if let Some(handle) = self
+    pub async fn stop(&self, exposure_id: Uuid) {
+        let runtime = self
             .inner
             .lock()
             .expect("hosted runtime store poisoned")
-            .remove(&exposure_id)
-        {
-            handle.abort();
+            .remove(&exposure_id);
+
+        if let Some(runtime) = runtime {
+            let revoke = reqwest::Client::new()
+                .delete(&runtime.revoke_url)
+                .bearer_auth(&runtime.capability)
+                .send();
+            let _ = tokio::time::timeout(Duration::from_secs(3), revoke).await;
+            runtime.abort_handle.abort();
         }
     }
+}
+
+fn runtime_http_url(runtime_url: &str) -> Option<String> {
+    runtime_url
+        .strip_prefix("wss://")
+        .map(|rest| format!("https://{rest}"))
+        .or_else(|| {
+            runtime_url
+                .strip_prefix("ws://")
+                .map(|rest| format!("http://{rest}"))
+        })
 }
