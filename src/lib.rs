@@ -4,6 +4,7 @@ pub mod domain;
 pub mod exposure;
 pub mod hosted;
 pub mod hosted_server;
+pub mod hosted_runtime;
 pub mod http;
 pub mod mcp;
 pub mod recording;
