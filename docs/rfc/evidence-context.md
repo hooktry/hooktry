@@ -6,6 +6,7 @@ Implementation status:
 - CTX1: implemented — normalized allowlisted HTTP context and replay preservation.
 - MATCH1: implemented — all-candidate Contract matching with `count`/`min`/`max` cardinality evidence.
 - WINDOW1: implemented — Scenario-level `within_ms` + quiet `settle_ms`, event-driven by persisted interaction revisions.
+- CONTEXT-MATCH1: implemented — Contracts can subset-match canonical normalized correlation context, and Scenario/WINDOW1 use the same matcher.
 - ORDER1, per-expectation WAIT1/eventually, RETRY1, OTEL1: deferred.
 
 ## Summary
