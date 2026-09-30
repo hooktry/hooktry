@@ -57,10 +57,11 @@ ORTYO_BIND=0.0.0.0:8080 \
 ORTYO_PUBLIC_BASE_URL=https://relay.example \
 ORTYO_CONTROL_TOKEN='<secret>' \
 ORTYO_DATABASE_URL='postgresql://...' \
+ORTYO_APPROVAL_WEBHOOK_URL='https://hooks.example/...' \
 ortyo hosted
 ```
 
-Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. `ORTYO_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `ORTYO_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `ORTYO_DATABASE_URL` is set. Otherwise ORTYO falls back to SQLite via `ORTYO_HOSTED_DB_PATH`. The raw capability is never stored.
+Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. When `ORTYO_APPROVAL_WEBHOOK_URL` is set together with `ORTYO_BOOTSTRAP_WORKSPACE`, ORTYO encrypts that URL in SecretStore and delivers durable pending-approval notifications through the CONTROL3 outbox. The raw webhook URL is not logged or returned. `ORTYO_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `ORTYO_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `ORTYO_DATABASE_URL` is set. Otherwise ORTYO falls back to SQLite via `ORTYO_HOSTED_DB_PATH`. The raw capability is never stored.
 
 ### MCP
 

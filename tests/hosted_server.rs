@@ -53,6 +53,45 @@ fn hosted_server_config_uses_port_and_public_url() {
 }
 
 #[test]
+fn approval_webhook_config_is_validated_and_redacted() {
+    let config = HostedServerConfig::from_lookup(|key| match key {
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "ORTYO_SECRETS_KEY" => {
+            Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
+        }
+        "ORTYO_BOOTSTRAP_WORKSPACE" => Some("serhii".to_owned()),
+        "ORTYO_APPROVAL_WEBHOOK_URL" => {
+            Some("https://hooks.example.com/private/secret-token?key=hidden".to_owned())
+        }
+        _ => None,
+    })
+    .unwrap();
+
+    assert_eq!(
+        config.approval_webhook_url.as_deref(),
+        Some("https://hooks.example.com/private/secret-token?key=hidden")
+    );
+    let debug = format!("{config:?}");
+    assert!(!debug.contains("secret-token"));
+    assert!(!debug.contains("hidden"));
+    assert!(debug.contains("[REDACTED]"));
+
+    let error = HostedServerConfig::from_lookup(|key| match key {
+        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "ORTYO_SECRETS_KEY" => {
+            Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
+        }
+        "ORTYO_APPROVAL_WEBHOOK_URL" => Some("file:///tmp/hook".to_owned()),
+        _ => None,
+    })
+    .unwrap_err();
+    assert_eq!(
+        error,
+        "approval webhook URL must use http or https and include a host"
+    );
+}
+
+#[test]
 fn explicit_bind_wins_over_port() {
     let config = HostedServerConfig::from_lookup(|key| match key {
         "ORTYO_BIND" => Some("127.0.0.1:4242".to_owned()),

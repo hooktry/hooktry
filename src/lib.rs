@@ -1,5 +1,6 @@
 pub mod agent_surface;
 pub mod approval;
+pub mod approval_webhook;
 pub mod cli;
 pub mod context;
 pub mod contract;

@@ -316,6 +316,106 @@ fn pending_approval_without_notification_is_backfilled_on_reopen() {
 }
 
 #[test]
+fn notification_claim_is_leased_and_retryable_without_parallel_send() {
+    let store = ApprovalStore::default();
+    let workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+    let approval = store
+        .create(workspace_id, Uuid::now_v7(), &request)
+        .unwrap();
+
+    let first = store
+        .claim_next_notification(workspace_id, 60_000)
+        .unwrap()
+        .unwrap();
+    assert_eq!(first.record.approval_id, approval.approval_id);
+    assert_eq!(first.attempt_count, 1);
+    assert!(
+        store
+            .claim_next_notification(workspace_id, 60_000)
+            .unwrap()
+            .is_none()
+    );
+
+    store
+        .fail_notification_claim(
+            workspace_id,
+            first.record.notification_id,
+            first.claim_token,
+            0,
+            "request_failed",
+        )
+        .unwrap();
+
+    let second = store
+        .claim_next_notification(workspace_id, 60_000)
+        .unwrap()
+        .unwrap();
+    assert_eq!(second.record.notification_id, first.record.notification_id);
+    assert_ne!(second.claim_token, first.claim_token);
+    assert_eq!(second.attempt_count, 2);
+
+    let delivered = store
+        .complete_notification_claim(
+            workspace_id,
+            second.record.notification_id,
+            second.claim_token,
+        )
+        .unwrap();
+    assert!(delivered.delivered_at_unix_ms.is_some());
+    assert!(
+        store
+            .claim_next_notification(workspace_id, 60_000)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn deciding_approval_atomically_cancels_undelivered_notification() {
+    let store = ApprovalStore::default();
+    let workspace_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "body");
+    let approval = store
+        .create(workspace_id, Uuid::now_v7(), &request)
+        .unwrap();
+    let claim = store
+        .claim_next_notification(workspace_id, 60_000)
+        .unwrap()
+        .unwrap();
+
+    store
+        .decide(
+            workspace_id,
+            approval.approval_id,
+            Uuid::now_v7(),
+            ApprovalDecision::Deny,
+        )
+        .unwrap();
+
+    assert!(
+        store
+            .list_undelivered_notifications(workspace_id)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        store
+            .claim_next_notification(workspace_id, 60_000)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        store.complete_notification_claim(
+            workspace_id,
+            claim.record.notification_id,
+            claim.claim_token
+        ),
+        Err(ApprovalError::NotFound)
+    );
+}
+
+#[test]
 fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace() {
     let path = std::env::temp_dir().join(format!("ortyo-approval-inbox-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();

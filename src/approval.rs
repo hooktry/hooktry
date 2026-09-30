@@ -130,6 +130,13 @@ pub struct ApprovalNotificationOutboxRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApprovalNotificationClaim {
+    pub record: ApprovalNotificationOutboxRecord,
+    pub claim_token: Uuid,
+    pub attempt_count: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalError {
     InvalidRequest,
     NotFound,
@@ -206,6 +213,19 @@ impl ApprovalStore {
                 CREATE INDEX IF NOT EXISTS hosted_approval_notification_pending
                     ON hosted_approval_notification_outbox(
                         workspace_id, delivered_at, created_at, notification_id
+                    );
+                CREATE TABLE IF NOT EXISTS hosted_approval_notification_delivery (
+                    notification_id TEXT PRIMARY KEY,
+                    attempt_count BIGINT NOT NULL DEFAULT 0,
+                    next_attempt_at BIGINT,
+                    lease_token TEXT,
+                    lease_expires_at BIGINT,
+                    cancelled_at BIGINT,
+                    last_error TEXT
+                );
+                CREATE INDEX IF NOT EXISTS hosted_approval_notification_delivery_due
+                    ON hosted_approval_notification_delivery(
+                        cancelled_at, next_attempt_at, lease_expires_at
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
@@ -247,6 +267,19 @@ impl ApprovalStore {
                 CREATE INDEX IF NOT EXISTS hosted_approval_notification_pending
                     ON hosted_approval_notification_outbox(
                         workspace_id, delivered_at, created_at, notification_id
+                    );
+                CREATE TABLE IF NOT EXISTS hosted_approval_notification_delivery (
+                    notification_id TEXT PRIMARY KEY,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    next_attempt_at INTEGER,
+                    lease_token TEXT,
+                    lease_expires_at INTEGER,
+                    cancelled_at INTEGER,
+                    last_error TEXT
+                );
+                CREATE INDEX IF NOT EXISTS hosted_approval_notification_delivery_due
+                    ON hosted_approval_notification_delivery(
+                        cancelled_at, next_attempt_at, lease_expires_at
                     );",
             )
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
@@ -309,6 +342,53 @@ impl ApprovalStore {
         let store = self.clone();
         tokio::task::spawn_blocking(move || {
             store.mark_notification_delivered(workspace_id, notification_id)
+        })
+        .await
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn claim_next_notification_async(
+        &self,
+        workspace_id: Uuid,
+        lease_ms: u64,
+    ) -> Result<Option<ApprovalNotificationClaim>, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.claim_next_notification(workspace_id, lease_ms))
+            .await
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn complete_notification_claim_async(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+    ) -> Result<ApprovalNotificationOutboxRecord, ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.complete_notification_claim(workspace_id, notification_id, claim_token)
+        })
+        .await
+        .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub async fn fail_notification_claim_async(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+        retry_after_ms: u64,
+        error_code: String,
+    ) -> Result<(), ApprovalError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || {
+            store.fail_notification_claim(
+                workspace_id,
+                notification_id,
+                claim_token,
+                retry_after_ms,
+                &error_code,
+            )
         })
         .await
         .map_err(|error| ApprovalError::Storage(error.to_string()))?
@@ -559,11 +639,14 @@ impl ApprovalStore {
                 let connection = connection.lock().expect("approval store poisoned");
                 let mut statement = connection
                     .prepare(
-                        "SELECT notification_id, workspace_id, approval_id, event,
-                                created_at, delivered_at
-                         FROM hosted_approval_notification_outbox
-                         WHERE workspace_id=?1 AND delivered_at IS NULL
-                         ORDER BY created_at ASC, notification_id ASC
+                        "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                                n.created_at, n.delivered_at
+                         FROM hosted_approval_notification_outbox n
+                         LEFT JOIN hosted_approval_notification_delivery d
+                           ON d.notification_id=n.notification_id
+                         WHERE n.workspace_id=?1 AND n.delivered_at IS NULL
+                           AND d.cancelled_at IS NULL
+                         ORDER BY n.created_at ASC, n.notification_id ASC
                          LIMIT ?2",
                     )
                     .map_err(|error| ApprovalError::Storage(error.to_string()))?;
@@ -590,11 +673,14 @@ impl ApprovalStore {
                 .lock()
                 .expect("approval store poisoned")
                 .query(
-                    "SELECT notification_id, workspace_id, approval_id, event,
-                            created_at, delivered_at
-                     FROM hosted_approval_notification_outbox
-                     WHERE workspace_id=$1 AND delivered_at IS NULL
-                     ORDER BY created_at ASC, notification_id ASC
+                    "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                            n.created_at, n.delivered_at
+                     FROM hosted_approval_notification_outbox n
+                     LEFT JOIN hosted_approval_notification_delivery d
+                       ON d.notification_id=n.notification_id
+                     WHERE n.workspace_id=$1 AND n.delivered_at IS NULL
+                       AND d.cancelled_at IS NULL
+                     ORDER BY n.created_at ASC, n.notification_id ASC
                      LIMIT $2",
                     &[&workspace, &LIMIT],
                 )
@@ -711,6 +797,337 @@ impl ApprovalStore {
             .transpose()
     }
 
+    pub fn claim_next_notification(
+        &self,
+        workspace_id: Uuid,
+        lease_ms: u64,
+    ) -> Result<Option<ApprovalNotificationClaim>, ApprovalError> {
+        if lease_ms == 0 {
+            return Err(ApprovalError::Storage(
+                "notification lease must be positive".to_owned(),
+            ));
+        }
+        let now_unix_ms = unix_time_ms();
+        let now = millis_i64(now_unix_ms)?;
+        let lease_expires_at = millis_i64(now_unix_ms.saturating_add(lease_ms))?;
+        let workspace = workspace_id.to_string();
+        let claim_token = Uuid::now_v7();
+
+        match &self.backend {
+            ApprovalBackend::Sqlite(connection) => {
+                let mut connection = connection.lock().expect("approval store poisoned");
+                let transaction = connection
+                    .transaction()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let selected = transaction
+                    .query_row(
+                        "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                                n.created_at, n.delivered_at
+                         FROM hosted_approval_notification_outbox n
+                         LEFT JOIN hosted_approval_notification_delivery d
+                           ON d.notification_id=n.notification_id
+                         WHERE n.workspace_id=?1
+                           AND n.delivered_at IS NULL
+                           AND d.cancelled_at IS NULL
+                           AND (d.next_attempt_at IS NULL OR d.next_attempt_at<=?2)
+                           AND (d.lease_expires_at IS NULL OR d.lease_expires_at<=?2)
+                         ORDER BY n.created_at ASC, n.notification_id ASC
+                         LIMIT 1",
+                        params![workspace, now],
+                        |row| {
+                            Ok(StoredApprovalNotificationRow {
+                                notification_id: row.get(0)?,
+                                workspace_id: row.get(1)?,
+                                approval_id: row.get(2)?,
+                                event: row.get(3)?,
+                                created_at: row.get(4)?,
+                                delivered_at: row.get(5)?,
+                            })
+                        },
+                    )
+                    .optional()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let Some(selected) = selected else {
+                    return Ok(None);
+                };
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_approval_notification_delivery
+                            (notification_id, attempt_count, next_attempt_at, lease_token,
+                             lease_expires_at, cancelled_at, last_error)
+                         VALUES (?1, 1, NULL, ?2, ?3, NULL, NULL)
+                         ON CONFLICT(notification_id) DO UPDATE SET
+                            attempt_count=attempt_count+1,
+                            next_attempt_at=NULL,
+                            lease_token=excluded.lease_token,
+                            lease_expires_at=excluded.lease_expires_at,
+                            last_error=NULL",
+                        params![
+                            &selected.notification_id,
+                            claim_token.to_string(),
+                            lease_expires_at
+                        ],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let attempt_count: i64 = transaction
+                    .query_row(
+                        "SELECT attempt_count
+                         FROM hosted_approval_notification_delivery
+                         WHERE notification_id=?1",
+                        [&selected.notification_id],
+                        |row| row.get(0),
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                transaction
+                    .commit()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+
+                Ok(Some(ApprovalNotificationClaim {
+                    record: selected.into_record()?,
+                    claim_token,
+                    attempt_count: u32::try_from(attempt_count)
+                        .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+                }))
+            }
+            ApprovalBackend::Postgres(client) => {
+                let mut client = client.lock().expect("approval store poisoned");
+                let mut transaction = client
+                    .transaction()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let selected = transaction
+                    .query_opt(
+                        "SELECT n.notification_id, n.workspace_id, n.approval_id, n.event,
+                                n.created_at, n.delivered_at
+                         FROM hosted_approval_notification_outbox n
+                         LEFT JOIN hosted_approval_notification_delivery d
+                           ON d.notification_id=n.notification_id
+                         WHERE n.workspace_id=$1
+                           AND n.delivered_at IS NULL
+                           AND d.cancelled_at IS NULL
+                           AND (d.next_attempt_at IS NULL OR d.next_attempt_at<=$2)
+                           AND (d.lease_expires_at IS NULL OR d.lease_expires_at<=$2)
+                         ORDER BY n.created_at ASC, n.notification_id ASC
+                         FOR UPDATE OF n SKIP LOCKED
+                         LIMIT 1",
+                        &[&workspace, &now],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?
+                    .map(|row| StoredApprovalNotificationRow {
+                        notification_id: row.get(0),
+                        workspace_id: row.get(1),
+                        approval_id: row.get(2),
+                        event: row.get(3),
+                        created_at: row.get(4),
+                        delivered_at: row.get(5),
+                    });
+                let Some(selected) = selected else {
+                    transaction
+                        .commit()
+                        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                    return Ok(None);
+                };
+                let row = transaction
+                    .query_one(
+                        "INSERT INTO hosted_approval_notification_delivery
+                            (notification_id, attempt_count, next_attempt_at, lease_token,
+                             lease_expires_at, cancelled_at, last_error)
+                         VALUES ($1, 1, NULL, $2, $3, NULL, NULL)
+                         ON CONFLICT(notification_id) DO UPDATE SET
+                            attempt_count=hosted_approval_notification_delivery.attempt_count+1,
+                            next_attempt_at=NULL,
+                            lease_token=EXCLUDED.lease_token,
+                            lease_expires_at=EXCLUDED.lease_expires_at,
+                            last_error=NULL
+                         RETURNING attempt_count",
+                        &[
+                            &selected.notification_id,
+                            &claim_token.to_string(),
+                            &lease_expires_at,
+                        ],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let attempt_count: i64 = row.get(0);
+                transaction
+                    .commit()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+
+                Ok(Some(ApprovalNotificationClaim {
+                    record: selected.into_record()?,
+                    claim_token,
+                    attempt_count: u32::try_from(attempt_count)
+                        .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+                }))
+            }
+        }
+    }
+
+    pub fn complete_notification_claim(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+    ) -> Result<ApprovalNotificationOutboxRecord, ApprovalError> {
+        let delivered_at = millis_i64(unix_time_ms())?;
+        let workspace = workspace_id.to_string();
+        let notification = notification_id.to_string();
+        let claim = claim_token.to_string();
+
+        let updated = match &self.backend {
+            ApprovalBackend::Sqlite(connection) => {
+                let mut connection = connection.lock().expect("approval store poisoned");
+                let transaction = connection
+                    .transaction()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let updated = transaction
+                    .execute(
+                        "UPDATE hosted_approval_notification_outbox
+                         SET delivered_at=COALESCE(delivered_at, ?1)
+                         WHERE notification_id=?2 AND workspace_id=?3
+                           AND delivered_at IS NULL
+                           AND EXISTS (
+                               SELECT 1 FROM hosted_approval_notification_delivery d
+                               WHERE d.notification_id=?2
+                                 AND d.lease_token=?4
+                                 AND d.cancelled_at IS NULL
+                           )",
+                        params![delivered_at, notification, workspace, claim],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                if updated > 0 {
+                    transaction
+                        .execute(
+                            "UPDATE hosted_approval_notification_delivery
+                             SET lease_token=NULL, lease_expires_at=NULL
+                             WHERE notification_id=?1 AND lease_token=?2",
+                            params![notification, claim],
+                        )
+                        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                }
+                transaction
+                    .commit()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                updated
+            }
+            ApprovalBackend::Postgres(client) => {
+                let mut client = client.lock().expect("approval store poisoned");
+                let mut transaction = client
+                    .transaction()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let updated = transaction
+                    .execute(
+                        "UPDATE hosted_approval_notification_outbox n
+                         SET delivered_at=COALESCE(n.delivered_at, $1)
+                         WHERE n.notification_id=$2 AND n.workspace_id=$3
+                           AND n.delivered_at IS NULL
+                           AND EXISTS (
+                               SELECT 1 FROM hosted_approval_notification_delivery d
+                               WHERE d.notification_id=n.notification_id
+                                 AND d.lease_token=$4
+                                 AND d.cancelled_at IS NULL
+                           )",
+                        &[&delivered_at, &notification, &workspace, &claim],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                if updated > 0 {
+                    transaction
+                        .execute(
+                            "UPDATE hosted_approval_notification_delivery
+                             SET lease_token=NULL, lease_expires_at=NULL
+                             WHERE notification_id=$1 AND lease_token=$2",
+                            &[&notification, &claim],
+                        )
+                        .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                }
+                transaction
+                    .commit()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                usize::try_from(updated)
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?
+            }
+        };
+
+        if updated == 0 {
+            let existing = self
+                .get_notification(workspace_id, notification_id)?
+                .ok_or(ApprovalError::NotFound)?;
+            if existing.delivered_at_unix_ms.is_some() {
+                return Ok(existing);
+            }
+            return Err(ApprovalError::NotFound);
+        }
+
+        self.get_notification(workspace_id, notification_id)?
+            .ok_or(ApprovalError::NotFound)
+    }
+
+    pub fn fail_notification_claim(
+        &self,
+        workspace_id: Uuid,
+        notification_id: Uuid,
+        claim_token: Uuid,
+        retry_after_ms: u64,
+        error_code: &str,
+    ) -> Result<(), ApprovalError> {
+        let now = unix_time_ms();
+        let next_attempt_at = millis_i64(now.saturating_add(retry_after_ms))?;
+        let workspace = workspace_id.to_string();
+        let notification = notification_id.to_string();
+        let claim = claim_token.to_string();
+        let error_code = error_code.chars().take(128).collect::<String>();
+
+        let updated = match &self.backend {
+            ApprovalBackend::Sqlite(connection) => connection
+                .lock()
+                .expect("approval store poisoned")
+                .execute(
+                    "UPDATE hosted_approval_notification_delivery
+                     SET next_attempt_at=?1, lease_token=NULL, lease_expires_at=NULL,
+                         last_error=?2
+                     WHERE notification_id=?3 AND lease_token=?4
+                       AND cancelled_at IS NULL
+                       AND EXISTS (
+                           SELECT 1 FROM hosted_approval_notification_outbox n
+                           WHERE n.notification_id=?3 AND n.workspace_id=?5
+                             AND n.delivered_at IS NULL
+                       )",
+                    params![next_attempt_at, error_code, notification, claim, workspace],
+                )
+                .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+            ApprovalBackend::Postgres(client) => usize::try_from(
+                client
+                    .lock()
+                    .expect("approval store poisoned")
+                    .execute(
+                        "UPDATE hosted_approval_notification_delivery d
+                         SET next_attempt_at=$1, lease_token=NULL, lease_expires_at=NULL,
+                             last_error=$2
+                         WHERE d.notification_id=$3 AND d.lease_token=$4
+                           AND d.cancelled_at IS NULL
+                           AND EXISTS (
+                               SELECT 1 FROM hosted_approval_notification_outbox n
+                               WHERE n.notification_id=d.notification_id
+                                 AND n.workspace_id=$5
+                                 AND n.delivered_at IS NULL
+                           )",
+                        &[
+                            &next_attempt_at,
+                            &error_code,
+                            &notification,
+                            &claim,
+                            &workspace,
+                        ],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+            )
+            .map_err(|error| ApprovalError::Storage(error.to_string()))?,
+        };
+
+        if updated == 0 {
+            return Err(ApprovalError::NotFound);
+        }
+        Ok(())
+    }
+
     pub fn decide(
         &self,
         workspace_id: Uuid,
@@ -740,6 +1157,24 @@ impl ApprovalStore {
                             decision.state().as_str(),
                             millis_i64(decided_at)?,
                             decided_by_credential_id.to_string(),
+                            approval_id.to_string(),
+                            workspace_id.to_string()
+                        ],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_approval_notification_delivery
+                            (notification_id, attempt_count, cancelled_at)
+                         SELECT notification_id, 0, ?1
+                         FROM hosted_approval_notification_outbox
+                         WHERE approval_id=?2 AND workspace_id=?3 AND delivered_at IS NULL
+                         ON CONFLICT(notification_id) DO UPDATE SET
+                            cancelled_at=COALESCE(cancelled_at, excluded.cancelled_at),
+                            lease_token=NULL,
+                            lease_expires_at=NULL",
+                        params![
+                            millis_i64(decided_at)?,
                             approval_id.to_string(),
                             workspace_id.to_string()
                         ],
@@ -785,6 +1220,23 @@ impl ApprovalStore {
                             &approval,
                             &workspace,
                         ],
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                transaction
+                    .execute(
+                        "INSERT INTO hosted_approval_notification_delivery
+                            (notification_id, attempt_count, cancelled_at)
+                         SELECT notification_id, 0, $1
+                         FROM hosted_approval_notification_outbox
+                         WHERE approval_id=$2 AND workspace_id=$3 AND delivered_at IS NULL
+                         ON CONFLICT(notification_id) DO UPDATE SET
+                            cancelled_at=COALESCE(
+                                hosted_approval_notification_delivery.cancelled_at,
+                                EXCLUDED.cancelled_at
+                            ),
+                            lease_token=NULL,
+                            lease_expires_at=NULL",
+                        &[&decided_at, &approval, &workspace],
                     )
                     .map_err(|error| ApprovalError::Storage(error.to_string()))?;
                 transaction
