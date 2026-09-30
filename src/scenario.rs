@@ -23,6 +23,28 @@ pub struct ScenarioContractSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioManifest {
+    pub name: String,
+    pub target: ScenarioTarget,
+    pub contracts: Vec<ScenarioContractSpec>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScenarioTarget {
+    pub port: u16,
+}
+
+impl From<ScenarioManifest> for CreateScenario {
+    fn from(manifest: ScenarioManifest) -> Self {
+        Self {
+            name: manifest.name,
+            port: manifest.target.port,
+            contracts: manifest.contracts,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateScenario {
     pub name: String,
     pub port: u16,
@@ -41,6 +63,10 @@ pub enum ScenarioError {
     ContractNotFound(Uuid),
     Exposure(ExposureError),
     Replay(ReplayError),
+}
+
+pub fn outcome_exit_code(outcome: &ScenarioOutcome) -> i32 {
+    if outcome.passed { 0 } else { 1 }
 }
 
 pub fn create(
