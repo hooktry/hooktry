@@ -95,6 +95,21 @@ Or define a range:
 
 ORTYO evaluates every replayed interaction with the same operation, persists assertion evidence for every candidate, and applies `count`/`min`/`max` to the subset that actually matches the Contract. Scenario outcome evidence includes candidate, matched, and assertion IDs, so duplicate calls and payload mismatches remain distinguishable.
 
+Asynchronous integrations can define a Scenario-level observation window:
+
+```json
+{
+  "observation": {
+    "within_ms": 5000,
+    "settle_ms": 500
+  }
+}
+```
+
+`within_ms` is the hard observation horizon after completion begins. `settle_ms` is a quiet period that permits early completion once all positive expectations currently pass. A zero `settle_ms` waits the full `within_ms`. Expectations that can pass with zero matches, such as `count: 0` or max-only constraints, always wait the full window because absence cannot be proven early. An irreversible cardinality overflow fails immediately.
+
+Interaction arrival wakes Scenario completion through an in-process revision notification after persistence; SQLite remains the source of truth and no polling loop is used. The final `ScenarioOutcome` records both the observation policy and elapsed observation time.
+
 Scenario definitions can live in the repository as portable JSON manifests:
 
 ```json
