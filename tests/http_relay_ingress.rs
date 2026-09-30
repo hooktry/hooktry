@@ -140,6 +140,7 @@ async fn ingress_times_out_when_registered_runtime_never_answers() {
     let state = RelayIngressState {
         broker,
         timeout: Duration::from_millis(25),
+        max_body_bytes: 1024 * 1024,
     };
     tokio::spawn(async move {
         axum::serve(listener, relay_ingress_app(state))
@@ -152,4 +153,31 @@ async fn ingress_times_out_when_registered_runtime_never_answers() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::GATEWAY_TIMEOUT);
+}
+
+
+#[tokio::test]
+async fn ingress_rejects_body_over_configured_limit() {
+    let broker = RelayBroker::default();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let state = RelayIngressState {
+        broker,
+        timeout: Duration::from_secs(1),
+        max_body_bytes: 4,
+    };
+    tokio::spawn(async move {
+        axum::serve(listener, relay_ingress_app(state))
+            .await
+            .unwrap();
+    });
+
+    let response = reqwest::Client::new()
+        .post(format!("http://{addr}/e/{}/upload", uuid::Uuid::now_v7()))
+        .body("12345")
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
