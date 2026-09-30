@@ -18,6 +18,21 @@ pub enum Command {
         id: Uuid,
     },
     Mcp,
+    ScenarioCreate {
+        path: String,
+    },
+    ScenarioGet {
+        id: Uuid,
+    },
+    ScenarioStart {
+        id: Uuid,
+    },
+    ScenarioComplete {
+        id: Uuid,
+    },
+    ScenarioOutcome {
+        id: Uuid,
+    },
     Assert {
         contract_id: Uuid,
         interaction_id: Uuid,
@@ -82,6 +97,29 @@ impl Cli {
                 }
             }
             [command] if command == "mcp" => Command::Mcp,
+            [group, command, path] if group == "scenario" && command == "create" => {
+                Command::ScenarioCreate { path: path.clone() }
+            }
+            [group, command, id] if group == "scenario" && command == "get" => {
+                Command::ScenarioGet {
+                    id: parse_uuid(id, "scenario get")?,
+                }
+            }
+            [group, command, id] if group == "scenario" && command == "start" => {
+                Command::ScenarioStart {
+                    id: parse_uuid(id, "scenario start")?,
+                }
+            }
+            [group, command, id] if group == "scenario" && command == "complete" => {
+                Command::ScenarioComplete {
+                    id: parse_uuid(id, "scenario complete")?,
+                }
+            }
+            [group, command, id] if group == "scenario" && command == "outcome" => {
+                Command::ScenarioOutcome {
+                    id: parse_uuid(id, "scenario outcome")?,
+                }
+            }
             [command, contract_id, interaction_id] if command == "assert" => Command::Assert {
                 contract_id: contract_id
                     .parse()
@@ -98,6 +136,12 @@ impl Cli {
     }
 }
 
+fn parse_uuid(value: &str, command: &str) -> Result<Uuid, String> {
+    value
+        .parse()
+        .map_err(|_| format!("{command} requires a valid UUID"))
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -107,6 +151,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|scenario create FILE|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
