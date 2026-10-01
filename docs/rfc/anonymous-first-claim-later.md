@@ -94,9 +94,9 @@ Example response:
     "max_body_bytes": 5242880,
     "max_retained_bytes": 52428800
   },
-  "ingress_url": "https://ortyo.example/h/ortyo_in_...",
-  "viewer_url": "wss://ortyo.example/_ortyo/anonymous/view/ortyo_view_...",
-  "claim_url": "https://ortyo.example/_ortyo/anonymous/claim/ortyo_claim_...",
+  "ingress_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
+  "viewer_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "claim_url": "https://ortyo.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
   "anonymous_principal": "ortyo_ap_..."
 }
 ```
@@ -107,15 +107,17 @@ The same operation should be discoverable from `llms.txt`, MCP, CLI help, and ag
 
 Anonymous Exposures must be data, not infrastructure objects.
 
-Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one wildcard ingress such as:
+Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one shared origin with capability-specific paths:
 
 ```text
-https://hook.ortyo.com/h/:ingress_capability
+https://ortyo.com/hook/hk_<32-char-base64url>
+wss://ortyo.com/view/vw_<32-char-base64url>
+https://ortyo.com/claim/cl_<32-char-base64url>
 ```
 
-Ingress, viewer, and claim capabilities are deliberately different. Giving a webhook sender the ingress URL must not grant read or claim authority.
+Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
 
-and resolve the capability to an Exposure record.
+Ingress, viewer, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
 
 A single Durable Object class with one object instance keyed by active Exposure is acceptable and may be useful for atomic quota/claim state plus live fan-out. That is data sharding, not infrastructure-per-endpoint. Idle instances should be allowed to hibernate.
 
@@ -218,9 +220,10 @@ The current hosted server implements:
 
 - `POST /_ortyo/anonymous/exposures` without authentication
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
-- `/h/:ingress_capability/*path` for capture
-- `/_ortyo/anonymous/view/:viewer_capability` as a WebSocket backlog + live stream
-- `POST /_ortyo/anonymous/claim/:claim_capability` with workspace `exposures:create` authority
+- `/hook/hk_<token>/*path` for capture
+- `/view/vw_<token>` as a WebSocket backlog + live stream
+- `POST /claim/cl_<token>` with workspace `exposures:create` authority
+- compatibility aliases for the previously issued `/h/` and `/_ortyo/anonymous/{view,claim}/` capability URLs
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
 - SHA-256 digests only for ingress/viewer/claim capabilities at rest
 - atomic request-count and retained-byte quota enforcement

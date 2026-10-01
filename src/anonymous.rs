@@ -868,10 +868,10 @@ impl AnonymousExposureService {
         &self,
         principal: Option<String>,
     ) -> Result<AnonymousProvision, AnonymousError> {
-        let principal = principal.unwrap_or_else(|| random_token("ortyo_ap_"));
-        let ingress = random_token("ortyo_in_");
-        let viewer = random_token("ortyo_view_");
-        let claim = random_token("ortyo_claim_");
+        let principal = principal.unwrap_or_else(random_principal);
+        let ingress = random_capability("hk_");
+        let viewer = random_capability("vw_");
+        let claim = random_capability("cl_");
         let exposure_id = Uuid::now_v7();
         let now = unix_seconds_now();
         let expires_at = now + ANONYMOUS_TTL_SECONDS;
@@ -890,9 +890,9 @@ impl AnonymousExposureService {
 
         Ok(AnonymousProvision {
             exposure,
-            ingress_url: format!("{}/h/{ingress}", self.public_base_url),
-            viewer_url: format!("{}/_ortyo/anonymous/view/{viewer}", self.viewer_ws_base_url),
-            claim_url: format!("{}/_ortyo/anonymous/claim/{claim}", self.public_base_url),
+            ingress_url: format!("{}/hook/{ingress}", self.public_base_url),
+            viewer_url: format!("{}/view/{viewer}", self.viewer_ws_base_url),
+            claim_url: format!("{}/claim/{claim}", self.public_base_url),
             anonymous_principal: principal,
         })
     }
@@ -973,6 +973,11 @@ pub fn anonymous_app(
     };
     Router::new()
         .route("/_ortyo/anonymous/exposures", post(create_anonymous))
+        .route("/view/{viewer_token}", get(view_anonymous))
+        .route("/claim/{claim_token}", post(claim_anonymous))
+        .route("/hook/{ingress_token}", any(anonymous_ingress_root))
+        .route("/hook/{ingress_token}/{*path}", any(anonymous_ingress_path))
+        // Compatibility aliases preserve already-issued anonymous capability URLs.
         .route("/_ortyo/anonymous/view/{viewer_token}", get(view_anonymous))
         .route(
             "/_ortyo/anonymous/claim/{claim_token}",
@@ -1474,10 +1479,38 @@ fn token_digest(token: &str) -> [u8; 32] {
         .expect("SHA-256 digest is always 32 bytes")
 }
 
-fn random_token(prefix: &str) -> String {
+fn random_principal() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill_bytes(&mut bytes);
-    format!("{prefix}{}", hex_encode(&bytes))
+    format!("ortyo_ap_{}", hex_encode(&bytes))
+}
+
+fn random_capability(prefix: &str) -> String {
+    let mut bytes = [0u8; 24];
+    rand::rng().fill_bytes(&mut bytes);
+    format!("{prefix}{}", base64url_encode(&bytes))
+}
+
+fn base64url_encode(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+    let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let first = chunk[0];
+        let second = chunk.get(1).copied().unwrap_or(0);
+        let third = chunk.get(2).copied().unwrap_or(0);
+
+        encoded.push(ALPHABET[(first >> 2) as usize] as char);
+        encoded.push(ALPHABET[(((first & 0x03) << 4) | (second >> 4)) as usize] as char);
+
+        if chunk.len() > 1 {
+            encoded.push(ALPHABET[(((second & 0x0f) << 2) | (third >> 6)) as usize] as char);
+        }
+        if chunk.len() > 2 {
+            encoded.push(ALPHABET[(third & 0x3f) as usize] as char);
+        }
+    }
+    encoded
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
@@ -1524,7 +1557,7 @@ mod tests {
     async fn principal_is_limited_to_three_active_exposures() {
         let service =
             AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
-        let principal = random_token("ortyo_ap_");
+        let principal = random_principal();
         for _ in 0..ANONYMOUS_ACTIVE_LIMIT {
             service
                 .provision(Some(principal.clone()))

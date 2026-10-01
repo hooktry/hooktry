@@ -37,17 +37,24 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert!(create.headers().get("set-cookie").is_some());
 
     let provision: AnonymousProvision = create.json().await.unwrap();
-    assert!(provision.ingress_url.contains("/h/ortyo_in_"));
-    assert!(
-        provision
-            .viewer_url
-            .contains("/_ortyo/anonymous/view/ortyo_view_")
-    );
-    assert!(
-        provision
-            .claim_url
-            .contains("/_ortyo/anonymous/claim/ortyo_claim_")
-    );
+    assert!(provision.ingress_url.contains("/hook/hk_"));
+    assert!(provision.viewer_url.contains("/view/vw_"));
+    assert!(provision.claim_url.contains("/claim/cl_"));
+
+    for (url, prefix) in [
+        (&provision.ingress_url, "hk_"),
+        (&provision.viewer_url, "vw_"),
+        (&provision.claim_url, "cl_"),
+    ] {
+        let token = url.rsplit('/').next().unwrap();
+        assert_eq!(token.len(), prefix.len() + 32);
+        assert!(token.starts_with(prefix));
+        assert!(
+            token[prefix.len()..]
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+        );
+    }
     assert_ne!(provision.ingress_url, provision.viewer_url);
     assert_ne!(provision.ingress_url, provision.claim_url);
     assert_ne!(provision.viewer_url, provision.claim_url);
@@ -160,7 +167,7 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
 
     let viewer_token = provision.viewer_url.rsplit('/').next().unwrap();
     let response = client
-        .post(format!("http://{addr}/h/{viewer_token}"))
+        .post(format!("http://{addr}/hook/{viewer_token}"))
         .body("must not route")
         .send()
         .await
