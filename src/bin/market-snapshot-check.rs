@@ -436,7 +436,10 @@ fn parse_snapshot(text: &str) -> Snapshot {
                 snapshot.observations.push(item);
             }
 
-            if let Some((key, value)) = key_value(raw) {
+            if raw.ends_with(':') {
+                section = raw.trim_end_matches(':');
+                matrix_capability.clear();
+            } else if let Some((key, value)) = key_value(raw) {
                 match key.as_str() {
                     "schema_version" => snapshot.schema_version = value,
                     "snapshot_id" => snapshot.snapshot_id = value,
@@ -445,9 +448,6 @@ fn parse_snapshot(text: &str) -> Snapshot {
                     _ => {}
                 }
                 section = "";
-            } else if raw.ends_with(':') {
-                section = raw.trim_end_matches(':');
-                matrix_capability.clear();
             }
             continue;
         }
