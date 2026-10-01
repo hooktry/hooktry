@@ -128,6 +128,7 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `RESEARCH_SPRINT_2_2026-10-01.md` - second differentiation-depth research sprint
 - `TEMPORAL_DEPTH_REPORT.md` - cardinality/order/window/correlation depth analysis
 - `DEMAND_PROOF_REPORT.md` - direct production evidence for duplicate/order/idempotency failure classes
+- `FIRST_PARTY_PROOF.md` - thin product evidence loop for duplicate/order temporal primitives
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -151,7 +152,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
-5. Collect first-party usage for duplicate/cardinality, ordering, and correlation/idempotency scenarios before deepening the temporal DSL.
+5. Run the FIRST-PARTY-PROOF duplicate/idempotency and out-of-order recipes, collect explicit opt-in usage/result evidence, and require evidence of caught pre-production value before deepening the temporal DSL.
 
 
 ## Executable validation
