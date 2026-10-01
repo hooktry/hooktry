@@ -3,12 +3,14 @@ use std::{collections::BTreeMap, fs};
 use ortyo::{
     approval::{
         ApprovalDecision, ApprovalError, ApprovalNotificationEvent, ApprovalState, ApprovalStore,
-        request_digest, request_summary,
+        KEYED_FINGERPRINT_PREFIX, legacy_request_digest_for_test, request_digest, request_summary,
     },
     execution::{HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
 };
 use serde_json::json;
 use uuid::Uuid;
+
+const TEST_DIGEST_KEY: [u8; 32] = [0x71; 32];
 
 #[test]
 fn approval_summary_is_redacted_and_digest_is_canonical() {
@@ -41,13 +43,21 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
         timeout_ms: 5000,
     };
 
-    let summary = request_summary(&request).unwrap();
+    let workspace_id = Uuid::now_v7();
+    let summary = request_summary(&TEST_DIGEST_KEY, workspace_id, &request).unwrap();
     assert_eq!(summary.method, "POST");
     assert_eq!(summary.origin, "https://api.example.com");
     assert_eq!(summary.path, "/v1/run");
     assert_eq!(summary.header_names, vec!["x-api-key"]);
     assert_eq!(summary.secret_header_names, vec!["authorization"]);
     assert_eq!(summary.capture_names, vec!["issued-token"]);
+    assert!(
+        summary
+            .body_fingerprint
+            .as_deref()
+            .is_some_and(|value| value.starts_with(KEYED_FINGERPRINT_PREFIX))
+    );
+    assert!(summary.body_sha256.is_none());
 
     let serialized = serde_json::to_string(&summary).unwrap();
     assert!(!serialized.contains("query-secret"));
@@ -63,9 +73,76 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
         ..request.clone()
     };
     assert_eq!(
-        request_digest(&request).unwrap(),
-        request_digest(&reordered).unwrap()
+        request_digest(&TEST_DIGEST_KEY, workspace_id, &request).unwrap(),
+        request_digest(&TEST_DIGEST_KEY, workspace_id, &reordered).unwrap()
     );
+    assert_eq!(
+        summary.body_fingerprint,
+        request_summary(&TEST_DIGEST_KEY, workspace_id, &reordered)
+            .unwrap()
+            .body_fingerprint
+    );
+
+    let other_workspace = Uuid::now_v7();
+    assert_ne!(
+        request_digest(&TEST_DIGEST_KEY, workspace_id, &request).unwrap(),
+        request_digest(&TEST_DIGEST_KEY, other_workspace, &request).unwrap()
+    );
+    assert_ne!(
+        summary.body_fingerprint,
+        request_summary(&TEST_DIGEST_KEY, other_workspace, &request)
+            .unwrap()
+            .body_fingerprint
+    );
+}
+
+#[test]
+fn legacy_unkeyed_request_digest_remains_consumable_after_keyed_upgrade() {
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-legacy-digest-{}.db",
+        Uuid::now_v7()
+    ));
+    let workspace_id = Uuid::now_v7();
+    let requester_id = Uuid::now_v7();
+    let approver_id = Uuid::now_v7();
+    let executor_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "legacy-body");
+
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
+    let created = store.create(workspace_id, requester_id, &request).unwrap();
+    store
+        .decide(
+            workspace_id,
+            created.approval_id,
+            approver_id,
+            ApprovalDecision::Approve,
+        )
+        .unwrap();
+    drop(store);
+
+    let legacy_digest = legacy_request_digest_for_test(&request).unwrap();
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "UPDATE hosted_approvals SET request_digest=?1 WHERE approval_id=?2",
+            rusqlite::params![legacy_digest, created.approval_id.to_string()],
+        )
+        .unwrap();
+    drop(connection);
+
+    let reopened = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
+    let consumed = reopened
+        .consume(
+            workspace_id,
+            created.approval_id,
+            executor_id,
+            Uuid::now_v7(),
+            &request,
+        )
+        .unwrap();
+    assert_eq!(consumed.state, ApprovalState::Consumed);
+
+    let _ = fs::remove_file(path);
 }
 
 #[test]
@@ -80,7 +157,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
         "body-secret",
     );
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let created = store.create(workspace_id, requester_id, &request).unwrap();
     assert_eq!(created.state, ApprovalState::Pending);
     let notifications = store.list_undelivered_notifications(workspace_id).unwrap();
@@ -108,7 +185,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
         );
     }
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let approved = store
         .decide(
             workspace_id,
@@ -169,7 +246,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
     );
 
     drop(store);
-    let reopened = ApprovalStore::open(&path).unwrap();
+    let reopened = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     assert_eq!(
         reopened
             .get(workspace_id, created.approval_id)
@@ -189,7 +266,7 @@ fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
     let other_workspace_id = Uuid::now_v7();
     let request = http_request("https://api.example.com/v1/run", "body");
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let approval = store
         .create(workspace_id, Uuid::now_v7(), &request)
         .unwrap();
@@ -220,7 +297,7 @@ fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
     );
     drop(store);
 
-    let reopened = ApprovalStore::open(&path).unwrap();
+    let reopened = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let pending = reopened
         .list_undelivered_notifications(workspace_id)
         .unwrap();
@@ -260,7 +337,7 @@ fn approval_and_notification_intent_share_one_sqlite_transaction() {
     let workspace_id = Uuid::now_v7();
     let request = http_request("https://api.example.com/v1/run", "body");
 
-    drop(ApprovalStore::open(&path).unwrap());
+    drop(ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap());
     let connection = rusqlite::Connection::open(&path).unwrap();
     connection
         .execute_batch(
@@ -273,7 +350,7 @@ fn approval_and_notification_intent_share_one_sqlite_transaction() {
         .unwrap();
     drop(connection);
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     assert!(matches!(
         store.create(workspace_id, Uuid::now_v7(), &request),
         Err(ApprovalError::Storage(_))
@@ -298,7 +375,7 @@ fn pending_approval_without_notification_is_backfilled_on_reopen() {
     let workspace_id = Uuid::now_v7();
     let request = http_request("https://api.example.com/v1/run", "body");
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let approval = store
         .create(workspace_id, Uuid::now_v7(), &request)
         .unwrap();
@@ -313,7 +390,7 @@ fn pending_approval_without_notification_is_backfilled_on_reopen() {
         .unwrap();
     drop(connection);
 
-    let reopened = ApprovalStore::open(&path).unwrap();
+    let reopened = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let notifications = reopened
         .list_undelivered_notifications(workspace_id)
         .unwrap();
@@ -435,7 +512,7 @@ fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace(
     let requester_id = Uuid::now_v7();
     let request = http_request("https://api.example.com/v1/run", "body");
 
-    let store = ApprovalStore::open(&path).unwrap();
+    let store = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let first = store.create(workspace_id, requester_id, &request).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(2));
     let second = store.create(workspace_id, requester_id, &request).unwrap();
@@ -472,7 +549,7 @@ fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace(
         .unwrap();
     drop(store);
 
-    let reopened = ApprovalStore::open(&path).unwrap();
+    let reopened = ApprovalStore::open(&path, TEST_DIGEST_KEY).unwrap();
     let inbox = reopened.list_pending(workspace_id).unwrap();
     assert_eq!(inbox.len(), 1);
     assert_eq!(inbox[0].approval_id, second.approval_id);

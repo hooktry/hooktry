@@ -10,7 +10,10 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
-    approval::{ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore},
+    approval::{
+        ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore,
+        KEYED_FINGERPRINT_PREFIX, derive_digest_key,
+    },
     approval_webhook::{
         ensure_webhook_secret, run_worker, validate_webhook_url, webhook_headers, webhook_payload,
     },
@@ -324,8 +327,9 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
             let secrets = SecretStore::open_postgres(&database_url, secrets_key)
                 .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
-            let approvals = ApprovalStore::open_postgres(&database_url)
-                .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
+            let approvals =
+                ApprovalStore::open_postgres(&database_url, derive_digest_key(&secrets_key))
+                    .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
             let executions = ExecutionStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres execution store: {error:?}"))?;
             Ok((
@@ -352,7 +356,7 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
             let secrets = SecretStore::open(&db_path, secrets_key)
                 .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
-            let approvals = ApprovalStore::open(&db_path)
+            let approvals = ApprovalStore::open(&db_path, derive_digest_key(&secrets_key))
                 .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
             let executions = ExecutionStore::open(&db_path)
                 .map_err(|error| format!("open SQLite execution store: {error:?}"))?;
@@ -538,7 +542,12 @@ async fn run_dogfood_approval_webhook(
         || approval.summary.path != "/llms.txt"
         || approval.summary.header_names != [DOGFOOD_HEADER.to_owned()]
         || !approval.summary.secret_header_names.is_empty()
-        || approval.summary.body_sha256.is_none()
+        || !approval
+            .summary
+            .body_fingerprint
+            .as_deref()
+            .is_some_and(|value| value.starts_with(KEYED_FINGERPRINT_PREFIX))
+        || approval.summary.body_sha256.is_some()
         || !approval.summary.capture_names.is_empty()
     {
         return Err(
@@ -711,6 +720,7 @@ async fn run_dogfood_approval_gate(
     if approval.summary.method != "GET"
         || approval.summary.path != "/healthz"
         || approval.summary.origin != state.public_base_url
+        || approval.summary.body_fingerprint.is_some()
         || approval.summary.body_sha256.is_some()
         || !approval.summary.header_names.is_empty()
         || !approval.summary.secret_header_names.is_empty()
