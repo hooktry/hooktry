@@ -2,33 +2,45 @@
 
 Checked: 2026-10-01
 
-## Status
+## Current comparison
 
-Temporal baseline established. There is currently one immutable market snapshot:
+`2026-10-01-baseline -> 2026-10-01-research-1`
 
-- `2026-10-01-baseline`
+This is the first real snapshot comparison.
 
-Therefore **no cross-time market trend is claimed yet**. A one-point baseline can describe current evidence, but it cannot establish movement.
+The two snapshots are on the same date because the second snapshot captures a later research pass, not a claim that the market changed during the day.
 
-## What the next snapshot will measure
+## Result
 
-`market-trend` will compare the baseline with a later immutable snapshot and report:
+- scope products added/removed: 0 / 0
+- matrix products added/removed: 0 / 0
+- capabilities added/removed: 0 / 0
+- matrix research resolutions: 11
+- observed external state changes: 0
+- atomic observations added: 11
+- signals added: 0
+- explicit market-motion signals added: 0
+- Ortyo capability-status changes: 0
+- Ortyo matrix changes: 0
+- disposition changes: 0
 
-- scope products added or removed
-- matrix products added or removed
-- capabilities added or removed
-- capability disposition changes
-- Ortyo implementation-status changes
-- matrix state transitions
-- newly recorded or removed signals
-- newly recorded or removed atomic observations
-- decision-relevant changes
+The 11 matrix transitions are all `unknown -> present|partial`, so they are **research resolution**, not market motion.
+
+## Decision impact
+
+The research changed confidence and competitive depth knowledge, but did not change the current dispositions:
+
+- search/filter remains a current `must`
+- configurable sender response remains a current `must`
+- failure simulation remains current `should`
+- provider-aware templates/signature verification remain next `should`
+- deterministic CI remains a differentiation thesis to validate by depth, not mere presence
 
 ## Interpretation boundary
 
 A matrix transition is not automatically a market change.
 
-`unknown -> present|partial|absent` is classified as **research resolution** because the earlier snapshot did not know the state.
+`unknown -> present|partial|absent` is **research resolution** because the earlier snapshot did not know the state.
 
 `present|partial|absent -> unknown` is **research regression** because confidence/evidence was lost.
 
@@ -40,7 +52,7 @@ Explicit supply-side change is represented by a newly added signal with:
 class: market_motion
 ```
 
-Ortyo changes are reported separately as **Ortyo motion** so product delivery is never confused with competitor movement.
+Ortyo changes are reported separately as **Ortyo motion**.
 
 ## Commands
 
@@ -49,7 +61,7 @@ Human-readable diff:
 ```bash
 cargo run --locked --bin market-trend -- \
   --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/<later>.yaml
+  --to docs/market/snapshots/2026-10-01-research-1.yaml
 ```
 
 Machine-readable diff:
@@ -57,8 +69,6 @@ Machine-readable diff:
 ```bash
 cargo run --locked --bin market-trend -- \
   --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/<later>.yaml \
+  --to docs/market/snapshots/2026-10-01-research-1.yaml \
   --json
 ```
-
-Until a second snapshot exists, CI uses baseline-to-baseline as a zero-delta CLI smoke test while unit tests exercise non-zero synthetic transitions.
