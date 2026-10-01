@@ -51,10 +51,12 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
     assert_eq!(summary.header_names, vec!["x-api-key"]);
     assert_eq!(summary.secret_header_names, vec!["authorization"]);
     assert_eq!(summary.capture_names, vec!["issued-token"]);
-    assert!(summary
-        .body_fingerprint
-        .as_deref()
-        .is_some_and(|value| value.starts_with(KEYED_FINGERPRINT_PREFIX)));
+    assert!(
+        summary
+            .body_fingerprint
+            .as_deref()
+            .is_some_and(|value| value.starts_with(KEYED_FINGERPRINT_PREFIX))
+    );
     assert!(summary.body_sha256.is_none());
 
     let serialized = serde_json::to_string(&summary).unwrap();
