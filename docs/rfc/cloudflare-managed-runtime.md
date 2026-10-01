@@ -7,6 +7,8 @@ Checked: 2026-10-01
 
 Cloudflare is the first managed-cloud implementation of PORTS1. It is not a domain dependency and does not replace the native Rust implementation.
 
+Production deployment is orchestrated from GitHub Actions, not owned by Cloudflare. Wrangler and Cloudflare APIs are provider-specific deployment tools beneath the canonical ORTYO deployment orchestrator. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
+
 CF1 preserves the anonymous Exposure lifecycle while mapping portable capabilities onto Cloudflare primitives:
 
 ```text
