@@ -222,8 +222,6 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         _ => false,
     };
 
-    let anonymous_cleanup = anonymous.clone();
-
     let state = HostedRelayState::websocket_only_with_stores(
         RelayBroker::default(),
         capabilities,
@@ -237,10 +235,11 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     .with_approval_store(approvals)
     .with_execution_store(executions);
 
+    let anonymous_cleanup = state.anonymous.clone();
     tokio::spawn(async move {
         loop {
             sleep(Duration::from_secs(60 * 60)).await;
-            if let Err(error) = anonymous_cleanup.purge_expired_async().await {
+            if let Err(error) = anonymous_cleanup.purge_expired().await {
                 eprintln!(
                     "{}",
                     json!({
