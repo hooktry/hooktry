@@ -1625,7 +1625,7 @@ mod tests {
             AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
         let provision = service.provision(None).await.unwrap();
         let ingress_token = provision
-            .ingress_url
+            .hook_url
             .rsplit('/')
             .next()
             .expect("ingress token")
