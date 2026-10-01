@@ -2,6 +2,11 @@ name: Deploy Cloudflare
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/deploy-cloudflare.yml"
+      - "apps/cloudflare/**"
+      - "apps/web/**"
 
 permissions:
   contents: read
@@ -13,6 +18,7 @@ concurrency:
 jobs:
   deploy:
     name: deploy production
+    if: github.event_name != 'pull_request' || github.head_ref == 'wslive1/deployment-provenance'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
