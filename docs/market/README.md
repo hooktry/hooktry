@@ -21,7 +21,7 @@ Every Ortyo expansion must strengthen the webhook/integration development lifecy
 ```text
 receive / capture
   -> inspect
-  -> relay or replay
+  -> respond, relay, or replay
   -> verify
 ```
 
@@ -41,6 +41,18 @@ If a capability does not strengthen this lifecycle, it remains an integration, r
 - **substrate: managed compute** - sandboxes/VMs/workspaces used underneath Ortyo, not product competitors
 
 A product may belong to several cohorts.
+
+## Bridge-product insight
+
+A product spanning the primary cohort and another cohort is **bridge evidence**. It shows that two jobs can coexist in one workflow, but it does not automatically redefine the primary market or justify roadmap expansion.
+
+Beeceptor is the clearest current bridge between Ortyo's primary webhook-development cohort and the adjacent API-virtualization vector: it combines request inspection and history with programmable responses, stateful mocking, proxy/callouts, and failure/latency simulation.
+
+Vercel Labs `emulate` is different: it is an adjacent specialist rather than a primary webhook substitute. It provides local/stateful emulation of third-party APIs, custom emulators, seeds/resets, persistence, and request/state inspection for development, CI, and no-network sandboxes.
+
+The implication is not "become Beeceptor" or "become emulate". The reusable product hypothesis is a **programmable interaction boundary** whose current wedge is webhooks and whose deeper differentiator is deterministic evidence.
+
+See `BOUNDARY_MODEL.md`.
 
 ## Primary products in research pass 1
 
@@ -102,6 +114,7 @@ That hypothesis still requires external demand evidence; competitor absence alon
 - `personas.yaml` - primary users and jobs-to-be-done
 - `scenarios.yaml` - mechanism-independent end-to-end webhook outcomes
 - `DEPTH_REPORT.md` - primary-cohort depth comparison and gap analysis
+- `BOUNDARY_MODEL.md` - Ortyo's capability topology and bridge-product interpretation
 - `signals.yaml` - direct demand, demand proxies, and market-motion evidence
 - `DEMAND_REPORT.md` - verification-first demand analysis and contradictory evidence
 - `priorities.yaml` - evidence-backed near-term dispositions with confidence
