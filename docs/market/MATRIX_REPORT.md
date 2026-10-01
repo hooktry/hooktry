@@ -27,6 +27,12 @@ Legend: **P** present, **~** partial, **A** verified absent, **?** unknown / not
 | CLI | P | P | ? | ? | P | ? | ? | P | P | ? | ? |
 | MCP/agent surface | P | ? | P | P | ? | ? | P | P | ? | P | P |
 | Async wait | P | ? | ? | P | P | ? | ? | ? | ? | ? | ? |
+| Interaction contracts | P | ? | ? | ? | ? | ? | ~ | ~ | ? | ? | ? |
+| Reusable scenario runs | P | ? | ? | ~ | ? | ? | P | P | ? | ? | ? |
+| Cardinality assertions | P | ? | ? | ? | ? | ? | ~ | ? | ? | ? | ? |
+| Ordering assertions | P | ? | ? | ? | ? | ? | ~ | ? | ? | ? | ? |
+| Observation windows | P | ? | ? | ~ | ? | ? | ~ | ~ | ? | ? | ? |
+| Correlation/idempotency context | P | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
 | Deterministic CI | P | ? | ~ | ~ | ? | ~ | P | P | ? | ? | ? |
 | Structured request diff | ? | ? | ? | ? | ? | ~ | P | P | ? | ? | ? |
 | Self-host/local runtime | P | ? | ? | ? | ? | ? | ? | ? | ? | P | ? |
