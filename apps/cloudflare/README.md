@@ -52,6 +52,8 @@ npm run check
 
 Production deployment is intentionally explicit and currently runs only through the GitHub Actions **Deploy Cloudflare** workflow.
 
+This is an architectural boundary, not a temporary convenience: GitHub Actions is the canonical ORTYO deployment orchestrator, while Cloudflare is a deployment provider. Provider-native CI/CD may be added later for narrow provider-specific value, but must not become a second independent production deployment authority. See `docs/rfc/deployment-orchestration.md`.
+
 The workflow:
 
 1. validates deployment credentials

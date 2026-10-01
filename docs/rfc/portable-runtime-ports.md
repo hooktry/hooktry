@@ -24,6 +24,8 @@ Adapters
 
 A deployment provider must not become a domain primitive.
 
+Deployment orchestration follows the same separation one level above runtime. GitHub Actions is the canonical ORTYO CI/release/deployment orchestrator; Cloudflare, Namespace, container, self-hosted, and future targets are deployment providers/adapters. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
+
 ## Portable invariants
 
 Domain and application semantics must not depend on:
