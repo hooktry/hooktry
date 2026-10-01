@@ -37,9 +37,9 @@ export default {
 
       if (
         request.method === "POST" &&
-        url.pathname === "/_ortyo/anonymous/exposures"
+        url.pathname === "/api/v1/hooks"
       ) {
-        return await createAnonymous(request, env);
+        return await createHook(request, env);
       }
 
       const hook = url.pathname.match(/^\/hook\/(hk_[A-Za-z0-9_-]{32})(?:\/.*)?$/);
@@ -72,7 +72,7 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-async function createAnonymous(request: Request, env: Env): Promise<Response> {
+async function createHook(request: Request, env: Env): Promise<Response> {
   const principal = anonymousPrincipal(request) ?? randomPrincipal();
   const hook = randomCapability("hk_");
   const view = randomCapability("vw_");
