@@ -603,7 +603,10 @@ impl SecretStore {
             });
         }
 
-        let from_key = self.keyring.key(from_version).ok_or(SecretError::InvalidKey)?;
+        let from_key = self
+            .keyring
+            .key(from_version)
+            .ok_or(SecretError::InvalidKey)?;
         let mut rewrapped = 0_u64;
         let mut skipped_concurrent = 0_u64;
 
@@ -1134,7 +1137,6 @@ fn decrypt(
         .map_err(|_| SecretError::Crypto)?;
     Ok(plaintext.to_vec())
 }
-
 
 #[cfg(test)]
 mod tests {
