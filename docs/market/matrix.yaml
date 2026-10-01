@@ -84,10 +84,10 @@ matrix:
   search-filter:
     ortyo: partial
     webhook-site: present
-    hookdeck: unknown
-    webhook-relay: unknown
+    hookdeck: present
+    webhook-relay: partial
     svix: unknown
-    beeceptor: unknown
+    beeceptor: present
     webhooks-cc: present
     hooklistener: present
     webhooker: present
@@ -96,8 +96,8 @@ matrix:
   custom-response:
     ortyo: partial
     webhook-site: present
-    hookdeck: unknown
-    webhook-relay: unknown
+    hookdeck: partial
+    webhook-relay: present
     svix: present
     beeceptor: present
     webhooks-cc: present
@@ -109,11 +109,11 @@ matrix:
     ortyo: partial
     webhook-site: partial
     hookdeck: unknown
-    webhook-relay: unknown
+    webhook-relay: partial
     svix: present
     beeceptor: present
     webhooks-cc: unknown
-    hooklistener: unknown
+    hooklistener: present
     webhooker: unknown
     hook0: unknown
     requestbin-net: unknown
@@ -144,7 +144,7 @@ matrix:
   provider-templates:
     ortyo: absent
     webhook-site: unknown
-    hookdeck: unknown
+    hookdeck: present
     webhook-relay: unknown
     svix: unknown
     beeceptor: unknown
@@ -156,12 +156,12 @@ matrix:
   signature-verification:
     ortyo: unknown
     webhook-site: unknown
-    hookdeck: unknown
-    webhook-relay: unknown
+    hookdeck: present
+    webhook-relay: partial
     svix: present
     beeceptor: unknown
     webhooks-cc: present
-    hooklistener: unknown
+    hooklistener: present
     webhooker: unknown
     hook0: present
     requestbin-net: unknown
