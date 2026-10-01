@@ -47,14 +47,14 @@ Deletion is scoped by both Workspace and name. Deleting a same-named secret in o
 
 SQLite and synchronous Postgres operations remain behind the same Tokio `spawn_blocking` boundary introduced by ASYNC1. Hosted callers should use the async lifecycle methods.
 
-## Not in this pass
+## Follow-up status
 
-SECRET2 deliberately does not add persisted timestamps, historical secret generations, master-key rotation, or a hosted secret-management API.
+At the time SECRET2 was introduced, master-key rotation was deliberately out of scope. That limitation has since been addressed by later slices:
 
-Those require separate decisions:
+- KEYROT1 added versioned master-key loading and versioned approval fingerprints
+- KEYRET1 added key usage status, CAS-protected secret rewrap, and retirement readiness checks
+- KEYROT2 records the required first real production v1 -> v2 rotation before public release
 
-1. whether a logical SecretRef should have stable identity plus generations, or whether each rotation remains a new reference
-2. how multiple master-key versions are loaded during re-encryption
-3. what audit events are durable and which actors are authorized to view them
+See [KEYROT2 - First Production Master-Key Rotation](production-master-key-rotation.md).
 
-The current envelope remains key version 1 and existing encrypted rows remain compatible.
+SECRET2 still does not define historical logical secret generations, a hosted secret-management API, or a general KMS product. Those remain separate decisions.
