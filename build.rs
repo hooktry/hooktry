@@ -22,9 +22,8 @@ fn main() {
         println!("cargo:rerun-if-changed={}", path.display());
     }
 
-    let mut generated = String::from(
-        "pub(crate) static EMBEDDED_WEB_ASSETS: &[EmbeddedAsset] = &[\\n",
-    );
+    let mut generated =
+        String::from("pub(crate) static EMBEDDED_WEB_ASSETS: &[EmbeddedAsset] = &[\\n");
 
     for (relative, path) in files {
         let absolute = fs::canonicalize(&path)
