@@ -283,7 +283,7 @@ function decodeForLive(
   try {
     return {
       body_encoding: "utf8",
-      body: new TextDecoder("utf-8", { fatal: true }).decode(body),
+      body: new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(body),
     };
   } catch {
     return {
