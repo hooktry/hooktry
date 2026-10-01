@@ -37,13 +37,17 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert!(create.headers().get("set-cookie").is_some());
 
     let provision: AnonymousProvision = create.json().await.unwrap();
-    assert!(provision.ingress_url.contains("/hook/hk_"));
-    assert!(provision.viewer_url.contains("/view/vw_"));
+    assert!(provision.hook_url.contains("/hook/hk_"));
+    assert!(provision.view_url.contains("/view/vw_"));
+    assert!(provision.view_ws_url.contains("/view/vw_"));
     assert!(provision.claim_url.contains("/claim/cl_"));
+    assert_eq!(provision.hook_url, provision.hook_url);
+    assert_eq!(provision.viewer_url, provision.view_ws_url);
 
     for (url, prefix) in [
-        (&provision.ingress_url, "hk_"),
-        (&provision.viewer_url, "vw_"),
+        (&provision.hook_url, "hk_"),
+        (&provision.view_url, "vw_"),
+        (&provision.view_ws_url, "vw_"),
         (&provision.claim_url, "cl_"),
     ] {
         let token = url.rsplit('/').next().unwrap();
@@ -55,11 +59,25 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
                 .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
         );
     }
-    assert_ne!(provision.ingress_url, provision.viewer_url);
-    assert_ne!(provision.ingress_url, provision.claim_url);
-    assert_ne!(provision.viewer_url, provision.claim_url);
+    assert_ne!(provision.hook_url, provision.view_url);
+    assert_ne!(provision.hook_url, provision.claim_url);
+    assert_ne!(provision.view_url, provision.claim_url);
+    assert_eq!(
+        provision.view_url.trim_start_matches("http://"),
+        provision.view_ws_url.trim_start_matches("ws://")
+    );
 
-    let (mut viewer, _) = tokio_tungstenite::connect_async(&provision.viewer_url)
+    let browser = client.get(&provision.view_url).send().await.unwrap();
+    assert_eq!(browser.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+        browser.headers().get("cache-control").unwrap(),
+        "no-store, max-age=0"
+    );
+    let browser_html = browser.text().await.unwrap();
+    assert!(browser_html.contains("Ortyo webhook viewer"));
+    assert!(browser_html.contains("new WebSocket"));
+
+    let (mut viewer, _) = tokio_tungstenite::connect_async(&provision.view_ws_url)
         .await
         .unwrap();
     let ready = viewer.next().await.unwrap().unwrap();
@@ -73,7 +91,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
         provision.exposure.exposure_id.to_string()
     );
 
-    let ingress = format!("{}/stripe?delivery=42", provision.ingress_url);
+    let ingress = format!("{}/stripe?delivery=42", provision.hook_url);
     let first = client
         .post(&ingress)
         .header("stripe-signature", "proof")
@@ -165,7 +183,7 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
         .await
         .unwrap();
 
-    let viewer_token = provision.viewer_url.rsplit('/').next().unwrap();
+    let viewer_token = provision.view_url.rsplit('/').next().unwrap();
     let response = client
         .post(format!("http://{addr}/hook/{viewer_token}"))
         .body("must not route")
