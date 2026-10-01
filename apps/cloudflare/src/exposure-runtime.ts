@@ -22,6 +22,7 @@ const INTERNAL_EXPOSURE_HEADER = "x-ortyo-internal-exposure-id";
 
 export class ExposureRuntime {
   private readonly initializing = new Map<WebSocket, AnonymousInteraction[]>();
+  private captureTail: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly ctx: DurableObjectState,
@@ -43,7 +44,7 @@ export class ExposureRuntime {
       }
 
       if (url.pathname.startsWith("/hook/")) {
-        return await this.ctx.blockConcurrencyWhile(() => this.capture(request));
+        return await this.serializedCapture(request);
       }
 
       return json({ error: { code: "not_found" } }, 404);
@@ -72,6 +73,20 @@ export class ExposureRuntime {
   async webSocketError(socket: WebSocket): Promise<void> {
     this.initializing.delete(socket);
     socket.close(1011, "websocket_error");
+  }
+
+  private async serializedCapture(request: Request): Promise<Response> {
+    const run = this.captureTail.then(() => this.capture(request));
+    this.captureTail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    try {
+      return await run;
+    } catch (error) {
+      return errorResponse(error);
+    }
   }
 
   private async capture(request: Request): Promise<Response> {
