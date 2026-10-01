@@ -29,6 +29,7 @@ export default defineConfig({
           CLAIM_INTERNAL_TOKEN: "test-internal-token",
           GITHUB_CLIENT_ID: "test-github-client",
           GITHUB_CLIENT_SECRET: "test-github-secret",
+          USAGE_INGEST_TOKEN: "test-usage-token",
           TEST_SCHEMA_STATEMENTS: JSON.stringify(testSchemaStatements),
         },
       },
