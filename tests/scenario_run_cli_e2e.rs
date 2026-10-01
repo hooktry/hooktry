@@ -81,8 +81,8 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
         .arg("--nocapture")
         .env("ORTYO_TEST_CHILD", "1")
         .env("ORTYO_USAGE_LOG", &usage_path)
+        .env("ORTYO_USAGE_TOKEN", "usage-secret-not-for-child")
         .env_remove("ORTYO_USAGE_ENDPOINT")
-        .env_remove("ORTYO_USAGE_TOKEN")
         .output()
         .unwrap();
 
@@ -140,6 +140,9 @@ async fn scenario_run_child_helper() {
         "ORTYO_EXPOSURE_URL",
     ] {
         assert!(!std::env::var(key).unwrap().is_empty());
+    }
+    for key in ["ORTYO_USAGE_LOG", "ORTYO_USAGE_ENDPOINT", "ORTYO_USAGE_TOKEN"] {
+        assert!(std::env::var_os(key).is_none(), "{key} leaked into child");
     }
 
     let exposure_url = std::env::var("ORTYO_EXPOSURE_URL").unwrap();
