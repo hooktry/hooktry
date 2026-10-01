@@ -18,7 +18,12 @@ const DISPOSITIONS: &[&str] = &[
 const ORTYO_STATUSES: &[&str] = &["implemented", "partial", "absent", "unknown", "planned"];
 const SIGNAL_CLASSES: &[&str] = &["direct_demand", "demand_proxy", "market_motion"];
 const DIRECT_DEMAND_DIRECTIONS: &[&str] = &["supports", "contradicts", "mixed"];
-const NEXT_EVIDENCE: &[&str] = &["market_research", "first_party_usage", "implementation", "watch"];
+const NEXT_EVIDENCE: &[&str] = &[
+    "market_research",
+    "first_party_usage",
+    "implementation",
+    "watch",
+];
 const VECTOR_TYPES: &[&str] = &["depth", "adjacent", "option"];
 
 #[derive(Debug, Default)]
