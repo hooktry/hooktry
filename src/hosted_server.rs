@@ -375,6 +375,7 @@ async fn open_hosted_stores(
             Ok((
                 capabilities,
                 exposures,
+                anonymous,
                 identities,
                 secrets,
                 approvals,
