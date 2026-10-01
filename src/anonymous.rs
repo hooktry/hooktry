@@ -115,6 +115,28 @@ impl StoredInteraction {
     }
 }
 
+#[derive(Clone)]
+struct CreateAnonymousExposure {
+    principal_digest: [u8; 32],
+    ingress_digest: [u8; 32],
+    viewer_digest: [u8; 32],
+    claim_digest: [u8; 32],
+    exposure_id: Uuid,
+    now: u64,
+    expires_at: u64,
+}
+
+#[derive(Clone)]
+struct CaptureAnonymousInteraction {
+    ingress_digest: [u8; 32],
+    received_at_ms: u64,
+    method: String,
+    path: String,
+    query: Option<String>,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AnonymousError {
     ActiveLimit,
@@ -268,40 +290,27 @@ impl AnonymousExposureStore {
 
     async fn create_async(
         &self,
-        principal_digest: [u8; 32],
-        ingress_digest: [u8; 32],
-        viewer_digest: [u8; 32],
-        claim_digest: [u8; 32],
-        exposure_id: Uuid,
-        now: u64,
-        expires_at: u64,
+        input: CreateAnonymousExposure,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || {
-            store.create(
-                principal_digest,
-                ingress_digest,
-                viewer_digest,
-                claim_digest,
-                exposure_id,
-                now,
-                expires_at,
-            )
-        })
-        .await
-        .map_err(|error| AnonymousError::Storage(error.to_string()))?
+        tokio::task::spawn_blocking(move || store.create(input))
+            .await
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?
     }
 
     fn create(
         &self,
-        principal_digest: [u8; 32],
-        ingress_digest: [u8; 32],
-        viewer_digest: [u8; 32],
-        claim_digest: [u8; 32],
-        exposure_id: Uuid,
-        now: u64,
-        expires_at: u64,
+        input: CreateAnonymousExposure,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
+        let CreateAnonymousExposure {
+            principal_digest,
+            ingress_digest,
+            viewer_digest,
+            claim_digest,
+            exposure_id,
+            now,
+            expires_at,
+        } = input;
         let now_i64 = i64_from_u64(now)?;
         let expires_i64 = i64_from_u64(expires_at)?;
         match &self.backend {
@@ -392,40 +401,27 @@ impl AnonymousExposureStore {
 
     async fn capture_async(
         &self,
-        ingress_digest: [u8; 32],
-        received_at_ms: u64,
-        method: String,
-        path: String,
-        query: Option<String>,
-        headers: Vec<(String, String)>,
-        body: Vec<u8>,
+        input: CaptureAnonymousInteraction,
     ) -> Result<StoredInteraction, AnonymousError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || {
-            store.capture(
-                ingress_digest,
-                received_at_ms,
-                method,
-                path,
-                query,
-                headers,
-                body,
-            )
-        })
-        .await
-        .map_err(|error| AnonymousError::Storage(error.to_string()))?
+        tokio::task::spawn_blocking(move || store.capture(input))
+            .await
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?
     }
 
     fn capture(
         &self,
-        ingress_digest: [u8; 32],
-        received_at_ms: u64,
-        method: String,
-        path: String,
-        query: Option<String>,
-        headers: Vec<(String, String)>,
-        body: Vec<u8>,
+        input: CaptureAnonymousInteraction,
     ) -> Result<StoredInteraction, AnonymousError> {
+        let CaptureAnonymousInteraction {
+            ingress_digest,
+            received_at_ms,
+            method,
+            path,
+            query,
+            headers,
+            body,
+        } = input;
         if body.len() > ANONYMOUS_MAX_BODY_BYTES {
             return Err(AnonymousError::BodyTooLarge);
         }
@@ -881,15 +877,15 @@ impl AnonymousExposureService {
         let expires_at = now + ANONYMOUS_TTL_SECONDS;
         let exposure = self
             .store
-            .create_async(
-                token_digest(&principal),
-                token_digest(&ingress),
-                token_digest(&viewer),
-                token_digest(&claim),
+            .create_async(CreateAnonymousExposure {
+                principal_digest: token_digest(&principal),
+                ingress_digest: token_digest(&ingress),
+                viewer_digest: token_digest(&viewer),
+                claim_digest: token_digest(&claim),
                 exposure_id,
                 now,
                 expires_at,
-            )
+            })
             .await?;
 
         Ok(AnonymousProvision {
@@ -912,15 +908,15 @@ impl AnonymousExposureService {
     ) -> Result<StoredInteraction, AnonymousError> {
         let interaction = self
             .store
-            .capture_async(
-                token_digest(ingress_token),
-                unix_millis_now(),
+            .capture_async(CaptureAnonymousInteraction {
+                ingress_digest: token_digest(ingress_token),
+                received_at_ms: unix_millis_now(),
                 method,
                 path,
                 query,
                 headers,
                 body,
-            )
+            })
             .await?;
         let _ = self
             .sender(interaction.exposure_id)
