@@ -5,8 +5,8 @@ use std::{
 };
 
 use postgres::{Client, NoTls};
-use reqwest::Url;
 use rand::RngCore;
+use reqwest::Url;
 use ring::{
     digest::{SHA256, digest},
     hmac,
@@ -192,10 +192,7 @@ impl ApprovalStore {
         Self::from_sqlite_connection(connection, digest_key)
     }
 
-    pub fn open_postgres(
-        database_url: &str,
-        digest_key: [u8; 32],
-    ) -> Result<Self, ApprovalError> {
+    pub fn open_postgres(database_url: &str, digest_key: [u8; 32]) -> Result<Self, ApprovalError> {
         let mut client = Client::connect(database_url, NoTls)
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
         client
@@ -1358,8 +1355,7 @@ impl ApprovalStore {
         execution_id: Uuid,
         request: &HttpExecutionRequest,
     ) -> Result<ApprovalRecord, ApprovalError> {
-        let request_digest =
-            request_digest(self.digest_key.as_ref(), workspace_id, request)?;
+        let request_digest = request_digest(self.digest_key.as_ref(), workspace_id, request)?;
         let legacy_request_digest = legacy_request_digest(request)?;
         let consumed_at = unix_time_ms();
 
@@ -1795,12 +1791,7 @@ pub fn request_summary(
     let body_fingerprint = request.body.as_ref().map(|body| {
         let canonical = canonicalize_json(body.clone());
         let bytes = serde_json::to_vec(&canonical).expect("canonical JSON serializes");
-        keyed_fingerprint(
-            digest_key,
-            workspace_id,
-            BODY_FINGERPRINT_DOMAIN,
-            &bytes,
-        )
+        keyed_fingerprint(digest_key, workspace_id, BODY_FINGERPRINT_DOMAIN, &bytes)
     });
 
     Ok(ApprovalSummary {
