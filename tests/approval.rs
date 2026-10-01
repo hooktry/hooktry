@@ -3,9 +3,11 @@ use std::{collections::BTreeMap, fs};
 use ortyo::{
     approval::{
         ApprovalDecision, ApprovalError, ApprovalNotificationEvent, ApprovalState, ApprovalStore,
-        KEYED_FINGERPRINT_PREFIX, legacy_request_digest_for_test, request_digest, request_summary,
+        KEYED_FINGERPRINT_PREFIX, derive_digest_key, derive_digest_keyring,
+        legacy_request_digest_for_test, request_digest, request_summary,
     },
     execution::{HttpExecutionRequest, SecretCapture, SecretHeaderBinding},
+    keyring::VersionedKeyring,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -94,6 +96,157 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
             .unwrap()
             .body_fingerprint
     );
+}
+
+#[test]
+fn keyed_approval_survives_master_key_rotation() {
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-key-rotation-{}.db",
+        Uuid::now_v7()
+    ));
+    let workspace_id = Uuid::now_v7();
+    let requester_id = Uuid::now_v7();
+    let approver_id = Uuid::now_v7();
+    let executor_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "rotation-body");
+
+    let root_v1 = [0x11; 32];
+    let digest_v1 = derive_digest_key(&root_v1);
+    let v1_store = ApprovalStore::open(&path, digest_v1).unwrap();
+
+    let first = v1_store
+        .create(workspace_id, requester_id, &request)
+        .unwrap();
+    assert!(first
+        .request_digest
+        .starts_with("hmac-sha256:v1:k1:"));
+    v1_store
+        .decide(
+            workspace_id,
+            first.approval_id,
+            approver_id,
+            ApprovalDecision::Approve,
+        )
+        .unwrap();
+
+    let second = v1_store
+        .create(workspace_id, requester_id, &request)
+        .unwrap();
+    v1_store
+        .decide(
+            workspace_id,
+            second.approval_id,
+            approver_id,
+            ApprovalDecision::Approve,
+        )
+        .unwrap();
+    drop(v1_store);
+
+    let root_v2 = [0x22; 32];
+    let master_keys = VersionedKeyring::new(2, root_v2, [(1, root_v1)]).unwrap();
+    let rotated = ApprovalStore::open_with_digest_keyring(
+        &path,
+        derive_digest_keyring(&master_keys),
+    )
+    .unwrap();
+
+    let consumed = rotated
+        .consume(
+            workspace_id,
+            first.approval_id,
+            executor_id,
+            Uuid::now_v7(),
+            &request,
+        )
+        .unwrap();
+    assert_eq!(consumed.state, ApprovalState::Consumed);
+
+    let new_approval = rotated
+        .create(workspace_id, requester_id, &request)
+        .unwrap();
+    assert!(new_approval
+        .request_digest
+        .starts_with("hmac-sha256:v1:k2:"));
+    assert_ne!(first.request_digest, new_approval.request_digest);
+    assert!(new_approval
+        .summary
+        .body_fingerprint
+        .as_deref()
+        .is_some_and(|value| value.starts_with("hmac-sha256:v1:k2:")));
+    drop(rotated);
+
+    let v2_only = ApprovalStore::open_with_digest_keyring(
+        &path,
+        derive_digest_keyring(&VersionedKeyring::new(2, root_v2, []).unwrap()),
+    )
+    .unwrap();
+    assert_eq!(
+        v2_only.consume(
+            workspace_id,
+            second.approval_id,
+            executor_id,
+            Uuid::now_v7(),
+            &request,
+        ),
+        Err(ApprovalError::RequestMismatch)
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn digest1_unversioned_keyed_digest_is_treated_as_key_version_one() {
+    let path = std::env::temp_dir().join(format!(
+        "ortyo-approval-digest1-compat-{}.db",
+        Uuid::now_v7()
+    ));
+    let workspace_id = Uuid::now_v7();
+    let requester_id = Uuid::now_v7();
+    let approver_id = Uuid::now_v7();
+    let executor_id = Uuid::now_v7();
+    let request = http_request("https://api.example.com/v1/run", "digest1-body");
+    let root_v1 = [0x31; 32];
+
+    let store = ApprovalStore::open(&path, derive_digest_key(&root_v1)).unwrap();
+    let created = store.create(workspace_id, requester_id, &request).unwrap();
+    store
+        .decide(
+            workspace_id,
+            created.approval_id,
+            approver_id,
+            ApprovalDecision::Approve,
+        )
+        .unwrap();
+    drop(store);
+
+    let old_digest = created
+        .request_digest
+        .replacen("hmac-sha256:v1:k1:", "hmac-sha256:v1:", 1);
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "UPDATE hosted_approvals SET request_digest=?1 WHERE approval_id=?2",
+            rusqlite::params![old_digest, created.approval_id.to_string()],
+        )
+        .unwrap();
+    drop(connection);
+
+    let root_v2 = [0x32; 32];
+    let keyring = VersionedKeyring::new(2, root_v2, [(1, root_v1)]).unwrap();
+    let reopened =
+        ApprovalStore::open_with_digest_keyring(&path, derive_digest_keyring(&keyring)).unwrap();
+    let consumed = reopened
+        .consume(
+            workspace_id,
+            created.approval_id,
+            executor_id,
+            Uuid::now_v7(),
+            &request,
+        )
+        .unwrap();
+    assert_eq!(consumed.state, ApprovalState::Consumed);
+
+    let _ = fs::remove_file(path);
 }
 
 #[test]
