@@ -4,6 +4,8 @@ export interface Env {
   PAYLOADS: R2Bucket;
   EXPOSURES: DurableObjectNamespace;
   CLAIM_INTERNAL_TOKEN?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
   ORTYO_RELEASE_SHA?: string;
 }
 
@@ -68,4 +70,53 @@ export interface AnonymousInteraction {
   body_encoding: "utf8" | "hex";
   body: string;
   body_bytes: number;
+}
+
+
+export interface GitHubIdentity {
+  github_user_id: string;
+  github_login: string;
+  github_avatar_url: string | null;
+}
+
+export interface AuthUser {
+  user_id: string;
+  github_user_id: string;
+  github_login: string;
+  github_avatar_url: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AuthWorkspace {
+  workspace_id: string;
+  slug: string;
+  kind: "personal";
+  owner_user_id: string;
+  created_at: number;
+}
+
+export interface AuthSession {
+  user_id: string;
+  workspace_id: string;
+  expires_at: number;
+  github_user_id: string;
+  github_login: string;
+  github_avatar_url: string | null;
+  workspace_slug: string;
+}
+
+export interface SessionView {
+  authenticated: true;
+  user: {
+    user_id: string;
+    github_user_id: string;
+    github_login: string;
+    github_avatar_url: string | null;
+  };
+  workspace: {
+    workspace_id: string;
+    slug: string;
+    kind: "personal";
+  };
 }
