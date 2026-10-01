@@ -15,7 +15,7 @@ use axum::{
         HeaderMap, HeaderValue, Method, StatusCode,
         header::{AUTHORIZATION, COOKIE, SET_COOKIE},
     },
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::{any, get, post},
 };
 use futures_util::{SinkExt, StreamExt, stream::SplitSink};
@@ -58,9 +58,13 @@ pub struct AnonymousExposureSummary {
 pub struct AnonymousProvision {
     #[serde(flatten)]
     pub exposure: AnonymousExposureSummary,
+    pub hook_url: String,
+    pub view_url: String,
+    pub view_ws_url: String,
+    pub claim_url: String,
+    // Compatibility aliases for the first anonymous Exposure contract.
     pub ingress_url: String,
     pub viewer_url: String,
-    pub claim_url: String,
     pub anonymous_principal: String,
 }
 
@@ -888,11 +892,17 @@ impl AnonymousExposureService {
             })
             .await?;
 
+        let hook_url = format!("{}/hook/{ingress}", self.public_base_url);
+        let view_url = format!("{}/view/{viewer}", self.public_base_url);
+        let view_ws_url = format!("{}/view/{viewer}", self.viewer_ws_base_url);
         Ok(AnonymousProvision {
             exposure,
-            ingress_url: format!("{}/hook/{ingress}", self.public_base_url),
-            viewer_url: format!("{}/view/{viewer}", self.viewer_ws_base_url),
+            hook_url: hook_url.clone(),
+            view_url,
+            view_ws_url: view_ws_url.clone(),
             claim_url: format!("{}/claim/{claim}", self.public_base_url),
+            ingress_url: hook_url,
+            viewer_url: view_ws_url,
             anonymous_principal: principal,
         })
     }
@@ -1090,20 +1100,75 @@ async fn capture_request(
 async fn view_anonymous(
     State(state): State<AnonymousRouterState>,
     Path(viewer_token): Path<String>,
-    ws: WebSocketUpgrade,
+    ws: Result<WebSocketUpgrade, axum::extract::ws::rejection::WebSocketUpgradeRejection>,
 ) -> Result<Response, AnonymousApiError> {
     let exposure = state
         .anonymous
         .viewer(&viewer_token)
         .await
         .map_err(AnonymousApiError::from)?;
-    let service = state.anonymous.clone();
-    Ok(ws
-        .on_upgrade(move |socket| async move {
-            let _ = serve_viewer(socket, service, exposure).await;
-        })
-        .into_response())
+
+    if let Ok(ws) = ws {
+        let service = state.anonymous.clone();
+        return Ok(ws
+            .on_upgrade(move |socket| async move {
+                let _ = serve_viewer(socket, service, exposure).await;
+            })
+            .into_response());
+    }
+
+    let mut response = Html(ANONYMOUS_VIEWER_HTML).into_response();
+    response.headers_mut().insert(
+        "cache-control",
+        HeaderValue::from_static("no-store, max-age=0"),
+    );
+    response
+        .headers_mut()
+        .insert("referrer-policy", HeaderValue::from_static("no-referrer"));
+    response.headers_mut().insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
+    Ok(response)
 }
+
+const ANONYMOUS_VIEWER_HTML: &str = r#"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ortyo webhook viewer</title>
+<style>
+body{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;margin:0;padding:24px;background:#0b0b0b;color:#f5f5f5}
+main{max-width:1100px;margin:auto}h1{font:600 22px system-ui,sans-serif;margin:0 0 8px}
+#status{color:#aaa;margin:0 0 20px}pre{white-space:pre-wrap;word-break:break-word;border:1px solid #2a2a2a;padding:16px;border-radius:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>Ortyo webhook viewer</h1>
+<p id="status">Connecting...</p>
+<pre id="events"></pre>
+</main>
+<script>
+const status = document.getElementById("status");
+const events = document.getElementById("events");
+const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+const socket = new WebSocket(`${scheme}//${location.host}${location.pathname}`);
+socket.onopen = () => { status.textContent = "Live"; };
+socket.onclose = () => { status.textContent = "Disconnected"; };
+socket.onerror = () => { status.textContent = "Connection error"; };
+socket.onmessage = event => {
+  try {
+    const value = JSON.parse(event.data);
+    events.textContent += JSON.stringify(value, null, 2) + "\n";
+  } catch {
+    events.textContent += event.data + "\n";
+  }
+};
+</script>
+</body>
+</html>"#;
 
 async fn serve_viewer(
     socket: WebSocket,

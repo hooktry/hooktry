@@ -60,12 +60,13 @@ When the task only needs an inbound webhook/test endpoint, an agent may create a
 
 ```text
 POST /_ortyo/anonymous/exposures
-  -> ingress_url: https://ortyo.com/hook/hk_<token>
-  -> viewer_url: wss://ortyo.com/view/vw_<token>
+  -> hook_url: https://ortyo.com/hook/hk_<token>
+  -> view_url: https://ortyo.com/view/vw_<token>
+  -> view_ws_url: wss://ortyo.com/view/vw_<token>
   -> claim_url: https://ortyo.com/claim/cl_<token>
 ```
 
-Use the ingress URL only with webhook senders. Use the viewer capability only to read backlog/live interactions. Use the claim capability only when attaching the existing Exposure and history to a Workspace. These are three different bearer capabilities and must not be interchanged or logged. Their tokens are `hk_`, `vw_`, and `cl_` plus 32 unpadded Base64URL characters generated from 192 cryptographically random bits; the Exposure's separate internal identity remains UUIDv7.
+Use the hook URL only with webhook senders. Use the view capability to inspect the same Exposure either in a browser through `view_url` or as a WebSocket stream through `view_ws_url`; both carry the same `vw_` capability. Use the claim capability only when attaching the existing Exposure and history to a Workspace. These are three different bearer capabilities and must not be interchanged or logged. `ingress_url` and `viewer_url` remain compatibility aliases for older clients. Their tokens are `hk_`, `vw_`, and `cl_` plus 32 unpadded Base64URL characters generated from 192 cryptographically random bits; the Exposure's separate internal identity remains UUIDv7.
 
 Anonymous policy is five-day hard expiry, 100 requests, 5 MiB/request, 50 MiB retained body data, and up to three active anonymous Exposures per anonymous principal. The viewer is push-only: consume the WebSocket backlog + live stream and do not poll.
 
