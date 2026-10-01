@@ -1,6 +1,9 @@
 use std::fs;
 
-use ortyo::secret::{SecretError, SecretStore};
+use ortyo::{
+    keyring::VersionedKeyring,
+    secret::{SecretError, SecretStore},
+};
 use uuid::Uuid;
 
 #[test]
@@ -40,6 +43,62 @@ fn sqlite_secret_survives_restart_and_plaintext_is_absent() {
     assert_eq!(
         wrong_key.resolve(workspace, "api-token"),
         Err(SecretError::Crypto)
+    );
+
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn master_key_rotation_reads_old_secrets_and_writes_new_version() {
+    let path =
+        std::env::temp_dir().join(format!("ortyo-secret-key-rotation-{}.db", Uuid::now_v7()));
+    let workspace = Uuid::now_v7();
+    let v1 = [0x11; 32];
+    let v2 = [0x22; 32];
+
+    let old_store = SecretStore::open(&path, v1).unwrap();
+    old_store.put(workspace, "old-token", "old-secret").unwrap();
+    assert_eq!(
+        old_store
+            .metadata(workspace, "old-token")
+            .unwrap()
+            .unwrap()
+            .key_version,
+        1
+    );
+    drop(old_store);
+
+    let rotated_keys = VersionedKeyring::new(2, v2, [(1, v1)]).unwrap();
+    let rotated = SecretStore::open_with_keyring(&path, rotated_keys).unwrap();
+    assert_eq!(
+        rotated.resolve(workspace, "old-token").unwrap(),
+        "old-secret"
+    );
+
+    rotated.put(workspace, "new-token", "new-secret").unwrap();
+    assert_eq!(
+        rotated
+            .metadata(workspace, "new-token")
+            .unwrap()
+            .unwrap()
+            .key_version,
+        2
+    );
+    assert_eq!(
+        rotated.resolve(workspace, "new-token").unwrap(),
+        "new-secret"
+    );
+    drop(rotated);
+
+    let without_v1 =
+        SecretStore::open_with_keyring(&path, VersionedKeyring::new(2, v2, []).unwrap()).unwrap();
+    assert_eq!(
+        without_v1.resolve(workspace, "old-token"),
+        Err(SecretError::InvalidKey)
+    );
+    assert_eq!(
+        without_v1.resolve(workspace, "new-token").unwrap(),
+        "new-secret"
     );
 
     let _ = fs::remove_file(path);
