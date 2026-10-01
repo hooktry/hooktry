@@ -94,9 +94,12 @@ Example response:
     "max_body_bytes": 5242880,
     "max_retained_bytes": 52428800
   },
+  "hook_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
+  "view_url": "https://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "view_ws_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "claim_url": "https://ortyo.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
   "ingress_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
   "viewer_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "claim_url": "https://ortyo.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
   "anonymous_principal": "ortyo_ap_..."
 }
 ```
@@ -111,11 +114,12 @@ Do not create one Worker, route, Durable Object class, or DNS record per Exposur
 
 ```text
 https://ortyo.com/hook/hk_<32-char-base64url>
+https://ortyo.com/view/vw_<32-char-base64url>
 wss://ortyo.com/view/vw_<32-char-base64url>
 https://ortyo.com/claim/cl_<32-char-base64url>
 ```
 
-Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
+There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
 
 Ingress, viewer, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
 
@@ -221,7 +225,7 @@ The current hosted server implements:
 - `POST /_ortyo/anonymous/exposures` without authentication
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
 - `/hook/hk_<token>/*path` for capture
-- `/view/vw_<token>` as a WebSocket backlog + live stream
+- `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream
 - `POST /claim/cl_<token>` with workspace `exposures:create` authority
 - compatibility aliases for the previously issued `/h/` and `/_ortyo/anonymous/{view,claim}/` capability URLs
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
