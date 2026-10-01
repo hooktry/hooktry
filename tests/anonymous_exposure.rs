@@ -11,7 +11,7 @@ use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
-async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotating_ingress() {
+async fn anonymous_hook_pushes_interactions_and_can_be_claimed_without_rotating_hook() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let state = HostedRelayState::websocket_only(
@@ -29,7 +29,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
 
     let client = reqwest::Client::new();
     let create = client
-        .post(format!("http://{addr}/api/v1/exposures"))
+        .post(format!("http://{addr}/api/v1/hooks"))
         .send()
         .await
         .unwrap();
@@ -89,9 +89,9 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
         provision.exposure.exposure_id.to_string()
     );
 
-    let ingress = format!("{}/stripe?delivery=42", provision.hook_url);
+    let hook = format!("{}/stripe?delivery=42", provision.hook_url);
     let first = client
-        .post(&ingress)
+        .post(&hook)
         .header("stripe-signature", "proof")
         .body(r#"{"type":"checkout.session.completed"}"#)
         .send()
@@ -128,7 +128,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert!(claimed["expires_at_unix_seconds"].is_null());
 
     let second = client
-        .post(&ingress)
+        .post(&hook)
         .body(r#"{"after":"claim"}"#)
         .send()
         .await
@@ -153,7 +153,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
 }
 
 #[tokio::test]
-async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
+async fn anonymous_view_capability_is_not_a_hook_capability() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let state = HostedRelayState::websocket_only(
@@ -171,7 +171,7 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
 
     let client = reqwest::Client::new();
     let provision: AnonymousProvision = client
-        .post(format!("http://{addr}/api/v1/exposures"))
+        .post(format!("http://{addr}/api/v1/hooks"))
         .send()
         .await
         .unwrap()
