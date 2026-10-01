@@ -105,6 +105,9 @@ jobs:
           --max-per-capability 3
           --json
 
+      - name: First-party dogfood proof
+        run: cargo test --locked --test first_party_dogfood_cli -- --nocapture
+
       - name: Tests
         run: cargo test --locked --all-targets --all-features
 
