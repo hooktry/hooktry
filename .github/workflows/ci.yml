@@ -105,3 +105,133 @@ jobs:
 
       - name: Cloudflare typecheck and tests
         run: npm run check
+
+  narrow_token_proof:
+    name: narrow token production proof
+    if: github.event_name == 'pull_request' && github.head_ref == 'token1/verify-narrow-token'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      ORTYO_CLAIM_INTERNAL_TOKEN: ${{ secrets.ORTYO_CLAIM_INTERNAL_TOKEN }}
+      ORTYO_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
+      ORTYO_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Capture baseline and remove known old R2 orphan
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = await import("node:fs/promises");
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const databaseId = process.env.ORTYO_D1_DATABASE_ID;
+          const headers = { authorization: `Bearer ${token}` };
+
+          async function d1(sql) {
+            const response = await fetch(
+              `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+              {
+                method: "POST",
+                headers: { ...headers, "content-type": "application/json" },
+                body: JSON.stringify({ sql }),
+              },
+            );
+            const payload = await response.json();
+            if (!response.ok || payload.success === false) {
+              throw new Error(`D1 query failed: ${JSON.stringify(payload.errors ?? payload)}`);
+            }
+            return payload.result?.[0]?.results?.[0];
+          }
+
+          const baseline = await d1(
+            "SELECT (SELECT COUNT(*) FROM anonymous_exposures) AS exposures, (SELECT COUNT(*) FROM anonymous_interactions) AS interactions",
+          );
+
+          const orphanKey =
+            "anonymous/01a0f7f3-2c71-722a-8f5e-84df781a1435/01a0f7f3-3403-7704-9ada-850a5805c31b";
+          const objectPath = orphanKey.split("/").map(encodeURIComponent).join("/");
+          const deleteResponse = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/ortyo-payloads/objects/${objectPath}`,
+            { method: "DELETE", headers },
+          );
+          if (!deleteResponse.ok && deleteResponse.status !== 404) {
+            throw new Error(
+              `R2 orphan delete failed: ${deleteResponse.status} ${await deleteResponse.text()}`,
+            );
+          }
+
+          await fs.appendFile(
+            process.env.GITHUB_OUTPUT,
+            `exposures=${baseline.exposures}\ninteractions=${baseline.interactions}\n`,
+          );
+          console.log(
+            `Baseline captured: exposures=${baseline.exposures}, interactions=${baseline.interactions}; old R2 orphan removed or absent`,
+          );
+          NODE
+
+      - name: Run current production acceptance
+        working-directory: apps/cloudflare
+        run: node scripts/smoke-production.mjs
+
+      - name: Verify narrowed-token cleanup
+        shell: bash
+        env:
+          BASELINE_EXPOSURES: ${{ steps.baseline.outputs.exposures }}
+          BASELINE_INTERACTIONS: ${{ steps.baseline.outputs.interactions }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const databaseId = process.env.ORTYO_D1_DATABASE_ID;
+          const headers = { authorization: `Bearer ${token}` };
+
+          const objectsResponse = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/ortyo-payloads/objects`,
+            { headers },
+          );
+          const objectsPayload = await objectsResponse.json();
+          if (!objectsResponse.ok || objectsPayload.success === false) {
+            throw new Error(`R2 list failed: ${JSON.stringify(objectsPayload.errors ?? objectsPayload)}`);
+          }
+          if ((objectsPayload.result ?? []).length !== 0) {
+            throw new Error(`R2 is not empty after smoke: ${JSON.stringify(objectsPayload.result)}`);
+          }
+
+          const d1Response = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+            {
+              method: "POST",
+              headers: { ...headers, "content-type": "application/json" },
+              body: JSON.stringify({
+                sql: "SELECT (SELECT COUNT(*) FROM anonymous_exposures) AS exposures, (SELECT COUNT(*) FROM anonymous_interactions) AS interactions",
+              }),
+            },
+          );
+          const d1Payload = await d1Response.json();
+          if (!d1Response.ok || d1Payload.success === false) {
+            throw new Error(`D1 query failed: ${JSON.stringify(d1Payload.errors ?? d1Payload)}`);
+          }
+          const row = d1Payload.result?.[0]?.results?.[0];
+          if (
+            !row ||
+            String(row.exposures) !== process.env.BASELINE_EXPOSURES ||
+            String(row.interactions) !== process.env.BASELINE_INTERACTIONS
+          ) {
+            throw new Error(
+              `Smoke changed persistent D1 baseline: before=${process.env.BASELINE_EXPOSURES}/${process.env.BASELINE_INTERACTIONS}, after=${JSON.stringify(row)}`,
+            );
+          }
+
+          console.log("Narrow-token production proof passed: current smoke cleaned itself and R2 is empty");
+          NODE
+
