@@ -4,95 +4,96 @@ Checked: 2026-10-01
 
 ## Current comparison
 
-`2026-10-01-research-2 -> 2026-10-01-research-3`
+`2026-10-01-research-3 -> 2026-10-01-demand-1`
 
-This pass expands the decision projection rather than claiming that competitors changed.
+This pass changes the **demand evidence ledger**, not competitor capability state.
 
 ## Result
 
-Six existing canonical capabilities were added to the product matrix:
+- scope products added/removed: 0 / 0
+- matrix products added/removed: 0 / 0
+- capabilities added/removed: 0 / 0
+- matrix changes: 0
+- atomic observations added/removed: 0 / 0
+- signals added: 9
+- direct-demand signals added: 6
+- demand-proxy signals added: 3
+- explicit market-motion signals added: 0
+- Ortyo capability-status changes: 0
+- Ortyo matrix changes: 0
+- capability disposition changes: 0
 
-- contracts
-- scenario-runs
-- cardinality
-- ordering
-- observation-window
-- correlation-context
+The market matrix remains:
 
-The matrix therefore expands from 23 to 29 rows:
+- external cells: 290
+- evidenced: 84
+- unknown: 206
 
-- external cells: 230 -> 290
-- previously projected evidenced cells retained: 74
-- evidence-backed states on newly projected rows: 10
-- current evidenced external cells: 84
-- current unknown external cells: 206
-- atomic observations: 84 -> 94
+## What changed
 
-The trend analyzer should classify the new rows as **projection_scope_change**, not research regression and not market motion.
+The new direct evidence validates the temporal failure **problem family**:
 
-## Temporal-depth evidence added
+- duplicate deliveries causing duplicate workflow execution
+- duplicate Stripe deliveries causing duplicate notifications
+- out-of-order status webhooks regressing state
+- ordering/eventual-consistency races producing wrong entitlement state
+- unstable event identity making downstream deduplication impossible
+- incorrectly scoped delivery identity suppressing a legitimate second route
 
-webhooks.cc:
+Provider docs add independent demand proxies for:
 
-- contracts -> partial
-- scenario-runs -> present
-- cardinality -> partial
-- ordering -> partial
-- observation-window -> partial
-
-Hooklistener:
-
-- contracts -> partial
-- scenario-runs -> present
-- observation-window -> partial
-
-Webhook Relay:
-
-- scenario-runs -> partial
-- observation-window -> partial
-
-Correlation/idempotency context remains unknown for these competitors under the normalized Ortyo capability definition.
+- duplicate/retry delivery identity
+- non-guaranteed event ordering
+- variable/delayed delivery timing
 
 ## Decision impact
 
-No capability disposition changed.
-
-No Ortyo implementation status changed.
-
-No explicit market-motion signal was added.
-
-The differentiation hypothesis became narrower, but the roadmap did not move.
-
-## Remaining hypothesis
-
-Competitor evidence now covers reusable suites/scenarios, single-request contracts, expected counts, timestamp-sorted multi-event capture, and bounded waits.
-
-The remaining Ortyo hypothesis is:
+The `cardinality-ordering` priority remains:
 
 ```text
-ranged cardinality + proof of no later extra matches
-+ durable observed-order assertions
-+ hard horizon + quiet/settle window
-+ normalized correlation/causation/request/message/trace/idempotency context
-+ persisted assertion evidence
-+ behavior mismatch vs infrastructure/tool outcome semantics
+horizon: validate
+decision: differentiation
 ```
+
+Confidence rises from low to medium.
+
+The next evidence channel changes to:
+
+```yaml
+next_evidence: first_party_usage
+```
+
+This means competitor matrix unknowns for `cardinality`, `ordering`, and `correlation-context` should no longer automatically rise into the top external-research queue merely because direct demand is strong.
+
+The existence of the problem is sufficiently established. The open question is whether Ortyo's abstraction is useful in practice.
+
+## Interpretation boundary
+
+This pass does **not** prove demand for:
+
+- ranged cardinality syntax
+- durable-order predicate syntax
+- quiet/settle windows
+- a unified correlation/causation/idempotency DSL
+- Contract/Scenario as the preferred authoring surface
+
+It proves that the underlying duplicate/order/identity failure classes are real and recurrent.
 
 ## Commands
 
-Latest projection diff:
+Demand-proof diff:
 
 ```bash
 cargo run --locked --bin market-trend -- \
-  --from docs/market/snapshots/2026-10-01-research-2.yaml \
-  --to docs/market/snapshots/2026-10-01-research-3.yaml
+  --from docs/market/snapshots/2026-10-01-research-3.yaml \
+  --to docs/market/snapshots/2026-10-01-demand-1.yaml
 ```
 
-Cumulative diff from the original baseline:
+Research-debt queue:
 
 ```bash
-cargo run --locked --bin market-trend -- \
-  --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/2026-10-01-research-3.yaml \
+cargo run --locked --bin market-research-debt -- \
+  --limit 20 \
+  --max-per-capability 3 \
   --json
 ```
