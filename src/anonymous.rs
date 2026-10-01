@@ -14,7 +14,7 @@ use axum::{
         HeaderMap, HeaderValue, Method, StatusCode,
         header::{AUTHORIZATION, COOKIE, SET_COOKIE},
     },
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     routing::{any, get, post},
 };
 use futures_util::{SinkExt, StreamExt, stream::SplitSink};
@@ -25,7 +25,10 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::hosted_identity::{ApiScope, HostedIdentityStore};
+use crate::{
+    hosted_identity::{ApiScope, HostedIdentityStore},
+    web_assets,
+};
 
 mod native_realtime;
 mod ports;
@@ -1138,58 +1141,9 @@ async fn view_anonymous(
             .into_response());
     }
 
-    let mut response = Html(ANONYMOUS_VIEWER_HTML).into_response();
-    response.headers_mut().insert(
-        "cache-control",
-        HeaderValue::from_static("no-store, max-age=0"),
-    );
-    response
-        .headers_mut()
-        .insert("referrer-policy", HeaderValue::from_static("no-referrer"));
-    response.headers_mut().insert(
-        "x-content-type-options",
-        HeaderValue::from_static("nosniff"),
-    );
-    Ok(response)
+    Ok(web_assets::index_response())
 }
 
-const ANONYMOUS_VIEWER_HTML: &str = r#"<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ortyo webhook viewer</title>
-<style>
-body{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;margin:0;padding:24px;background:#0b0b0b;color:#f5f5f5}
-main{max-width:1100px;margin:auto}h1{font:600 22px system-ui,sans-serif;margin:0 0 8px}
-#status{color:#aaa;margin:0 0 20px}pre{white-space:pre-wrap;word-break:break-word;border:1px solid #2a2a2a;padding:16px;border-radius:8px}
-</style>
-</head>
-<body>
-<main>
-<h1>Ortyo webhook viewer</h1>
-<p id="status">Connecting...</p>
-<pre id="events"></pre>
-</main>
-<script>
-const status = document.getElementById("status");
-const events = document.getElementById("events");
-const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-const socket = new WebSocket(`${scheme}//${location.host}${location.pathname}`);
-socket.onopen = () => { status.textContent = "Live"; };
-socket.onclose = () => { status.textContent = "Disconnected"; };
-socket.onerror = () => { status.textContent = "Connection error"; };
-socket.onmessage = event => {
-  try {
-    const value = JSON.parse(event.data);
-    events.textContent += JSON.stringify(value, null, 2) + "\n";
-  } catch {
-    events.textContent += event.data + "\n";
-  }
-};
-</script>
-</body>
-</html>"#;
 
 async fn serve_viewer(
     socket: WebSocket,
