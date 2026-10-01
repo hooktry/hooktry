@@ -12,6 +12,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use uuid::Uuid;
 
+use crate::keyring::VersionedKeyring;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecretRef {
     pub id: Uuid,
@@ -47,7 +49,7 @@ enum SecretBackend {
 #[derive(Clone)]
 pub struct SecretStore {
     backend: SecretBackend,
-    key: Arc<[u8; 32]>,
+    keyring: Arc<VersionedKeyring>,
 }
 
 #[derive(Clone)]
@@ -57,8 +59,6 @@ struct StoredSecret {
     key_version: i32,
 }
 
-const KEY_VERSION: i32 = 1;
-
 impl Default for SecretStore {
     fn default() -> Self {
         Self::memory_with_key([0x42; 32])
@@ -67,13 +67,24 @@ impl Default for SecretStore {
 
 impl SecretStore {
     pub fn memory_with_key(key: [u8; 32]) -> Self {
+        Self::memory_with_keyring(VersionedKeyring::single(key))
+    }
+
+    pub fn memory_with_keyring(keyring: VersionedKeyring) -> Self {
         Self {
             backend: SecretBackend::Memory(Arc::new(RwLock::new(HashMap::new()))),
-            key: Arc::new(key),
+            keyring: Arc::new(keyring),
         }
     }
 
     pub fn open(path: impl AsRef<Path>, key: [u8; 32]) -> Result<Self, SecretError> {
+        Self::open_with_keyring(path, VersionedKeyring::single(key))
+    }
+
+    pub fn open_with_keyring(
+        path: impl AsRef<Path>,
+        keyring: VersionedKeyring,
+    ) -> Result<Self, SecretError> {
         let connection =
             Connection::open(path).map_err(|error| SecretError::Storage(error.to_string()))?;
         connection
@@ -98,11 +109,18 @@ impl SecretStore {
             .map_err(|error| SecretError::Storage(error.to_string()))?;
         Ok(Self {
             backend: SecretBackend::Sqlite(Arc::new(Mutex::new(connection))),
-            key: Arc::new(key),
+            keyring: Arc::new(keyring),
         })
     }
 
     pub fn open_postgres(database_url: &str, key: [u8; 32]) -> Result<Self, SecretError> {
+        Self::open_postgres_with_keyring(database_url, VersionedKeyring::single(key))
+    }
+
+    pub fn open_postgres_with_keyring(
+        database_url: &str,
+        keyring: VersionedKeyring,
+    ) -> Result<Self, SecretError> {
         let mut client = Client::connect(database_url, NoTls)
             .map_err(|error| SecretError::Storage(error.to_string()))?;
         client
@@ -127,7 +145,7 @@ impl SecretStore {
             .map_err(|error| SecretError::Storage(error.to_string()))?;
         Ok(Self {
             backend: SecretBackend::Postgres(Arc::new(Mutex::new(client))),
-            key: Arc::new(key),
+            keyring: Arc::new(keyring),
         })
     }
 
@@ -195,11 +213,18 @@ impl SecretStore {
             name: name.clone(),
             allowed_origin,
         };
-        let envelope = encrypt(self.key.as_ref(), workspace_id, &name, value.as_bytes())?;
+        let key_version = self.keyring.active_version();
+        let envelope = encrypt(
+            self.keyring.active_key(),
+            key_version,
+            workspace_id,
+            &name,
+            value.as_bytes(),
+        )?;
         self.save(StoredSecret {
             reference: reference.clone(),
             envelope,
-            key_version: KEY_VERSION,
+            key_version,
         })?;
         Ok(reference)
     }
@@ -267,10 +292,17 @@ impl SecretStore {
         name: &str,
         secret: &StoredSecret,
     ) -> Result<String, SecretError> {
-        if secret.key_version != KEY_VERSION {
-            return Err(SecretError::InvalidKey);
-        }
-        let bytes = decrypt(self.key.as_ref(), workspace_id, name, &secret.envelope)?;
+        let key = self
+            .keyring
+            .key(secret.key_version)
+            .ok_or(SecretError::InvalidKey)?;
+        let bytes = decrypt(
+            key,
+            secret.key_version,
+            workspace_id,
+            name,
+            &secret.envelope,
+        )?;
         String::from_utf8(bytes).map_err(|_| SecretError::Crypto)
     }
 
@@ -767,6 +799,7 @@ fn hex_nibble(value: u8) -> Result<u8, ()> {
 
 fn encrypt(
     key: &[u8; 32],
+    key_version: i32,
     workspace_id: Uuid,
     name: &str,
     plaintext: &[u8],
@@ -776,7 +809,7 @@ fn encrypt(
     let mut nonce_bytes = [0u8; 12];
     rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
-    let aad_text = format!("{workspace_id}:{name}:{KEY_VERSION}");
+    let aad_text = format!("{workspace_id}:{name}:{key_version}");
     let mut in_out = plaintext.to_vec();
     key.seal_in_place_append_tag(nonce, Aad::from(aad_text.as_bytes()), &mut in_out)
         .map_err(|_| SecretError::Crypto)?;
@@ -787,6 +820,7 @@ fn encrypt(
 
 fn decrypt(
     key: &[u8; 32],
+    key_version: i32,
     workspace_id: Uuid,
     name: &str,
     envelope: &str,
@@ -800,7 +834,7 @@ fn decrypt(
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
     let key =
         LessSafeKey::new(UnboundKey::new(&AES_256_GCM, key).map_err(|_| SecretError::Crypto)?);
-    let aad_text = format!("{workspace_id}:{name}:{KEY_VERSION}");
+    let aad_text = format!("{workspace_id}:{name}:{key_version}");
     let mut in_out = ciphertext.to_vec();
     let plaintext = key
         .open_in_place(nonce, Aad::from(aad_text.as_bytes()), &mut in_out)
