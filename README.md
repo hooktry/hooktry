@@ -63,6 +63,26 @@ ortyo hosted
 
 Deployment platforms may provide `PORT` instead of `ORTYO_BIND`. The hosted process exposes `/healthz` and `/_ortyo/health`. Production should set `ORTYO_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. When `ORTYO_APPROVAL_WEBHOOK_URL` is set together with `ORTYO_BOOTSTRAP_WORKSPACE`, ORTYO encrypts that URL in SecretStore and delivers durable pending-approval notifications through the CONTROL3 outbox. The raw webhook URL is not logged or returned. `ORTYO_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `ORTYO_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `ORTYO_DATABASE_URL` is set. Otherwise ORTYO falls back to SQLite via `ORTYO_HOSTED_DB_PATH`. The raw capability is never stored.
 
+Hosted secret encryption supports explicit master-key versions. `ORTYO_SECRETS_KEY` is the active 32-byte key encoded as 64 hexadecimal characters. `ORTYO_SECRETS_KEY_VERSION` defaults to `1`. During a rotation, keep older roots in `ORTYO_SECRETS_PREVIOUS_KEYS` as comma-separated `version:64hex` entries until retirement is proven:
+
+```sh
+ORTYO_SECRETS_KEY='<new-v2-key>' \
+ORTYO_SECRETS_KEY_VERSION=2 \
+ORTYO_SECRETS_PREVIOUS_KEYS='1:<old-v1-key>' \
+ortyo key status
+
+# Preview only. No ciphertext is changed.
+ortyo key rewrap 1
+
+# CAS-protected rewrite from v1 to the active key.
+ortyo key rewrap 1 --apply
+
+# Remove v1 from ORTYO_SECRETS_PREVIOUS_KEYS only when this says safe_to_retire=true.
+ortyo key retire-check 1
+```
+
+Key maintenance reads the same `ORTYO_DATABASE_URL` or `ORTYO_HOSTED_DB_PATH` as the hosted process and does not require `ORTYO_CONTROL_TOKEN`. Rewrap preserves secret identity and origin binding. It compares the original secret id, key version, and ciphertext before each write, so a concurrent secret rotation is skipped instead of overwritten. Historical keys remain required while encrypted secrets or pending/approved keyed approvals depend on them. Denied and consumed approvals are terminal and do not block retirement. Malformed keyed approval fingerprints fail closed. Key material is never included in command output.
+
 ### MCP
 
 `ortyo mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, create/assert Contracts, and use the hosted approval/execution lifecycle without bypassing ORTYO's HTTP boundary.
