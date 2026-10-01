@@ -1,6 +1,6 @@
 # Anonymous-first Exposure and claim lifecycle
 
-Status: accepted for product design  
+Status: executable vertical slice  
 Checked: 2026-10-01
 
 ## Context
@@ -26,7 +26,8 @@ A newly provisioned anonymous Exposure has:
 - `expires_at`
 - `request_count`
 - `request_limit`
-- a high-entropy public capability in the URL
+- a high-entropy ingress capability in the webhook URL
+- a separate high-entropy viewer capability for read access
 - a separate high-entropy claim capability, stored server-side only as a hash
 
 A browser cookie or anonymous client id is a convenience principal for rediscovery and rate limiting. It is not proof of ownership and must not authorize claim.
@@ -37,12 +38,13 @@ Claim transfers the existing Exposure and its retained history into an authentic
 
 Start close to the useful part of Webhook.site's free model while preserving stronger abuse controls:
 
-- 7-day absolute TTL
+- 5-day absolute TTL
 - 100 captured requests per Exposure
 - up to 3 active anonymous Exposures per anonymous principal
 - one Exposure may be auto-provisioned on first landing-page visit
 - additional Exposures require an explicit create action
-- request body limit: 1 MiB for anonymous capture
+- request body limit: 5 MiB for anonymous capture
+- retained body budget: 50 MiB per Exposure
 - expired, unclaimed Exposures and payloads are deleted
 - claim before expiry makes the Exposure persistent under normal workspace retention
 - no custom domains for anonymous resources
@@ -78,19 +80,24 @@ The claim prompt should appear after value exists, for example after the first c
 Agents should not need browser state.
 
 ```text
-POST /api/v1/exposures/anonymous
+POST /_ortyo/anonymous/exposures
 ```
 
 Example response:
 
 ```json
 {
-  "id": "exp_...",
-  "url": "https://hook.ortyo.com/e/...",
-  "viewer_url": "https://ortyo.com/e/...",
-  "claim_url": "https://ortyo.com/claim/...",
-  "expires_at": "...",
-  "request_limit": 100
+  "exposure": {
+    "exposure_id": "...",
+    "expires_at_unix_seconds": 0,
+    "request_limit": 100,
+    "max_body_bytes": 5242880,
+    "max_retained_bytes": 52428800
+  },
+  "ingress_url": "https://ortyo.example/h/ortyo_in_...",
+  "viewer_url": "wss://ortyo.example/_ortyo/anonymous/view/ortyo_view_...",
+  "claim_url": "https://ortyo.example/_ortyo/anonymous/claim/ortyo_claim_...",
+  "anonymous_principal": "ortyo_ap_..."
 }
 ```
 
@@ -103,8 +110,10 @@ Anonymous Exposures must be data, not infrastructure objects.
 Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one wildcard ingress such as:
 
 ```text
-https://hook.ortyo.com/e/:capability
+https://hook.ortyo.com/h/:ingress_capability
 ```
+
+Ingress, viewer, and claim capabilities are deliberately different. Giving a webhook sender the ingress URL must not grant read or claim authority.
 
 and resolve the capability to an Exposure record.
 
@@ -118,7 +127,7 @@ Recommended responsibilities:
 - Queues: asynchronous persistence/indexing/cleanup work where appropriate
 - Durable Objects + WebSocket Hibernation: live viewer fan-out without polling D1
 
-Avoid one-second browser polling. 1,000 open viewers polling once per second would produce 86.4 million poll requests per day before webhook traffic is counted.
+Do not poll. The viewer is push-only over WebSocket. On the current Rust/Axum hosted runtime a broadcast channel fans persisted interactions to connected viewers. A reconnect receives durable backlog before live events. On a Cloudflare deployment, use one Durable Object instance per active Exposure with the WebSocket Hibernation API so idle viewers do not require a resident process or polling requests.
 
 ## 1,000-user capacity model
 
@@ -134,12 +143,12 @@ That is:
 
 Illustrative retained payload volume:
 
-| Average body | 100,000 requests | Seven-day GB-month equivalent |
+| Average body | 100,000 requests | Five-day GB-month equivalent |
 | --- | ---: | ---: |
-| 2 KiB | ~0.2 GB | ~0.05 GB-month |
-| 10 KiB | ~1.0 GB | ~0.23 GB-month |
-| 64 KiB | ~6.4 GB | ~1.49 GB-month |
-| 1 MiB maximum | ~100 GB | ~23.3 GB-month |
+| 2 KiB | ~0.2 GB | ~0.03 GB-month |
+| 10 KiB | ~1.0 GB | ~0.17 GB-month |
+| 64 KiB | ~6.4 GB | ~1.07 GB-month |
+| 5 MiB per-request ceiling | bounded by 50 MiB/Exposure | bounded by aggregate quota |
 
 This scale is small for Workers and R2. D1 is also comfortable on a paid plan if writes are indexed and batched sensibly, but a single D1 database is single-threaded, so burst handling should use Queues rather than assuming unlimited synchronous write throughput.
 
@@ -149,7 +158,7 @@ The first scaling risk is not 1,000 endpoint records. The first risks are abuse,
 
 Keep the hot path streaming and metadata-light:
 
-- do not buffer large bodies in memory when they can be streamed to R2
+- current Axum slice accepts a bounded body and persists it in SQLite/Postgres; a Cloudflare adapter should stream raw/large bodies to R2
 - do not parse arbitrary payloads deeply on ingress
 - cap anonymous body size before expensive work
 - hash/normalize only the fields required for evidence and lookup
@@ -171,6 +180,8 @@ Required invariants:
 6. owner/workspace transition and claim-token invalidation happen atomically
 7. public ingress capability remains stable unless explicitly rotated
 8. cookie/client id alone can never claim
+9. ingress, viewer, and claim tokens are distinct capabilities
+10. viewer reconnect is backlog + live push, never database polling
 
 ## Relationship to existing Ortyo primitives
 
@@ -199,3 +210,24 @@ This validates the product pattern without requiring Ortyo to copy Cloudflare's 
 - using cookies as ownership authority
 - exposing unrestricted forwarding or transformation to anonymous users
 - requiring signup before the first useful request is captured
+
+
+## Executable slice
+
+The current hosted server implements:
+
+- `POST /_ortyo/anonymous/exposures` without authentication
+- an anonymous-principal cookie/header used only for the three-active-Exposure quota
+- `/h/:ingress_capability/*path` for capture
+- `/_ortyo/anonymous/view/:viewer_capability` as a WebSocket backlog + live stream
+- `POST /_ortyo/anonymous/claim/:claim_capability` with workspace `exposures:create` authority
+- SQLite and Postgres persistence for Exposure metadata and captured interactions
+- SHA-256 digests only for ingress/viewer/claim capabilities at rest
+- atomic request-count and retained-byte quota enforcement
+- atomic claim and one-shot claim-token invalidation
+
+The existing ingress URL remains valid across claim. The current slice intentionally preserves the anonymous request/byte quotas after claim until the authenticated Free tier is specified separately.
+
+## Response policy
+
+Anonymous ingress returns a fixed success response after durable capture. It does not support arbitrary forwarding, arbitrary server-side replay, custom response code, transforms, secrets, or custom domains. Those omissions reduce SSRF/proxy/amplification abuse while preserving the core capture/inspect/claim loop.
