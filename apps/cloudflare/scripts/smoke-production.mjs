@@ -11,11 +11,29 @@ const interactions = [];
 try {
   await waitForHealth();
 
+  const app = await fetch(`${baseUrl}/`, {
+    headers: { accept: "text/html" },
+  });
+  assert(app.ok, `web app failed: ${app.status}`);
+  assert(
+    (await app.text()).includes('<div id="root"></div>'),
+    "shared React app shell is missing",
+  );
+
   const create = await fetch(`${baseUrl}/api/v1/hooks`, { method: "POST" });
   if (create.status !== 201) {
     throw new Error(`create Hook failed: ${create.status} ${await create.text()}`);
   }
   provision = await create.json();
+
+  const viewerPage = await fetch(provision.view_url, {
+    headers: { accept: "text/html" },
+  });
+  assert(viewerPage.ok, `viewer SPA failed: ${viewerPage.status}`);
+  assert(
+    (await viewerPage.text()).includes('<div id="root"></div>'),
+    "view capability did not resolve to the shared React app",
+  );
 
   assert(provision.hook_url?.startsWith(baseUrl), "hook_url does not use deployed Worker");
   assert(provision.view_websocket_url?.startsWith("wss://"), "missing WebSocket viewer URL");
@@ -73,7 +91,7 @@ try {
   assert(secondClaim.status === 410, `claim capability was not single-use: ${secondClaim.status}`);
 
   inbox.close();
-  console.log("DEPLOY1 acceptance passed: create -> view -> hook -> claim -> same hook");
+  console.log("WEB1 acceptance passed: app -> create -> React view -> live hook -> claim -> same hook");
 } finally {
   if (provision?.exposure_id) {
     await cleanup(provision.exposure_id, interactions).catch((error) => {
