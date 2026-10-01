@@ -37,3 +37,21 @@ export type StreamFrame =
   | { type: "ready"; exposure: ExposureSummary }
   | { type: "interaction"; interaction: Interaction }
   | { type: "resync_required" };
+
+
+export type AuthSession =
+  | { authenticated: false }
+  | {
+      authenticated: true;
+      user: {
+        user_id: string;
+        github_user_id: string;
+        github_login: string;
+        github_avatar_url: string | null;
+      };
+      workspace: {
+        workspace_id: string;
+        slug: string;
+        kind: "personal";
+      };
+    };
