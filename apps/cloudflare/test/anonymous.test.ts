@@ -18,6 +18,20 @@ function fetchWorker(request: Request): Promise<Response> {
 }
 
 describe("CF1 ephemeral Hook conformance", () => {
+  it("publishes deployment provenance from healthz", async () => {
+    const response = await worker.fetch(
+      new Request("https://ortyo.test/healthz"),
+      { ...bindings, ORTYO_RELEASE_SHA: "deadbeef" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      ok: true,
+      service: "ortyo-cloudflare",
+      revision: "deadbeef",
+    });
+  });
+
   it(
     "creates, pushes, survives DO eviction, claims, and preserves the hook URL",
     async () => {

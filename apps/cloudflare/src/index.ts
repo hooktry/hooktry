@@ -32,7 +32,11 @@ export default {
       const url = new URL(request.url);
 
       if (request.method === "GET" && url.pathname === "/healthz") {
-        return json({ ok: true, service: "ortyo-cloudflare" });
+        return json({
+          ok: true,
+          service: "ortyo-cloudflare",
+          revision: env.ORTYO_RELEASE_SHA ?? null,
+        });
       }
 
       if (

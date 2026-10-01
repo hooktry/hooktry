@@ -61,10 +61,13 @@ The ordinary workflow:
 1. validates the production environment credentials
 2. verifies the Cloudflare adapter in the Workers runtime
 3. applies D1 migrations to the existing `ortyo-cloudflare` database
-4. deploys the existing Worker / Durable Object configuration
-5. runs a live workers.dev acceptance:
+4. deploys the existing Worker / Durable Object configuration with `ORTYO_RELEASE_SHA=<Git SHA>`
+5. waits for `/healthz` to report that exact revision consistently before live traffic acceptance
+6. runs a live workers.dev acceptance:
    `create -> view -> hook -> claim -> same hook -> single-use claim`
-6. removes the smoke Interaction bodies and D1 rows
+7. removes the smoke Interaction bodies and D1 rows
+
+The convergence gate is deliberate. It verifies release provenance and avoids starting realtime acceptance while a newly deployed Worker/Durable Object revision is still converging across the provider edge. It is not a retry of failed product behavior.
 
 The GitHub `production` environment contains:
 

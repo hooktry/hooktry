@@ -163,6 +163,8 @@ Which deployment profile?
 Which provider deployment/version corresponds to it?
 ~~~
 
+For the Cloudflare profile, every Worker deployment receives the immutable Git SHA as `ORTYO_RELEASE_SHA`. The public `/healthz` response reports that revision. Production acceptance must observe the expected revision consistently before exercising the realtime Hook flow; a provider deployment command returning is not by itself sufficient evidence that the expected release is serving the acceptance path.
+
 ## Provider-native CI/CD
 
 Provider-native CI/CD systems such as Cloudflare Builds are not forbidden.

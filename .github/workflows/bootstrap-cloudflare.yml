@@ -74,7 +74,10 @@ jobs:
           --config wrangler.production.generated.jsonc
 
       - name: Deploy Worker and Durable Object
-        run: npx wrangler deploy --config wrangler.production.generated.jsonc
+        run: >
+          npx wrangler deploy
+          --config wrangler.production.generated.jsonc
+          --var "ORTYO_RELEASE_SHA:${GITHUB_SHA}"
 
       - name: Install internal claim secret
         shell: bash
@@ -87,6 +90,7 @@ jobs:
         env:
           ORTYO_BASE_URL: ${{ steps.bootstrap.outputs.base_url }}
           ORTYO_D1_DATABASE_ID: ${{ steps.bootstrap.outputs.database_id }}
+          ORTYO_EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: node scripts/smoke-production.mjs
 
       - name: Verify checked-in production config still matches D1

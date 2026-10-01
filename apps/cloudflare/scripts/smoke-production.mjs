@@ -4,6 +4,7 @@ const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 const databaseId = required("ORTYO_D1_DATABASE_ID");
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
+const expectedReleaseSha = process.env.ORTYO_EXPECTED_RELEASE_SHA?.trim() || null;
 
 let provision;
 const interactions = [];
@@ -103,18 +104,36 @@ try {
 
 async function waitForHealth() {
   const deadline = Date.now() + 30_000;
+  let consecutive = 0;
   let lastStatus = 0;
+  let lastRevision = null;
 
   while (Date.now() < deadline) {
     const response = await fetch(`${baseUrl}/healthz`).catch(() => null);
-    if (response?.ok) {
-      return;
-    }
     lastStatus = response?.status ?? 0;
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
+
+    if (response?.ok) {
+      const payload = await response.json().catch(() => null);
+      lastRevision = payload?.revision ?? null;
+
+      if (!expectedReleaseSha || lastRevision === expectedReleaseSha) {
+        consecutive += 1;
+        if (consecutive >= 3) {
+          return;
+        }
+      } else {
+        consecutive = 0;
+      }
+    } else {
+      consecutive = 0;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  throw new Error(`healthz did not become ready within 30s; last status: ${lastStatus}`);
+  throw new Error(
+    `healthz did not converge within 30s; last status: ${lastStatus}; expected revision: ${expectedReleaseSha ?? "any"}; last revision: ${lastRevision ?? "none"}`,
+  );
 }
 
 async function cleanup(exposureId, captured) {
