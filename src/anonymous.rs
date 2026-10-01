@@ -8,7 +8,7 @@ use axum::{
     Json, Router,
     body::Bytes,
     extract::{
-        OriginalUri, Path, State,
+        DefaultBodyLimit, OriginalUri, Path, State,
         ws::{Message, WebSocket, WebSocketUpgrade},
     },
     http::{
@@ -316,6 +316,9 @@ impl AnonymousExposureStore {
                 let mut client = client.lock().expect("anonymous store poisoned");
                 let mut tx = client
                     .transaction()
+                    .map_err(|error| AnonymousError::Storage(error.to_string()))?;
+                let principal_lock = advisory_lock_key(&principal_digest);
+                tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&principal_lock])
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 purge_postgres(&mut tx, now_i64)?;
                 let row = tx
@@ -950,6 +953,7 @@ pub fn anonymous_app(
         )
         .route("/h/{ingress_token}", any(anonymous_ingress_root))
         .route("/h/{ingress_token}/{*path}", any(anonymous_ingress_path))
+        .layer(DefaultBodyLimit::max(ANONYMOUS_MAX_BODY_BYTES))
         .with_state(state)
 }
 
@@ -1429,6 +1433,13 @@ fn capture_headers(headers: &HeaderMap) -> Vec<(String, String)> {
         .collect()
 }
 
+fn advisory_lock_key(digest: &[u8; 32]) -> i64 {
+    let bytes: [u8; 8] = digest[..8]
+        .try_into()
+        .expect("SHA-256 digest prefix is always 8 bytes");
+    i64::from_be_bytes(bytes)
+}
+
 fn token_digest(token: &str) -> [u8; 32] {
     digest(&SHA256, token.as_bytes())
         .as_ref()
@@ -1501,10 +1512,8 @@ mod tests {
 
     #[tokio::test]
     async fn body_budget_and_request_budget_are_enforced() {
-        let service = AnonymousExposureService::new(
-            AnonymousExposureStore::default(),
-            "https://ortyo.test",
-        );
+        let service =
+            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
         let provision = service.provision(None).await.unwrap();
         let ingress_token = provision
             .ingress_url
