@@ -4,71 +4,75 @@ Checked: 2026-10-01
 
 ## Current comparison
 
-`2026-10-01-baseline -> 2026-10-01-research-1`
+`2026-10-01-research-1 -> 2026-10-01-research-2`
 
-This is the first real snapshot comparison.
-
-The two snapshots are on the same date because the second snapshot captures a later research pass, not a claim that the market changed during the day.
+Both snapshots are on the same date because they represent successive research passes, not a claim of same-day market change.
 
 ## Result
 
 - scope products added/removed: 0 / 0
 - matrix products added/removed: 0 / 0
 - capabilities added/removed: 0 / 0
-- matrix research resolutions: 11
+- matrix research resolutions: 4
 - observed external state changes: 0
-- atomic observations added: 11
+- atomic observations added: 4
 - signals added: 0
 - explicit market-motion signals added: 0
 - Ortyo capability-status changes: 0
 - Ortyo matrix changes: 0
 - disposition changes: 0
 
-The 11 matrix transitions are all `unknown -> present|partial`, so they are **research resolution**, not market motion.
+The four transitions are all `unknown -> partial`.
 
-## Decision impact
+They are **research resolution**, not market motion.
 
-The research changed confidence and competitive depth knowledge, but did not change the current dispositions:
+## What was learned
 
-- search/filter remains a current `must`
-- configurable sender response remains a current `must`
-- failure simulation remains current `should`
-- provider-aware templates/signature verification remain next `should`
-- deterministic CI remains a differentiation thesis to validate by depth, not mere presence
+Three competitors now have evidenced partial deterministic-CI depth:
+
+- Hookdeck - CI authentication and non-interactive webhook forwarding/listening
+- Webhook Relay - structured synthetic send plus bounded delivery wait and evidence
+- Beeceptor - reproducible version-controlled mock environments with state reset for CI
+
+Beeceptor also has partial structured comparison through OpenAPI contract-drift detection.
+
+None of this currently proves the full Ortyo deterministic outcome model exists elsewhere.
+
+## Cumulative research movement from baseline
+
+`2026-10-01-baseline -> 2026-10-01-research-2`
+
+- research resolutions: 15
+- external evidenced cells: 59 -> 74
+- external unknown cells: 171 -> 156
+- atomic observations: 69 -> 84
+- explicit market-motion signals: 0
+- Ortyo motion: 0
+- disposition changes: 0
 
 ## Interpretation boundary
 
-A matrix transition is not automatically a market change.
+`unknown -> evidenced` remains research resolution.
 
-`unknown -> present|partial|absent` is **research resolution** because the earlier snapshot did not know the state.
+A true market-motion claim requires dated evidence that a competitor changed, preferably recorded as `class: market_motion`.
 
-`present|partial|absent -> unknown` is **research regression** because confidence/evidence was lost.
-
-A transition between two evidenced non-`unknown` states is an **observed state change**. It may support a market-change claim, but the claim should still be tied to dated evidence.
-
-Explicit supply-side change is represented by a newly added signal with:
-
-```yaml
-class: market_motion
-```
-
-Ortyo changes are reported separately as **Ortyo motion**.
+Ortyo delivery changes remain a separate `ortyo_motion` channel.
 
 ## Commands
 
-Human-readable diff:
+Latest incremental diff:
 
 ```bash
 cargo run --locked --bin market-trend -- \
-  --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/2026-10-01-research-1.yaml
+  --from docs/market/snapshots/2026-10-01-research-1.yaml \
+  --to docs/market/snapshots/2026-10-01-research-2.yaml
 ```
 
-Machine-readable diff:
+Cumulative diff:
 
 ```bash
 cargo run --locked --bin market-trend -- \
   --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/2026-10-01-research-1.yaml \
+  --to docs/market/snapshots/2026-10-01-research-2.yaml \
   --json
 ```

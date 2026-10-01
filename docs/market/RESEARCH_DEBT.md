@@ -13,8 +13,8 @@ It answers:
 
 The primary matrix has 230 external product-capability cells:
 
-- 70 evidenced
-- 160 unknown
+- 74 evidenced
+- 156 unknown
 
 This does **not** mean 171 equally important research tasks remain.
 
@@ -51,8 +51,8 @@ Research can change an upcoming decision, validate differentiation, or clarify a
 
 Current leading P2 groups include:
 
-- `deterministic-ci` - implemented in Ortyo, but competitor motion and demand proxies can change differentiation claims
-- `request-diff` - Ortyo unknown
+- `deterministic-ci` - 5 unknown / 5 evidenced peers; Hookdeck, Webhook Relay, and Beeceptor now show partial CI depth, but not the full Ortyo outcome-semantics contract
+- `request-diff` - 7 unknown / 3 evidenced peers; Beeceptor adds partial contract-drift comparison alongside deeper webhooks.cc/Hooklistener evidence
 - `persistent-endpoint` - Ortyo partial
 - `team-collaboration` - Ortyo partial
 - temporal/causal verification capabilities when demand or market evidence makes the differentiation thesis decision-relevant
@@ -112,15 +112,13 @@ cargo run --locked --bin market-research-debt -- \
 
 ## Next research sprint
 
-Research sprint 1 resolved 11 of the first 15 P0/P1 checks. The next sprint should concentrate on the remaining high-leverage uncertainty across:
+Research sprints 1-2 resolved 15 decision-relevant cells. Four P0/P1 checks remain unknown by design; the next sprint should concentrate on differentiation-depth uncertainty across:
 
-1. search/filter depth
-2. configurable sender responses
-3. failure/latency simulation
-4. provider templates
-5. signature verification
-6. deterministic CI depth
-7. structured request diff
+1. temporal/cardinality/ordering semantics
+2. correlation/idempotency-aware matching
+3. deterministic CI outcome semantics
+4. structured interaction diff depth
+5. first-party demand evidence for the deeper verification model
 
 Bridge products with several relevant cohorts are intentionally checked early because one observation can inform both the primary job and a depth/adjacent vector.
 

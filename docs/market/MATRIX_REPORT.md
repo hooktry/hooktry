@@ -16,19 +16,19 @@ Legend: **P** present, **~** partial, **A** verified absent, **?** unknown / not
 | Persistent endpoint | ~ | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
 | Request inspection | P* | P | ? | ? | ? | P | ? | ? | ? | ? | P |
 | Request history | P | ? | ? | ? | ? | P | ? | ? | ? | ? | P |
-| Search/filter | ~ | P | ? | ? | ? | ? | P | P | P | ? | ? |
-| Configurable response | ~ | P | ? | ? | P | P | P | P | ? | ? | ? |
-| Failure/latency simulation | ~ | ~ | ? | ? | P | P | ? | ? | ? | ? | ? |
+| Search/filter | ~ | P | P | ~ | ? | P | P | P | P | ? | ? |
+| Configurable response | ~ | P | ~ | P | P | P | P | P | ? | ? | ? |
+| Failure/latency simulation | ~ | ~ | ? | ~ | P | P | ? | P | ? | ? | ? |
 | Replay | P* | P | P | ? | ? | ? | ? | P | ? | ? | P |
 | Local forwarding | P | P | P | P | ? | P | P | ? | P | ? | ? |
-| Provider templates | A | ? | ? | ? | ? | ? | P | ? | ? | ? | P |
-| Signature verification | ? | ? | ? | ? | P | ? | P | ? | ? | P | ? |
+| Provider templates | A | ? | P | ? | ? | ? | P | ? | ? | ? | P |
+| Signature verification | ? | ? | P | ~ | P | ? | P | P | ? | P | ? |
 | API | P | ? | ? | ? | ? | ? | ? | P | P | ? | P |
 | CLI | P | P | ? | ? | P | ? | ? | P | P | ? | ? |
 | MCP/agent surface | P | ? | P | P | ? | ? | P | P | ? | P | P |
 | Async wait | P | ? | ? | P | P | ? | ? | ? | ? | ? | ? |
-| Deterministic CI | P | ? | ? | ? | ? | ? | P | P | ? | ? | ? |
-| Structured request diff | ? | ? | ? | ? | ? | ? | P | P | ? | ? | ? |
+| Deterministic CI | P | ? | ~ | ~ | ? | ~ | P | P | ? | ? | ? |
+| Structured request diff | ? | ? | ? | ? | ? | ~ | P | P | ? | ? | ? |
 | Self-host/local runtime | P | ? | ? | ? | ? | ? | ? | ? | ? | P | ? |
 | Team collaboration | ~ | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
 | Durable retries | ? | ? | P | P | P | ? | ? | ? | ? | P | ? |

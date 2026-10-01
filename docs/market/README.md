@@ -91,7 +91,7 @@ Material competitors now combine subsets of:
 
 The agent surface itself is therefore not a durable differentiator. Hookdeck, Webhook Relay, webhooks.cc, Hook0, Svix and others already expose agent-oriented workflows.
 
-Assertions, replay suites, MCP, and CI testing are no longer sufficient differentiation by themselves: current competitors already expose meaningful parts of that surface.
+Assertions, replay suites, MCP, CI wiring, bounded waits, reproducible test environments, and structured evidence are no longer sufficient differentiation by themselves: current competitors already expose meaningful parts of that surface.
 
 Ortyo's stronger potential differentiation is therefore the **depth of temporal and causal evidence semantics**:
 
@@ -125,6 +125,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `TREND_REPORT.md` - current temporal-analysis status and trend interpretation rules
 - `RESEARCH_DEBT.md` - decision-value research queue over unresolved matrix evidence
 - `RESEARCH_SPRINT_2026-10-01.md` - first executed P0/P1 evidence sprint and decision impact
+- `RESEARCH_SPRINT_2_2026-10-01.md` - second differentiation-depth research sprint
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 

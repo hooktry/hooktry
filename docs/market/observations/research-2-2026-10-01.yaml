@@ -1,0 +1,44 @@
+observations:
+  - id: hookdeck-deterministic-ci-research-2-2026-10-01
+    product: hookdeck
+    capability: deterministic-ci
+    assertion: "Hookdeck CLI explicitly supports CI authentication and non-interactive listen workflows with project-scoped API credentials, but current official evidence does not establish machine-readable assertion reports or stable behavior-vs-infrastructure exit semantics."
+    state: partial
+    source: {type: source_repository, url: "https://github.com/hookdeck/hookdeck-cli"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhook-relay-deterministic-ci-research-2-2026-10-01
+    product: webhook-relay
+    capability: deterministic-ci
+    assertion: "Webhook Relay agentic testing exposes send_webhook plus bounded wait_for_webhook_log with explicit settled/status outcomes and structured transformed-request and destination-response evidence; current official evidence does not establish a full assertion DSL with stable CI exit semantics."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: beeceptor-deterministic-ci-research-2-2026-10-01
+    product: beeceptor
+    capability: deterministic-ci
+    assertion: "Beeceptor documents version-controlled mock configuration, state reset, deterministic environment setup/teardown, and GitHub Actions integration for repeatable CI, but current official evidence does not establish stable behavior-mismatch versus infrastructure/tool exit semantics."
+    state: partial
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/tutorials/using-ci-cd-version-control/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-request-diff-research-2-2026-10-01
+    product: beeceptor
+    capability: request-diff
+    assertion: "Beeceptor can compare observed request/response traffic against an OpenAPI contract and surface contract drift; this is structural baseline comparison, but not a general captured-request-to-request diff."
+    state: partial
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/query-mock-request-history/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current

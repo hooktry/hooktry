@@ -35,7 +35,7 @@ priorities:
     decision: differentiation
     confidence: medium
     capabilities: [wait-for-event, deterministic-ci, contracts, observation-window]
-    rationale: "Automated webhook testing, bounded waits, and request assertions are now clearly present in competitors. Ortyo should differentiate only where richer temporal/causal evidence semantics improve the outcome; the exact DSL remains a hypothesis."
+    rationale: "CI authentication, bounded waits, reproducible test environments, request assertions, and structured evidence are clearly present across competitors. Current evidence does not establish the same stable behavior-vs-infrastructure outcome semantics, so Ortyo should differentiate only where richer temporal/causal evidence improves the outcome; the exact DSL remains a hypothesis."
 
   - id: cardinality-ordering
     horizon: validate

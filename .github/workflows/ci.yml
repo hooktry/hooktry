@@ -94,8 +94,8 @@ jobs:
       - name: Market trend smoke
         run: >
           cargo run --locked --bin market-trend --
-          --from docs/market/snapshots/2026-10-01-baseline.yaml
-          --to docs/market/snapshots/2026-10-01-research-1.yaml
+          --from docs/market/snapshots/2026-10-01-research-1.yaml
+          --to docs/market/snapshots/2026-10-01-research-2.yaml
           --json
 
       - name: Market research debt
