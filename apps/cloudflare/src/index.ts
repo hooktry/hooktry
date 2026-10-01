@@ -14,6 +14,14 @@ import {
 } from "./core";
 import { ExposureRuntime, INTERNAL_EXPOSURE_HEADER } from "./exposure-runtime";
 import {
+  finishGitHubOAuth,
+  logout,
+  sessionForRequest,
+  sessionResponse,
+  startGitHubOAuth,
+} from "./auth";
+import { cleanupExpiredAuth } from "./auth-repository";
+import {
   claimExposure,
   createExposure,
   deleteExposure,
@@ -44,6 +52,34 @@ export default {
         url.pathname === "/api/v1/hooks"
       ) {
         return await createHook(request, env);
+      }
+
+      if (
+        request.method === "GET" &&
+        url.pathname === "/api/v1/auth/github/start"
+      ) {
+        return await startGitHubOAuth(request, env);
+      }
+
+      if (
+        request.method === "GET" &&
+        url.pathname === "/api/v1/auth/github/callback"
+      ) {
+        return await finishGitHubOAuth(request, env);
+      }
+
+      if (
+        request.method === "GET" &&
+        url.pathname === "/api/v1/session"
+      ) {
+        return await sessionResponse(request, env);
+      }
+
+      if (
+        request.method === "POST" &&
+        url.pathname === "/api/v1/logout"
+      ) {
+        return await logout(request, env);
       }
 
       const hook = url.pathname.match(/^\/hook\/(hk_[A-Za-z0-9_-]{32})(?:\/.*)?$/);
@@ -181,18 +217,23 @@ async function routeClaim(
   env: Env,
   token: string,
 ): Promise<Response> {
-  if (!env.CLAIM_INTERNAL_TOKEN) {
-    throw new AdapterError(503, "claim_auth_unconfigured");
-  }
+  const session = await sessionForRequest(request, env);
+  let workspaceId = session?.workspace_id ?? null;
 
-  const authorization = request.headers.get("authorization");
-  if (authorization !== `Bearer ${env.CLAIM_INTERNAL_TOKEN}`) {
-    throw new AdapterError(401, "unauthorized");
-  }
+  if (!workspaceId) {
+    if (!env.CLAIM_INTERNAL_TOKEN) {
+      throw new AdapterError(401, "unauthorized");
+    }
 
-  const workspaceId = request.headers.get("x-ortyo-workspace-id");
-  if (!workspaceId || !validWorkspaceId(workspaceId)) {
-    throw new AdapterError(400, "invalid_workspace");
+    const authorization = request.headers.get("authorization");
+    if (authorization !== `Bearer ${env.CLAIM_INTERNAL_TOKEN}`) {
+      throw new AdapterError(401, "unauthorized");
+    }
+
+    workspaceId = request.headers.get("x-ortyo-workspace-id");
+    if (!workspaceId || !validWorkspaceId(workspaceId)) {
+      throw new AdapterError(400, "invalid_workspace");
+    }
   }
 
   const claimed = await claimExposure(
@@ -206,6 +247,8 @@ async function routeClaim(
 
 async function cleanupExpired(env: Env): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
+  await cleanupExpiredAuth(env, now);
+
   for (const exposureId of await expiredExposureIds(env, now)) {
     const stub = env.EXPOSURES.getByName(exposureId);
     await stub.fetch("https://ortyo.internal/__expire", { method: "POST" });
