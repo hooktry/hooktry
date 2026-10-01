@@ -14,6 +14,7 @@ use ortyo::{
         environment as scenario_environment, exit_code as scenario_run_exit_code,
         report as scenario_run_report,
     },
+    usage::{ScenarioUsageEvent, ScenarioUsageFeatures, emit_from_env as emit_usage_event},
 };
 
 #[tokio::main]
@@ -300,9 +301,16 @@ fn load_scenario_manifest(path: &str) -> Result<CreateScenario, String> {
 
 async fn scenario_create_request(base_url: &str, path: &str) -> Result<Scenario, String> {
     let request = load_scenario_manifest(path)?;
+    scenario_create_from_request(base_url, &request).await
+}
+
+async fn scenario_create_from_request(
+    base_url: &str,
+    request: &CreateScenario,
+) -> Result<Scenario, String> {
     let response = reqwest::Client::new()
         .post(format!("{base_url}/_ortyo/scenarios"))
-        .json(&request)
+        .json(request)
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -349,7 +357,9 @@ async fn scenario_complete(base_url: &str, id: uuid::Uuid) -> Result<i32, String
 }
 
 async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Result<i32, String> {
-    let scenario = scenario_create_request(base_url, path).await?;
+    let request = load_scenario_manifest(path)?;
+    let usage_features = ScenarioUsageFeatures::from_request(&request);
+    let scenario = scenario_create_from_request(base_url, &request).await?;
     let run = scenario_start_request(base_url, scenario.id).await?;
     let program = command
         .first()
@@ -384,6 +394,11 @@ async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Resul
         }
     };
     let report = scenario_run_report(&run, command, output.status.code(), outcome);
+    let usage_event = ScenarioUsageEvent::completed(usage_features, &report);
+    if let Err(error) = emit_usage_event(&usage_event).await {
+        eprintln!("ortyo: usage evidence: {error}");
+    }
+
     let value = serde_json::to_value(&report)
         .map_err(|error| format!("serialize ScenarioRunReport: {error}"))?;
     print_json(&value)?;
