@@ -502,7 +502,7 @@ async fn run_dogfood_approval_webhook(
             state.public_base_url
         ),
         headers: BTreeMap::from([(DOGFOOD_HEADER.to_owned(), header_canary.clone())]),
-        body: Some(json!({"secret": body_canary})),
+        body: Some(json!({"secret": body_canary.clone()})),
         secret_headers: BTreeMap::new(),
         capture: vec![],
         timeout_ms: 5_000,
@@ -576,8 +576,9 @@ async fn run_dogfood_approval_webhook(
     }
 
     let headers = webhook_headers(notification.notification_id);
+    let expected_idempotency_key = notification.notification_id.to_string();
     if headers.get("idempotency-key").map(String::as_str)
-        != Some(notification.notification_id.to_string().as_str())
+        != Some(expected_idempotency_key.as_str())
         || headers.get("x-ortyo-event").map(String::as_str) != Some("approval_requested")
     {
         return Err("dogfood webhook delivery headers were not deterministic".to_owned());
