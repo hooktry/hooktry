@@ -15,16 +15,16 @@ export async function createExposure(
   input: {
     exposureId: string;
     principalDigest: string;
-    ingressDigest: string;
-    viewerDigest: string;
-    claimDigest: string;
+    ingressCapabilityDigest: string;
+    viewCapabilityDigest: string;
+    claimCapabilityDigest: string;
     now: number;
     expiresAt: number;
   },
 ): Promise<AnonymousExposureSummary> {
   const result = await env.DB.prepare(
     `INSERT INTO anonymous_exposures (
-       exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+       exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
        workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      )
      SELECT ?, ?, ?, ?, ?, NULL, ?, ?, NULL, 0, 0
@@ -39,9 +39,9 @@ export async function createExposure(
     .bind(
       input.exposureId,
       input.principalDigest,
-      input.ingressDigest,
-      input.viewerDigest,
-      input.claimDigest,
+      input.ingressCapabilityDigest,
+      input.viewCapabilityDigest,
+      input.claimCapabilityDigest,
       input.now,
       input.expiresAt,
       input.principalDigest,
@@ -66,7 +66,7 @@ export async function getExposureById(
   exposureId: string,
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
-    `SELECT exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+    `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
      WHERE exposure_id = ?`,
@@ -75,29 +75,29 @@ export async function getExposureById(
     .first<AnonymousExposureRow>();
 }
 
-export async function findExposureByIngress(
+export async function findExposureByIngressCapability(
   env: Env,
   digest: string,
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
-    `SELECT exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+    `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
-     WHERE ingress_digest = ?`,
+     WHERE ingress_capability_digest = ?`,
   )
     .bind(digest)
     .first<AnonymousExposureRow>();
 }
 
-export async function findExposureByViewer(
+export async function findExposureByViewCapability(
   env: Env,
   digest: string,
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
-    `SELECT exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+    `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
-     WHERE viewer_digest = ?`,
+     WHERE view_capability_digest = ?`,
   )
     .bind(digest)
     .first<AnonymousExposureRow>();
@@ -105,17 +105,17 @@ export async function findExposureByViewer(
 
 export async function claimExposure(
   env: Env,
-  claimDigest: string,
+  claimCapabilityDigest: string,
   workspaceId: string,
   now: number,
 ): Promise<AnonymousExposureSummary> {
   const row = await env.DB.prepare(
-    `SELECT exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+    `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
-     WHERE claim_digest = ?`,
+     WHERE claim_capability_digest = ?`,
   )
-    .bind(claimDigest)
+    .bind(claimCapabilityDigest)
     .first<AnonymousExposureRow>();
 
   if (!row || row.workspace_id !== null || now >= row.expires_at) {
@@ -124,13 +124,13 @@ export async function claimExposure(
 
   const result = await env.DB.prepare(
     `UPDATE anonymous_exposures
-     SET workspace_id = ?, claim_digest = NULL, claimed_at = ?
+     SET workspace_id = ?, claim_capability_digest = NULL, claimed_at = ?
      WHERE exposure_id = ?
-       AND claim_digest = ?
+       AND claim_capability_digest = ?
        AND workspace_id IS NULL
        AND expires_at > ?`,
   )
-    .bind(workspaceId, now, row.exposure_id, claimDigest, now)
+    .bind(workspaceId, now, row.exposure_id, claimCapabilityDigest, now)
     .run();
 
   if (result.meta.changes !== 1) {

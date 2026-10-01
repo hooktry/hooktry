@@ -160,9 +160,9 @@ impl AnonymousExposureStore {
                 "CREATE TABLE IF NOT EXISTS anonymous_exposures (
                     exposure_id TEXT PRIMARY KEY,
                     principal_digest BYTEA NOT NULL,
-                    ingress_digest BYTEA NOT NULL UNIQUE,
-                    viewer_digest BYTEA NOT NULL UNIQUE,
-                    claim_digest BYTEA UNIQUE,
+                    ingress_capability_digest BYTEA NOT NULL UNIQUE,
+                    view_capability_digest BYTEA NOT NULL UNIQUE,
+                    claim_capability_digest BYTEA UNIQUE,
                     workspace_id TEXT,
                     created_at BIGINT NOT NULL,
                     expires_at BIGINT NOT NULL,
@@ -198,9 +198,9 @@ impl AnonymousExposureStore {
                 "CREATE TABLE IF NOT EXISTS anonymous_exposures (
                     exposure_id TEXT PRIMARY KEY,
                     principal_digest BLOB NOT NULL,
-                    ingress_digest BLOB NOT NULL UNIQUE,
-                    viewer_digest BLOB NOT NULL UNIQUE,
-                    claim_digest BLOB UNIQUE,
+                    ingress_capability_digest BLOB NOT NULL UNIQUE,
+                    view_capability_digest BLOB NOT NULL UNIQUE,
+                    claim_capability_digest BLOB UNIQUE,
                     workspace_id TEXT,
                     created_at INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL,
@@ -277,9 +277,9 @@ impl AnonymousExposureStore {
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let CreateAnonymousExposure {
             principal_digest,
-            ingress_digest,
-            viewer_digest,
-            claim_digest,
+            ingress_capability_digest,
+            view_capability_digest,
+            claim_capability_digest,
             exposure_id,
             now,
             expires_at,
@@ -308,15 +308,15 @@ impl AnonymousExposureStore {
                 }
                 tx.execute(
                     "INSERT INTO anonymous_exposures (
-                        exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+                        exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
                         workspace_id, created_at, expires_at, request_count, retained_bytes
                      ) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, 0, 0)",
                     params![
                         exposure_id.to_string(),
                         principal_digest.as_slice(),
-                        ingress_digest.as_slice(),
-                        viewer_digest.as_slice(),
-                        claim_digest.as_slice(),
+                        ingress_capability_digest.as_slice(),
+                        view_capability_digest.as_slice(),
+                        claim_capability_digest.as_slice(),
                         now_i64,
                         expires_i64,
                     ],
@@ -350,15 +350,15 @@ impl AnonymousExposureStore {
                 let exposure_id_text = exposure_id.to_string();
                 tx.execute(
                     "INSERT INTO anonymous_exposures (
-                        exposure_id, principal_digest, ingress_digest, viewer_digest, claim_digest,
+                        exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
                         workspace_id, created_at, expires_at, request_count, retained_bytes
                      ) VALUES ($1, $2, $3, $4, $5, NULL, $6, $7, 0, 0)",
                     &[
                         &exposure_id_text,
                         &principal_digest.as_slice(),
-                        &ingress_digest.as_slice(),
-                        &viewer_digest.as_slice(),
-                        &claim_digest.as_slice(),
+                        &ingress_capability_digest.as_slice(),
+                        &view_capability_digest.as_slice(),
+                        &claim_capability_digest.as_slice(),
                         &now_i64,
                         &expires_i64,
                     ],
@@ -387,7 +387,7 @@ impl AnonymousExposureStore {
         input: CaptureAnonymousInteraction,
     ) -> Result<StoredInteraction, AnonymousError> {
         let CaptureAnonymousInteraction {
-            ingress_digest,
+            ingress_capability_digest,
             received_at_ms,
             method,
             path,
@@ -417,8 +417,8 @@ impl AnonymousExposureStore {
                 let raw = tx
                     .query_row(
                         "SELECT exposure_id, workspace_id, expires_at, request_count, retained_bytes
-                         FROM anonymous_exposures WHERE ingress_digest = ?1",
-                        params![ingress_digest.as_slice()],
+                         FROM anonymous_exposures WHERE ingress_capability_digest = ?1",
+                        params![ingress_capability_digest.as_slice()],
                         |row| {
                             Ok((
                                 row.get::<_, String>(0)?,
@@ -477,9 +477,9 @@ impl AnonymousExposureStore {
                     .query_opt(
                         "SELECT exposure_id, workspace_id, expires_at, request_count, retained_bytes
                          FROM anonymous_exposures
-                         WHERE ingress_digest = $1
+                         WHERE ingress_capability_digest = $1
                          FOR UPDATE",
-                        &[&ingress_digest.as_slice()],
+                        &[&ingress_capability_digest.as_slice()],
                     )
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?
                     .ok_or(AnonymousError::NotFound)?;
@@ -549,20 +549,20 @@ impl AnonymousExposureStore {
         })
     }
 
-    async fn viewer_async(
+    async fn view_async(
         &self,
-        viewer_digest: [u8; 32],
+        view_capability_digest: [u8; 32],
         now: u64,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || store.viewer(viewer_digest, now))
+        tokio::task::spawn_blocking(move || store.view(view_capability_digest, now))
             .await
             .map_err(|error| AnonymousError::Storage(error.to_string()))?
     }
 
-    fn viewer(
+    fn view(
         &self,
-        viewer_digest: [u8; 32],
+        view_capability_digest: [u8; 32],
         now: u64,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let now_i64 = i64_from_u64(now)?;
@@ -573,8 +573,8 @@ impl AnonymousExposureStore {
                     .expect("anonymous store poisoned")
                     .query_row(
                         "SELECT exposure_id, workspace_id, created_at, expires_at, request_count, retained_bytes
-                         FROM anonymous_exposures WHERE viewer_digest = ?1",
-                        params![viewer_digest.as_slice()],
+                         FROM anonymous_exposures WHERE view_capability_digest = ?1",
+                        params![view_capability_digest.as_slice()],
                         |row| {
                             Ok((
                                 row.get::<_, String>(0)?,
@@ -597,8 +597,8 @@ impl AnonymousExposureStore {
                     .expect("anonymous store poisoned")
                     .query_opt(
                         "SELECT exposure_id, workspace_id, created_at, expires_at, request_count, retained_bytes
-                         FROM anonymous_exposures WHERE viewer_digest = $1",
-                        &[&viewer_digest.as_slice()],
+                         FROM anonymous_exposures WHERE view_capability_digest = $1",
+                        &[&view_capability_digest.as_slice()],
                     )
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?
                     .ok_or(AnonymousError::NotFound)?;
@@ -699,19 +699,19 @@ impl AnonymousExposureStore {
 
     async fn claim_async(
         &self,
-        claim_digest: [u8; 32],
+        claim_capability_digest: [u8; 32],
         workspace_id: Uuid,
         now: u64,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || store.claim(claim_digest, workspace_id, now))
+        tokio::task::spawn_blocking(move || store.claim(claim_capability_digest, workspace_id, now))
             .await
             .map_err(|error| AnonymousError::Storage(error.to_string()))?
     }
 
     fn claim(
         &self,
-        claim_digest: [u8; 32],
+        claim_capability_digest: [u8; 32],
         workspace_id: Uuid,
         now: u64,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
@@ -726,8 +726,8 @@ impl AnonymousExposureStore {
                 let raw = tx
                     .query_row(
                         "SELECT exposure_id, workspace_id, created_at, expires_at, request_count, retained_bytes
-                         FROM anonymous_exposures WHERE claim_digest = ?1",
-                        params![claim_digest.as_slice()],
+                         FROM anonymous_exposures WHERE claim_capability_digest = ?1",
+                        params![claim_capability_digest.as_slice()],
                         |row| {
                             Ok((
                                 row.get::<_, String>(0)?,
@@ -747,9 +747,13 @@ impl AnonymousExposureStore {
                 }
                 tx.execute(
                     "UPDATE anonymous_exposures
-                     SET workspace_id = ?1, claim_digest = NULL
-                     WHERE exposure_id = ?2 AND claim_digest = ?3",
-                    params![&workspace_id_text, &raw.0, claim_digest.as_slice()],
+                     SET workspace_id = ?1, claim_capability_digest = NULL
+                     WHERE exposure_id = ?2 AND claim_capability_digest = ?3",
+                    params![
+                        &workspace_id_text,
+                        &raw.0,
+                        claim_capability_digest.as_slice()
+                    ],
                 )
                 .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 tx.commit()
@@ -768,9 +772,9 @@ impl AnonymousExposureStore {
                     .query_opt(
                         "SELECT exposure_id, workspace_id, created_at, expires_at, request_count, retained_bytes
                          FROM anonymous_exposures
-                         WHERE claim_digest = $1
+                         WHERE claim_capability_digest = $1
                          FOR UPDATE",
-                        &[&claim_digest.as_slice()],
+                        &[&claim_capability_digest.as_slice()],
                     )
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?
                     .ok_or(AnonymousError::InvalidClaim)?;
@@ -785,9 +789,13 @@ impl AnonymousExposureStore {
                 }
                 tx.execute(
                     "UPDATE anonymous_exposures
-                     SET workspace_id = $1, claim_digest = NULL
-                     WHERE exposure_id = $2 AND claim_digest = $3",
-                    &[&workspace_id_text, &exposure_id, &claim_digest.as_slice()],
+                     SET workspace_id = $1, claim_capability_digest = NULL
+                     WHERE exposure_id = $2 AND claim_capability_digest = $3",
+                    &[
+                        &workspace_id_text,
+                        &exposure_id,
+                        &claim_capability_digest.as_slice(),
+                    ],
                 )
                 .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 tx.commit()
@@ -827,12 +835,12 @@ impl AnonymousExposureRepository for AnonymousExposureStore {
         Box::pin(self.capture_async(input))
     }
 
-    fn viewer(
+    fn view(
         &self,
-        viewer_digest: [u8; 32],
+        view_capability_digest: [u8; 32],
         now: u64,
     ) -> ports::PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>> {
-        Box::pin(self.viewer_async(viewer_digest, now))
+        Box::pin(self.view_async(view_capability_digest, now))
     }
 
     fn interactions(
@@ -844,11 +852,11 @@ impl AnonymousExposureRepository for AnonymousExposureStore {
 
     fn claim(
         &self,
-        claim_digest: [u8; 32],
+        claim_capability_digest: [u8; 32],
         workspace_id: Uuid,
         now: u64,
     ) -> ports::PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>> {
-        Box::pin(self.claim_async(claim_digest, workspace_id, now))
+        Box::pin(self.claim_async(claim_capability_digest, workspace_id, now))
     }
 }
 
@@ -902,9 +910,9 @@ impl AnonymousExposureService {
         principal: Option<String>,
     ) -> Result<AnonymousProvision, AnonymousError> {
         let principal = principal.unwrap_or_else(random_principal);
-        let ingress = random_capability("hk_");
-        let viewer = random_capability("vw_");
-        let claim = random_capability("cl_");
+        let hook_token = random_capability("hk_");
+        let view_token = random_capability("vw_");
+        let claim_token = random_capability("cl_");
         let exposure_id = Uuid::now_v7();
         let now = unix_seconds_now();
         let expires_at = now + ANONYMOUS_TTL_SECONDS;
@@ -912,9 +920,9 @@ impl AnonymousExposureService {
             .store
             .create(CreateAnonymousExposure {
                 principal_digest: token_digest(&principal),
-                ingress_digest: token_digest(&ingress),
-                viewer_digest: token_digest(&viewer),
-                claim_digest: token_digest(&claim),
+                ingress_capability_digest: token_digest(&hook_token),
+                view_capability_digest: token_digest(&view_token),
+                claim_capability_digest: token_digest(&claim_token),
                 exposure_id,
                 now,
                 expires_at,
@@ -923,17 +931,17 @@ impl AnonymousExposureService {
 
         Ok(AnonymousProvision {
             exposure,
-            hook_url: format!("{}/hook/{ingress}", self.public_base_url),
-            view_url: format!("{}/view/{viewer}", self.public_base_url),
-            view_websocket_url: format!("{}/view/{viewer}", self.viewer_ws_base_url),
-            claim_url: format!("{}/claim/{claim}", self.public_base_url),
+            hook_url: format!("{}/hook/{hook_token}", self.public_base_url),
+            view_url: format!("{}/view/{view_token}", self.public_base_url),
+            view_websocket_url: format!("{}/view/{view_token}", self.viewer_ws_base_url),
+            claim_url: format!("{}/claim/{claim_token}", self.public_base_url),
             anonymous_principal: principal,
         })
     }
 
     async fn capture(
         &self,
-        ingress_token: &str,
+        ingress_capability_token: &str,
         method: String,
         path: String,
         query: Option<String>,
@@ -943,7 +951,7 @@ impl AnonymousExposureService {
         let interaction = self
             .store
             .capture(CaptureAnonymousInteraction {
-                ingress_digest: token_digest(ingress_token),
+                ingress_capability_digest: token_digest(ingress_capability_token),
                 received_at_ms: unix_millis_now(),
                 method,
                 path,
@@ -956,9 +964,12 @@ impl AnonymousExposureService {
         Ok(interaction)
     }
 
-    async fn viewer(&self, viewer_token: &str) -> Result<AnonymousExposureSummary, AnonymousError> {
+    async fn view(
+        &self,
+        view_capability_token: &str,
+    ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .viewer(token_digest(viewer_token), unix_seconds_now())
+            .view(token_digest(view_capability_token), unix_seconds_now())
             .await
     }
 
@@ -968,11 +979,15 @@ impl AnonymousExposureService {
 
     async fn claim(
         &self,
-        claim_token: &str,
+        claim_capability_token: &str,
         workspace_id: Uuid,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .claim(token_digest(claim_token), workspace_id, unix_seconds_now())
+            .claim(
+                token_digest(claim_capability_token),
+                workspace_id,
+                unix_seconds_now(),
+            )
             .await
     }
 
@@ -997,10 +1012,10 @@ pub fn anonymous_app(
     };
     Router::new()
         .route("/api/v1/hooks", post(create_hook))
-        .route("/view/{viewer_token}", get(view_anonymous))
+        .route("/view/{view_token}", get(view_anonymous))
         .route("/claim/{claim_token}", post(claim_anonymous))
-        .route("/hook/{ingress_token}", any(anonymous_ingress_root))
-        .route("/hook/{ingress_token}/{*path}", any(anonymous_ingress_path))
+        .route("/hook/{hook_token}", any(hook_root))
+        .route("/hook/{hook_token}/{*path}", any(hook_path))
         .layer(DefaultBodyLimit::max(ANONYMOUS_MAX_BODY_BYTES))
         .with_state(state)
 }
@@ -1028,9 +1043,9 @@ async fn create_hook(
     Ok(response)
 }
 
-async fn anonymous_ingress_root(
+async fn hook_root(
     State(state): State<AnonymousRouterState>,
-    Path(ingress_token): Path<String>,
+    Path(hook_token): Path<String>,
     OriginalUri(uri): OriginalUri,
     method: Method,
     headers: HeaderMap,
@@ -1038,7 +1053,7 @@ async fn anonymous_ingress_root(
 ) -> Result<impl IntoResponse, AnonymousApiError> {
     capture_request(
         state,
-        ingress_token,
+        hook_token,
         "/".to_owned(),
         uri.query().map(ToOwned::to_owned),
         method,
@@ -1048,9 +1063,9 @@ async fn anonymous_ingress_root(
     .await
 }
 
-async fn anonymous_ingress_path(
+async fn hook_path(
     State(state): State<AnonymousRouterState>,
-    Path((ingress_token, path)): Path<(String, String)>,
+    Path((hook_token, path)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
     method: Method,
     headers: HeaderMap,
@@ -1058,7 +1073,7 @@ async fn anonymous_ingress_path(
 ) -> Result<impl IntoResponse, AnonymousApiError> {
     capture_request(
         state,
-        ingress_token,
+        hook_token,
         format!("/{path}"),
         uri.query().map(ToOwned::to_owned),
         method,
@@ -1070,7 +1085,7 @@ async fn anonymous_ingress_path(
 
 async fn capture_request(
     state: AnonymousRouterState,
-    ingress_token: String,
+    hook_token: String,
     path: String,
     query: Option<String>,
     method: Method,
@@ -1083,7 +1098,7 @@ async fn capture_request(
     let interaction = state
         .anonymous
         .capture(
-            &ingress_token,
+            &hook_token,
             method.as_str().to_owned(),
             path,
             query,
@@ -1105,12 +1120,12 @@ async fn capture_request(
 
 async fn view_anonymous(
     State(state): State<AnonymousRouterState>,
-    Path(viewer_token): Path<String>,
+    Path(view_token): Path<String>,
     ws: Result<WebSocketUpgrade, axum::extract::ws::rejection::WebSocketUpgradeRejection>,
 ) -> Result<Response, AnonymousApiError> {
     let exposure = state
         .anonymous
-        .viewer(&viewer_token)
+        .view(&view_token)
         .await
         .map_err(AnonymousApiError::from)?;
 
@@ -1646,17 +1661,17 @@ mod tests {
         let service =
             AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
         let provision = service.provision(None).await.unwrap();
-        let ingress_token = provision
+        let hook_token = provision
             .hook_url
             .rsplit('/')
             .next()
-            .expect("ingress token")
+            .expect("hook token")
             .to_owned();
 
         for _ in 0..ANONYMOUS_REQUEST_LIMIT {
             service
                 .capture(
-                    &ingress_token,
+                    &hook_token,
                     "POST".to_owned(),
                     "/".to_owned(),
                     None,
@@ -1669,7 +1684,7 @@ mod tests {
         assert_eq!(
             service
                 .capture(
-                    &ingress_token,
+                    &hook_token,
                     "POST".to_owned(),
                     "/".to_owned(),
                     None,
@@ -1722,11 +1737,11 @@ mod tests {
             "https://ortyo.test",
         );
         let provision = service.provision(None).await.unwrap();
-        let ingress_token = provision.hook_url.rsplit('/').next().unwrap();
+        let hook_token = provision.hook_url.rsplit('/').next().unwrap();
 
         service
             .capture(
-                ingress_token,
+                hook_token,
                 "POST".to_owned(),
                 "/portable".to_owned(),
                 None,

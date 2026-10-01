@@ -181,9 +181,9 @@ async fn anonymous_view_capability_is_not_a_hook_capability() {
         .await
         .unwrap();
 
-    let viewer_token = provision.view_url.rsplit('/').next().unwrap();
+    let view_token = provision.view_url.rsplit('/').next().unwrap();
     let response = client
-        .post(format!("http://{addr}/hook/{viewer_token}"))
+        .post(format!("http://{addr}/hook/{view_token}"))
         .body("must not route")
         .send()
         .await

@@ -109,6 +109,18 @@ An unauthenticated `POST /api/v1/hooks` creates an ephemeral webhook capture end
 
 The same operation should be discoverable from `llms.txt`, MCP, CLI help, and agent-oriented documentation.
 
+### Vocabulary boundary
+
+The public product resource is a **Hook**. A Hook is the webhook-specific form of the broader **Exposure** domain primitive.
+
+Keep vocabulary aligned with the layer:
+
+- HTTP/product boundary: `hook_token`, `view_token`, `claim_token`
+- generic Exposure authority: ingress capability, view capability, claim capability
+- persistence: `ingress_capability_digest`, `view_capability_digest`, `claim_capability_digest`
+
+The `hk_` Hook token therefore resolves to the Exposure's ingress capability. Do not rename generic Exposure authority to `hook_*`, because future Exposure kinds may not be webhooks. Conversely, do not expose `ingress_*` or `viewer_*` as Hook API field names. `viewer` is reserved for a UI/runtime participant, while the authority is the view capability.
+
 ## Cloudflare shape
 
 Cloudflare is the first managed-cloud deployment target, not an ORTYO domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.

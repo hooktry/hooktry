@@ -23,9 +23,9 @@ pub(crate) struct StoredInteraction {
 #[derive(Clone)]
 pub(crate) struct CreateAnonymousExposure {
     pub(crate) principal_digest: [u8; 32],
-    pub(crate) ingress_digest: [u8; 32],
-    pub(crate) viewer_digest: [u8; 32],
-    pub(crate) claim_digest: [u8; 32],
+    pub(crate) ingress_capability_digest: [u8; 32],
+    pub(crate) view_capability_digest: [u8; 32],
+    pub(crate) claim_capability_digest: [u8; 32],
     pub(crate) exposure_id: Uuid,
     pub(crate) now: u64,
     pub(crate) expires_at: u64,
@@ -33,7 +33,7 @@ pub(crate) struct CreateAnonymousExposure {
 
 #[derive(Clone)]
 pub(crate) struct CaptureAnonymousInteraction {
-    pub(crate) ingress_digest: [u8; 32],
+    pub(crate) ingress_capability_digest: [u8; 32],
     pub(crate) received_at_ms: u64,
     pub(crate) method: String,
     pub(crate) path: String,
@@ -55,9 +55,9 @@ pub(crate) trait AnonymousExposureRepository: Send + Sync {
         input: CaptureAnonymousInteraction,
     ) -> PortFuture<'_, Result<StoredInteraction, AnonymousError>>;
 
-    fn viewer(
+    fn view(
         &self,
-        viewer_digest: [u8; 32],
+        view_capability_digest: [u8; 32],
         now: u64,
     ) -> PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>>;
 
@@ -68,7 +68,7 @@ pub(crate) trait AnonymousExposureRepository: Send + Sync {
 
     fn claim(
         &self,
-        claim_digest: [u8; 32],
+        claim_capability_digest: [u8; 32],
         workspace_id: Uuid,
         now: u64,
     ) -> PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>>;
