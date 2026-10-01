@@ -1681,6 +1681,69 @@ mod tests {
         );
     }
 
+    #[derive(Default)]
+    struct RecordingInteractionStream {
+        published: Mutex<Vec<StoredInteraction>>,
+    }
+
+    impl AnonymousInteractionStream for RecordingInteractionStream {
+        fn publish(&self, interaction: StoredInteraction) {
+            self.published
+                .lock()
+                .expect("recording stream poisoned")
+                .push(interaction);
+        }
+
+        fn subscribe(
+            &self,
+            _exposure_id: Uuid,
+        ) -> Box<dyn ports::AnonymousInteractionSubscription> {
+            Box::new(ClosedSubscription)
+        }
+    }
+
+    struct ClosedSubscription;
+
+    impl ports::AnonymousInteractionSubscription for ClosedSubscription {
+        fn recv(
+            &mut self,
+        ) -> ports::PortFuture<'_, Result<StoredInteraction, InteractionStreamError>> {
+            Box::pin(async { Err(InteractionStreamError::Closed) })
+        }
+    }
+
+    #[tokio::test]
+    async fn application_service_uses_injected_realtime_port() {
+        let stream = Arc::new(RecordingInteractionStream::default());
+        let service = AnonymousExposureService::with_ports(
+            Arc::new(AnonymousExposureStore::default()),
+            stream.clone(),
+            "https://ortyo.test",
+        );
+        let provision = service.provision(None).await.unwrap();
+        let ingress_token = provision.hook_url.rsplit('/').next().unwrap();
+
+        service
+            .capture(
+                ingress_token,
+                "POST".to_owned(),
+                "/portable".to_owned(),
+                None,
+                Vec::new(),
+                b"portable".to_vec(),
+            )
+            .await
+            .unwrap();
+
+        let published = stream
+            .published
+            .lock()
+            .expect("recording stream poisoned");
+        assert_eq!(published.len(), 1);
+        assert_eq!(published[0].path, "/portable");
+        assert_eq!(published[0].body, b"portable");
+    }
+
     #[test]
     fn websocket_url_tracks_public_scheme() {
         assert_eq!(websocket_base_url("https://ortyo.test"), "wss://ortyo.test");
