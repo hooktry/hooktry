@@ -135,3 +135,33 @@ Research on a capability can stop before every cell is known when additional obs
 - a vector activation/stop decision
 
 Unknown is acceptable when it is no longer decision-relevant.
+
+
+## Evidence channel routing
+
+Research debt is no longer assumed to mean "fill more competitor matrix cells."
+
+A priority can declare:
+
+```yaml
+next_evidence: first_party_usage
+```
+
+When it does, unresolved competitor cells remain visible in total matrix debt but are excluded from the top external-research checks.
+
+Current temporal validation routing:
+
+- `cardinality` - first-party usage; 9 external cells remain unknown
+- `ordering` - first-party usage; 9 external cells remain unknown
+- `correlation-context` - first-party usage; 10 external cells remain unknown
+
+Total deferred to first-party usage: **3 capabilities / 28 cells**.
+
+This prevents strong direct demand from accidentally causing endless desk research after the problem itself is already established.
+
+The next evidence for these capabilities should answer:
+
+- do developers run duplicate/order/idempotency scenarios?
+- do they rerun or modify them?
+- do those scenarios catch failures before production?
+- do users need richer cardinality/order/settle syntax than the thin proof provides?
