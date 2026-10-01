@@ -1,9 +1,9 @@
 CREATE TABLE anonymous_exposures (
   exposure_id TEXT PRIMARY KEY,
   principal_digest TEXT NOT NULL,
-  ingress_digest TEXT NOT NULL UNIQUE,
-  viewer_digest TEXT NOT NULL UNIQUE,
-  claim_digest TEXT UNIQUE,
+  ingress_capability_digest TEXT NOT NULL UNIQUE,
+  view_capability_digest TEXT NOT NULL UNIQUE,
+  claim_capability_digest TEXT UNIQUE,
   workspace_id TEXT,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
@@ -15,14 +15,14 @@ CREATE TABLE anonymous_exposures (
 CREATE INDEX anonymous_exposures_principal
   ON anonymous_exposures(principal_digest, workspace_id, expires_at);
 
-CREATE INDEX anonymous_exposures_ingress
-  ON anonymous_exposures(ingress_digest);
+CREATE INDEX anonymous_exposures_ingress_capability
+  ON anonymous_exposures(ingress_capability_digest);
 
-CREATE INDEX anonymous_exposures_viewer
-  ON anonymous_exposures(viewer_digest);
+CREATE INDEX anonymous_exposures_view_capability
+  ON anonymous_exposures(view_capability_digest);
 
-CREATE INDEX anonymous_exposures_claim
-  ON anonymous_exposures(claim_digest);
+CREATE INDEX anonymous_exposures_claim_capability
+  ON anonymous_exposures(claim_capability_digest);
 
 CREATE TABLE anonymous_interactions (
   interaction_id TEXT PRIMARY KEY,
