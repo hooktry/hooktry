@@ -9,13 +9,12 @@ import {
 import worker from "../src/index";
 import type { AnonymousProvision, Env } from "../src/types";
 
-const testEnv = env as unknown as Env;
+const bindings = env as unknown as Env;
+const WORKSPACE_ID = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 
 function fetchWorker(request: Request): Promise<Response> {
-  return worker.fetch(request, testEnv);
+  return worker.fetch(request, bindings);
 }
-
-const WORKSPACE_ID = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 
 describe("CF1 anonymous Exposure conformance", () => {
   it("creates, pushes, survives DO eviction, claims, and preserves the hook URL", async () => {
@@ -30,17 +29,15 @@ describe("CF1 anonymous Exposure conformance", () => {
       new Request(provision.view_url, {
         headers: { Upgrade: "websocket" },
       }),
-      env,
     );
     expect(viewerResponse.status).toBe(101);
     const socket = viewerResponse.webSocket;
     if (!socket) {
       throw new Error("expected WebSocket response");
     }
-    const inbox = jsonInbox(socket);
     socket.accept();
 
-    const ready = await inbox.next();
+    const ready = await nextJson(socket);
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
 
@@ -53,18 +50,17 @@ describe("CF1 anonymous Exposure conformance", () => {
         },
         body: JSON.stringify({ type: "checkout.session.completed" }),
       }),
-      env,
     );
     expect(first.status).toBe(200);
 
-    const pushed = await inbox.next();
+    const pushed = await nextJson(socket);
     expect(pushed.type).toBe("interaction");
     expect(pushed.interaction.sequence).toBe(1);
     expect(pushed.interaction.path).toBe("/stripe");
     expect(pushed.interaction.query).toBe("delivery=42");
     expect(pushed.interaction.body_encoding).toBe("utf8");
 
-    const stub = testEnv.EXPOSURES.getByName(provision.exposure_id);
+    const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
     await evictDurableObject(stub);
 
     const afterEviction = await fetchWorker(
@@ -72,10 +68,9 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "after-eviction",
       }),
-      env,
     );
     expect(afterEviction.status).toBe(200);
-    const pushedAfterEviction = await inbox.next();
+    const pushedAfterEviction = await nextJson(socket);
     expect(pushedAfterEviction.interaction.sequence).toBe(2);
     expect(pushedAfterEviction.interaction.body).toBe("after-eviction");
 
@@ -87,7 +82,6 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
-      env,
     );
     expect(claimed.status).toBe(200);
     const claimedBody = (await claimed.json()) as Record<string, unknown>;
@@ -100,10 +94,9 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "after-claim",
       }),
-      env,
     );
     expect(afterClaim.status).toBe(200);
-    const pushedAfterClaim = await inbox.next();
+    const pushedAfterClaim = await nextJson(socket);
     expect(pushedAfterClaim.interaction.sequence).toBe(3);
     expect(pushedAfterClaim.interaction.body).toBe("after-claim");
 
@@ -115,7 +108,6 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
-      env,
     );
     expect(secondClaim.status).toBe(410);
 
@@ -134,7 +126,6 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "must-not-route",
       }),
-      env,
     );
     expect(response.status).toBe(404);
   });
@@ -145,46 +136,28 @@ describe("CF1 anonymous Exposure conformance", () => {
       "x-ortyo-anonymous-principal": first.anonymous_principal,
     };
 
-    expect(
-      (
-        await fetchWorker(
-          new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
-            method: "POST",
-            headers,
-          }),
-          env,
-        )
-      ).status,
-    ).toBe(201);
+    for (let index = 0; index < 2; index += 1) {
+      const response = await fetchWorker(
+        new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
+          method: "POST",
+          headers,
+        }),
+      );
+      expect(response.status).toBe(201);
+    }
 
-    expect(
-      (
-        await fetchWorker(
-          new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
-            method: "POST",
-            headers,
-          }),
-          env,
-        )
-      ).status,
-    ).toBe(201);
-
-    expect(
-      (
-        await fetchWorker(
-          new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
-            method: "POST",
-            headers,
-          }),
-          env,
-        )
-      ).status,
-    ).toBe(429);
+    const fourth = await fetchWorker(
+      new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
+        method: "POST",
+        headers,
+      }),
+    );
+    expect(fourth.status).toBe(429);
   });
 
   it("enforces request and retained-byte quotas from canonical metadata", async () => {
     const requestLimited = await createAnonymous();
-    await testEnv.DB.prepare(
+    await bindings.DB.prepare(
       "UPDATE anonymous_exposures SET request_count = ? WHERE exposure_id = ?",
     )
       .bind(ANONYMOUS_REQUEST_LIMIT, requestLimited.exposure_id)
@@ -195,7 +168,6 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "one-too-many",
       }),
-      env,
     );
     expect(requestLimitResponse.status).toBe(429);
     expect(await requestLimitResponse.json()).toEqual({
@@ -203,7 +175,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     });
 
     const byteLimited = await createAnonymous();
-    await testEnv.DB.prepare(
+    await bindings.DB.prepare(
       "UPDATE anonymous_exposures SET retained_bytes = ? WHERE exposure_id = ?",
     )
       .bind(ANONYMOUS_MAX_RETAINED_BYTES, byteLimited.exposure_id)
@@ -214,7 +186,6 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "one-byte-too-many",
       }),
-      env,
     );
     expect(byteLimitResponse.status).toBe(429);
     expect(await byteLimitResponse.json()).toEqual({
@@ -228,42 +199,28 @@ async function createAnonymous(): Promise<AnonymousProvision> {
     new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
       method: "POST",
     }),
-    env,
   );
   expect(response.status).toBe(201);
   return (await response.json()) as AnonymousProvision;
 }
 
-function jsonInbox(socket: WebSocket): { next: () => Promise<any> } {
-  const queued: any[] = [];
-  const waiting: Array<(value: any) => void> = [];
-
-  socket.addEventListener("message", (event) => {
-    const value = JSON.parse(String(event.data));
-    const resolve = waiting.shift();
-    if (resolve) {
-      resolve(value);
-    } else {
-      queued.push(value);
-    }
+function nextJson(socket: WebSocket): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error("timed out waiting for WebSocket message")),
+      2_000,
+    );
+    socket.addEventListener(
+      "message",
+      (event) => {
+        clearTimeout(timeout);
+        try {
+          resolve(JSON.parse(String(event.data)));
+        } catch (error) {
+          reject(error);
+        }
+      },
+      { once: true },
+    );
   });
-
-  return {
-    next(): Promise<any> {
-      const value = queued.shift();
-      if (value !== undefined) {
-        return Promise.resolve(value);
-      }
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(
-          () => reject(new Error("timed out waiting for WebSocket message")),
-          2_000,
-        );
-        waiting.push((message) => {
-          clearTimeout(timeout);
-          resolve(message);
-        });
-      });
-    },
-  };
 }
