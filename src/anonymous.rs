@@ -26,7 +26,7 @@ use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::digest::{SHA256, digest};
 use rusqlite::{Connection, OptionalExtension, params};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
@@ -41,7 +41,7 @@ pub const ANONYMOUS_MAX_RETAINED_BYTES: u64 = 50 * 1024 * 1024;
 const PRINCIPAL_COOKIE: &str = "ortyo_anon";
 const PRINCIPAL_HEADER: &str = "x-ortyo-anonymous-principal";
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AnonymousExposureSummary {
     pub exposure_id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,7 +57,7 @@ pub struct AnonymousExposureSummary {
     pub claimed: bool,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AnonymousProvision {
     #[serde(flatten)]
     pub exposure: AnonymousExposureSummary,
