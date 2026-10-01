@@ -78,22 +78,10 @@ async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
     );
     assert_behavior_pass(&duplicate_fixed, "duplicate fix");
 
-    let order_bug = run_probe(
-        &base_url,
-        &ordering_manifest,
-        "order_bug",
-        &usage_path,
-        1,
-    );
+    let order_bug = run_probe(&base_url, &ordering_manifest, "order_bug", &usage_path, 1);
     assert_behavior_failure(&order_bug, "ordering bug");
 
-    let order_fixed = run_probe(
-        &base_url,
-        &ordering_manifest,
-        "order_fixed",
-        &usage_path,
-        0,
-    );
+    let order_fixed = run_probe(&base_url, &ordering_manifest, "order_fixed", &usage_path, 0);
     assert_behavior_pass(&order_fixed, "ordering fix");
 
     let raw = std::fs::read_to_string(&usage_path).unwrap();
@@ -104,7 +92,11 @@ async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
 
     assert_eq!(events.len(), 4);
     assert_eq!(
-        events.iter().map(|event| event.event_id).collect::<HashSet<_>>().len(),
+        events
+            .iter()
+            .map(|event| event.event_id)
+            .collect::<HashSet<_>>()
+            .len(),
         4
     );
 
@@ -234,13 +226,19 @@ fn run_probe(
 
 fn assert_behavior_failure(report: &ScenarioRunReport, label: &str) {
     assert!(report.command.success, "{label}: child command failed");
-    assert!(!report.outcome.passed, "{label}: behavior unexpectedly passed");
+    assert!(
+        !report.outcome.passed,
+        "{label}: behavior unexpectedly passed"
+    );
     assert!(!report.passed, "{label}: report unexpectedly passed");
 }
 
 fn assert_behavior_pass(report: &ScenarioRunReport, label: &str) {
     assert!(report.command.success, "{label}: child command failed");
-    assert!(report.outcome.passed, "{label}: behavior unexpectedly failed");
+    assert!(
+        report.outcome.passed,
+        "{label}: behavior unexpectedly failed"
+    );
     assert!(report.passed, "{label}: report unexpectedly failed");
 }
 
