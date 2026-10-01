@@ -59,7 +59,7 @@ Use `observed_sequence`, not UUID order or wall-clock timestamps, when reasoning
 When the task only needs an inbound webhook/test endpoint, an agent may create an anonymous Exposure before authentication:
 
 ```text
-POST /_ortyo/anonymous/exposures
+POST /api/v1/exposures
   -> hook_url: https://ortyo.com/hook/hk_<token>
   -> view_url: https://ortyo.com/view/vw_<token>
   -> view_websocket_url: wss://ortyo.com/view/vw_<token>

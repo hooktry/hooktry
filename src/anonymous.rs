@@ -996,7 +996,7 @@ pub fn anonymous_app(
         identities,
     };
     Router::new()
-        .route("/_ortyo/anonymous/exposures", post(create_anonymous))
+        .route("/api/v1/exposures", post(create_anonymous))
         .route("/view/{viewer_token}", get(view_anonymous))
         .route("/claim/{claim_token}", post(claim_anonymous))
         .route("/hook/{ingress_token}", any(anonymous_ingress_root))
