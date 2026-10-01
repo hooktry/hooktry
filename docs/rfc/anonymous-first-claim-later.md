@@ -80,7 +80,7 @@ The claim prompt should appear after value exists, for example after the first c
 Agents should not need browser state.
 
 ```text
-POST /_ortyo/anonymous/exposures
+POST /api/v1/exposures
 ```
 
 Example response:
@@ -101,6 +101,8 @@ Example response:
   "anonymous_principal": "ortyo_ap_..."
 }
 ```
+
+An unauthenticated `POST /api/v1/exposures` creates an ephemeral Exposure. Anonymous is an ownership/lifecycle state, not a URL namespace. This collection path is intentionally compatible with a future authenticated Exposure create flow instead of creating a parallel `anonymous` API.
 
 The same operation should be discoverable from `llms.txt`, MCP, CLI help, and agent-oriented documentation.
 
@@ -222,7 +224,7 @@ This validates the product pattern without requiring Ortyo to copy Cloudflare's 
 
 The current hosted server implements:
 
-- `POST /_ortyo/anonymous/exposures` without authentication
+- `POST /api/v1/exposures` without authentication
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
 - `/hook/hk_<token>/*path` for capture
 - `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream
