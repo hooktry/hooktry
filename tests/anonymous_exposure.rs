@@ -39,15 +39,13 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     let provision: AnonymousProvision = create.json().await.unwrap();
     assert!(provision.hook_url.contains("/hook/hk_"));
     assert!(provision.view_url.contains("/view/vw_"));
-    assert!(provision.view_ws_url.contains("/view/vw_"));
+    assert!(provision.view_websocket_url.contains("/view/vw_"));
     assert!(provision.claim_url.contains("/claim/cl_"));
-    assert_eq!(provision.ingress_url, provision.hook_url);
-    assert_eq!(provision.viewer_url, provision.view_ws_url);
 
     for (url, prefix) in [
         (&provision.hook_url, "hk_"),
         (&provision.view_url, "vw_"),
-        (&provision.view_ws_url, "vw_"),
+        (&provision.view_websocket_url, "vw_"),
         (&provision.claim_url, "cl_"),
     ] {
         let token = url.rsplit('/').next().unwrap();
@@ -64,7 +62,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert_ne!(provision.view_url, provision.claim_url);
     assert_eq!(
         provision.view_url.trim_start_matches("http://"),
-        provision.view_ws_url.trim_start_matches("ws://")
+        provision.view_websocket_url.trim_start_matches("ws://")
     );
 
     let browser = client.get(&provision.view_url).send().await.unwrap();
@@ -77,7 +75,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert!(browser_html.contains("Ortyo webhook viewer"));
     assert!(browser_html.contains("new WebSocket"));
 
-    let (mut viewer, _) = tokio_tungstenite::connect_async(&provision.view_ws_url)
+    let (mut viewer, _) = tokio_tungstenite::connect_async(&provision.view_websocket_url)
         .await
         .unwrap();
     let ready = viewer.next().await.unwrap().unwrap();
@@ -184,6 +182,18 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
         .unwrap();
 
     let viewer_token = provision.view_url.rsplit('/').next().unwrap();
+    let hook_token = provision.hook_url.rsplit('/').next().unwrap();
+    let claim_token = provision.claim_url.rsplit('/').next().unwrap();
+
+    for legacy_url in [
+        format!("http://{addr}/h/{hook_token}"),
+        format!("http://{addr}/_ortyo/anonymous/view/{viewer_token}"),
+        format!("http://{addr}/_ortyo/anonymous/claim/{claim_token}"),
+    ] {
+        let response = client.get(&legacy_url).send().await.unwrap();
+        assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+    }
+
     let response = client
         .post(format!("http://{addr}/hook/{viewer_token}"))
         .body("must not route")
