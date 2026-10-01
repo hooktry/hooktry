@@ -53,7 +53,10 @@ export async function startGitHubOAuth(
   authorize.searchParams.set("scope", "read:user");
   authorize.searchParams.set("state", state);
 
-  const response = Response.redirect(authorize.toString(), 302);
+  const response = new Response(null, {
+    status: 302,
+    headers: { location: authorize.toString() },
+  });
   response.headers.append(
     "set-cookie",
     cookie(OAUTH_STATE_COOKIE, state, OAUTH_STATE_TTL_SECONDS, requestUrl),
@@ -113,7 +116,10 @@ export async function finishGitHubOAuth(
   );
 
   const destination = new URL(returnTo, url.origin);
-  const response = Response.redirect(destination.toString(), 302);
+  const response = new Response(null, {
+    status: 302,
+    headers: { location: destination.toString() },
+  });
   response.headers.append(
     "set-cookie",
     cookie(SESSION_COOKIE, session, SESSION_TTL_SECONDS, url),
