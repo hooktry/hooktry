@@ -144,6 +144,5 @@ export interface ScenarioUsageEvent {
   command_success: boolean;
   outcome_passed: boolean;
   check_count: number;
-  observation_elapsed_ms: number;
   features: ScenarioUsageFeatures;
 }
