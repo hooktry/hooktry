@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 const baseUrl = required("ORTYO_BASE_URL").replace(/\/$/, "");
 const claimToken = required("ORTYO_CLAIM_INTERNAL_TOKEN");
@@ -8,15 +8,21 @@ const databaseId = required("ORTYO_D1_DATABASE_ID");
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 const expectedReleaseSha = process.env.ORTYO_EXPECTED_RELEASE_SHA?.trim() || null;
 const expectGitHubAuth = process.env.ORTYO_EXPECT_GITHUB_AUTH === "1";
+const usageIngestToken = process.env.ORTYO_USAGE_INGEST_TOKEN?.trim() || null;
 
 let provision;
 let oauthStateDigest = null;
+let usageEventId = null;
 const interactions = [];
 
 try {
   await waitForHealth();
   if (expectGitHubAuth) {
     oauthStateDigest = await verifyGitHubAuthStart();
+  }
+  if (usageIngestToken) {
+    usageEventId = randomUUID();
+    await verifyUsageIngest(usageEventId);
   }
 
   const app = await fetch(`${baseUrl}/`, {
@@ -101,6 +107,16 @@ try {
   inbox.close();
   console.log("WEB1 acceptance passed: app -> create -> React view -> live hook -> claim -> same hook");
 } finally {
+  if (usageEventId) {
+    await d1(
+      "DELETE FROM usage_events WHERE event_id = ?",
+      [usageEventId],
+    ).catch((error) => {
+      console.error("Usage smoke cleanup failed:", error);
+      process.exitCode = 1;
+    });
+  }
+
   if (oauthStateDigest) {
     await d1(
       "DELETE FROM auth_oauth_states WHERE state_digest = ?",
@@ -117,6 +133,69 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function verifyUsageIngest(eventId) {
+  if (!usageIngestToken) {
+    throw new Error("usage ingest token missing");
+  }
+
+  const event = {
+    schema_version: 1,
+    event_id: eventId,
+    event: "scenario_run_completed",
+    occurred_at_unix_ms: Date.now(),
+    passed: false,
+    command_success: true,
+    outcome_passed: false,
+    check_count: 1,
+    features: {
+      contract_count: 1,
+      exact_cardinality: true,
+      ranged_cardinality: false,
+      ordering: false,
+      observation_horizon: true,
+      settle_window: true,
+      context_match: true,
+      idempotency_context: true,
+      duplicate_guard: true,
+    },
+  };
+
+  const response = await fetch(`${baseUrl}/api/v1/usage-events`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${usageIngestToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(event),
+  });
+  assert(response.status === 202, `usage ingest failed: ${response.status}`);
+  const accepted = await response.json();
+  assert(accepted.accepted === true, "usage ingest did not accept event");
+  assert(accepted.stored === true, "usage ingest did not persist new event");
+
+  const stored = await d1(
+    `SELECT event_type, passed, command_success, outcome_passed,
+            contract_count, exact_cardinality, ordering_enabled,
+            settle_window, idempotency_context, duplicate_guard
+     FROM usage_events
+     WHERE event_id = ?`,
+    [eventId],
+  );
+  const row = stored?.[0]?.results?.[0];
+  assert(row?.event_type === "scenario_run_completed", "usage event type mismatch");
+  assert(row?.passed === 0, "usage result mismatch");
+  assert(row?.command_success === 1, "usage command result mismatch");
+  assert(row?.outcome_passed === 0, "usage outcome result mismatch");
+  assert(row?.contract_count === 1, "usage contract count mismatch");
+  assert(row?.exact_cardinality === 1, "usage cardinality shape mismatch");
+  assert(row?.ordering_enabled === 0, "usage ordering shape mismatch");
+  assert(row?.settle_window === 1, "usage settle shape mismatch");
+  assert(row?.idempotency_context === 1, "usage idempotency shape mismatch");
+  assert(row?.duplicate_guard === 1, "usage duplicate guard mismatch");
+
+  console.log("FIRST-PARTY-PROOF acceptance passed: privacy-safe usage event -> D1");
 }
 
 async function verifyGitHubAuthStart() {
@@ -163,6 +242,7 @@ async function waitForHealth() {
   let lastStatus = 0;
   let lastRevision = null;
   let lastGitHubAuthConfigured = false;
+  let lastUsageIngestConfigured = false;
 
   while (Date.now() < deadline) {
     const response = await fetch(`${baseUrl}/healthz`).catch(() => null);
@@ -172,12 +252,14 @@ async function waitForHealth() {
       const payload = await response.json().catch(() => null);
       lastRevision = payload?.revision ?? null;
       lastGitHubAuthConfigured = payload?.github_auth_configured === true;
+      lastUsageIngestConfigured = payload?.usage_ingest_configured === true;
 
       const revisionReady =
         !expectedReleaseSha || lastRevision === expectedReleaseSha;
       const authReady = !expectGitHubAuth || lastGitHubAuthConfigured;
+      const usageReady = !usageIngestToken || lastUsageIngestConfigured;
 
-      if (revisionReady && authReady) {
+      if (revisionReady && authReady && usageReady) {
         consecutive += 1;
         if (consecutive >= 3) {
           return;
@@ -193,7 +275,7 @@ async function waitForHealth() {
   }
 
   throw new Error(
-    `healthz did not converge within 30s; last status: ${lastStatus}; expected revision: ${expectedReleaseSha ?? "any"}; last revision: ${lastRevision ?? "none"}; github auth configured: ${lastGitHubAuthConfigured}`,
+    `healthz did not converge within 30s; last status: ${lastStatus}; expected revision: ${expectedReleaseSha ?? "any"}; last revision: ${lastRevision ?? "none"}; github auth configured: ${lastGitHubAuthConfigured}; usage ingest configured: ${lastUsageIngestConfigured}`,
   );
 }
 
