@@ -124,6 +124,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `snapshots/` - immutable, self-contained MCIF market-state snapshots for temporal comparison
 - `TREND_REPORT.md` - current temporal-analysis status and trend interpretation rules
 - `RESEARCH_DEBT.md` - decision-value research queue over unresolved matrix evidence
+- `RESEARCH_SPRINT_2026-10-01.md` - first executed P0/P1 evidence sprint and decision impact
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 

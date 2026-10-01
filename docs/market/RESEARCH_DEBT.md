@@ -13,8 +13,8 @@ It answers:
 
 The primary matrix has 230 external product-capability cells:
 
-- 59 evidenced
-- 171 unknown
+- 70 evidenced
+- 160 unknown
 
 This does **not** mean 171 equally important research tasks remain.
 
@@ -28,9 +28,9 @@ Research can change the depth or shape of a capability already scheduled for now
 
 Current P0 capability groups:
 
-1. `search-filter` - 6 unknown / 4 evidenced peers
-2. `custom-response` - 5 unknown / 5 evidenced peers
-3. `failure-simulation` - 7 unknown / 3 evidenced peers
+1. `search-filter` - 3 unknown / 7 evidenced peers
+2. `custom-response` - 3 unknown / 7 evidenced peers
+3. `failure-simulation` - 5 unknown / 5 evidenced peers
 
 These are the highest-value checks because they can directly change the current primary-product implementation.
 
@@ -40,8 +40,8 @@ Research can change a next-horizon gap and the capability already has direct-dem
 
 Current P1 groups:
 
-1. `provider-templates` - Ortyo absent; 8 unknown / 2 evidenced peers
-2. `signature-verification` - Ortyo unknown; 7 unknown / 3 evidenced peers
+1. `provider-templates` - Ortyo absent; 7 unknown / 3 evidenced peers
+2. `signature-verification` - Ortyo unknown; 4 unknown / 6 evidenced peers
 
 These checks can affect whether provider-aware testing becomes the next primary-cohort slice and how generic/provider-specific the adapter model should be.
 
@@ -110,9 +110,9 @@ cargo run --locked --bin market-research-debt -- \
   --json
 ```
 
-## Expected first research sprint
+## Next research sprint
 
-With the current model, the first sprint should concentrate on a small set of high-leverage primary competitors across:
+Research sprint 1 resolved 11 of the first 15 P0/P1 checks. The next sprint should concentrate on the remaining high-leverage uncertainty across:
 
 1. search/filter depth
 2. configurable sender responses
