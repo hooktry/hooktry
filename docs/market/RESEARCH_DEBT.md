@@ -1,6 +1,6 @@
 # Ortyo MCIF research debt
 
-Checked: 2026-10-01  
+Checked: 2026-10-02  
 DWC: MCIF/ORTYO.8 RESEARCH-DEBT
 
 The purpose of research debt is **not** to fill every unknown matrix cell.
@@ -139,29 +139,49 @@ Unknown is acceptable when it is no longer decision-relevant.
 
 ## Evidence channel routing
 
-Research debt is no longer assumed to mean "fill more competitor matrix cells."
+Research debt is not synonymous with competitor research.
 
-A priority can declare:
+A priority declares the evidence source that can resolve its **current** uncertainty:
 
-```yaml
-next_evidence: first_party_usage
+```text
+market_research
+  -> first_party_usage
+  -> external_usage
 ```
 
-When it does, unresolved competitor cells remain visible in total matrix debt but are excluded from the top external-research checks.
+Other channels such as `implementation` and `watch` are also explicitly non-market research.
 
-Current temporal validation routing:
+Only `next_evidence: market_research` is eligible for the executable top competitor-research queue. Unknown matrix cells stay visible regardless of channel.
 
-- `cardinality` - first-party usage; 9 external cells remain unknown
+Current temporal routing:
+
+- `cardinality` - external usage; 9 external cells remain unknown
+- `correlation-context` - external usage; 10 external cells remain unknown
+- `observation-window` - external usage; 7 external cells remain unknown
 - `ordering` - first-party usage; 9 external cells remain unknown
-- `correlation-context` - first-party usage; 10 external cells remain unknown
 
-Total deferred to first-party usage: **3 capabilities / 28 cells**.
+Therefore:
 
-This prevents strong direct demand from accidentally causing endless desk research after the problem itself is already established.
+```text
+external_usage:
+  3 capabilities / 26 cells
 
-The next evidence for these capabilities should answer:
+first_party_usage:
+  1 capability / 9 cells
 
-- do developers run duplicate/order/idempotency scenarios?
-- do they rerun or modify them?
-- do those scenarios catch failures before production?
-- do users need richer cardinality/order/settle syntax than the thin proof provides?
+total deferred from market research:
+  4 capabilities / 35 cells
+```
+
+The external-usage routing is justified by two maintained first-party uses:
+
+1. Ortyo's approval outbox/webhook regression proof.
+2. Operational's independent cross-repository WebhookProviderAdapter proof using a pinned Ortyo executable.
+
+The next questions are now different:
+
+- **duplicate/idempotency/settle** - will an external developer or pilot adopt and retain this proof shape?
+- **ordering** - can an independent first-party workflow naturally require it?
+- **DSL depth** - does real use create pressure for richer ranged cardinality/order/context syntax?
+
+More competitor-page reading cannot answer those questions.

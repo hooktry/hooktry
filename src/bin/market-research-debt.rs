@@ -452,7 +452,7 @@ fn select_top_checks(
         if selected.len() >= limit {
             break;
         }
-        if candidate.research_channel == "first_party_usage" {
+        if candidate.research_channel != "market_research" {
             continue;
         }
         let count = per_capability
@@ -483,13 +483,29 @@ fn render_text(
     output.push_str(&format!(
         "External matrix coverage: {known_cells}/{external_cells} evidenced, {unknown_cells} unknown\n"
     ));
-    let deferred_cells = candidates
+    let deferred_non_market_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel != "market_research")
+        .count();
+    let deferred_non_market_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel != "market_research")
+        .count();
+    let first_party_cells = candidates
         .iter()
         .filter(|candidate| candidate.research_channel == "first_party_usage")
         .count();
-    let deferred_capabilities = debt
+    let first_party_capabilities = debt
         .iter()
         .filter(|item| item.research_channel == "first_party_usage")
+        .count();
+    let external_usage_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel == "external_usage")
+        .count();
+    let external_usage_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel == "external_usage")
         .count();
 
     output.push_str(&format!(
@@ -497,7 +513,13 @@ fn render_text(
         debt.len()
     ));
     output.push_str(&format!(
-        "Deferred to first-party usage: {deferred_capabilities} capabilities / {deferred_cells} cells\n\n"
+        "Deferred from market research: {deferred_non_market_capabilities} capabilities / {deferred_non_market_cells} cells\n"
+    ));
+    output.push_str(&format!(
+        "- first_party_usage: {first_party_capabilities} capabilities / {first_party_cells} cells\n"
+    ));
+    output.push_str(&format!(
+        "- external_usage: {external_usage_capabilities} capabilities / {external_usage_cells} cells\n\n"
     ));
 
     output.push_str("Capability queue\n");
@@ -553,13 +575,29 @@ fn render_json(
     let unknown_cells = candidates.len();
     let known_cells = external_cells.saturating_sub(unknown_cells);
 
-    let deferred_cells = candidates
+    let deferred_non_market_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel != "market_research")
+        .count();
+    let deferred_non_market_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel != "market_research")
+        .count();
+    let first_party_cells = candidates
         .iter()
         .filter(|candidate| candidate.research_channel == "first_party_usage")
         .count();
-    let deferred_capabilities = debt
+    let first_party_capabilities = debt
         .iter()
         .filter(|item| item.research_channel == "first_party_usage")
+        .count();
+    let external_usage_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel == "external_usage")
+        .count();
+    let external_usage_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel == "external_usage")
         .count();
 
     let capability_json = debt
@@ -605,7 +643,7 @@ fn render_json(
         .join(",");
 
     format!(
-        "{{\"external_cells\":{external_cells},\"known_cells\":{known_cells},\"unknown_cells\":{unknown_cells},\"capabilities_with_debt\":{},\"deferred_to_first_party_capabilities\":{deferred_capabilities},\"deferred_to_first_party_cells\":{deferred_cells},\"capability_queue\":[{capability_json}],\"top_checks\":[{checks_json}]}}",
+        "{{\"external_cells\":{external_cells},\"known_cells\":{known_cells},\"unknown_cells\":{unknown_cells},\"capabilities_with_debt\":{},\"deferred_non_market_capabilities\":{deferred_non_market_capabilities},\"deferred_non_market_cells\":{deferred_non_market_cells},\"deferred_to_first_party_capabilities\":{first_party_capabilities},\"deferred_to_first_party_cells\":{first_party_cells},\"deferred_to_external_usage_capabilities\":{external_usage_capabilities},\"deferred_to_external_usage_cells\":{external_usage_cells},\"capability_queue\":[{capability_json}],\"top_checks\":[{checks_json}]}}",
         debt.len()
     )
 }
@@ -940,6 +978,26 @@ mod tests {
             known_external_peers: 2,
             product_cohorts: 1,
             research_channel: "first_party_usage".to_owned(),
+            reasons: vec![],
+        };
+
+        assert!(select_top_checks(&[candidate], 20, 3).is_empty());
+    }
+
+    #[test]
+    fn external_usage_candidates_are_not_external_research_checks() {
+        let candidate = Candidate {
+            product: "hookdeck".to_owned(),
+            capability: "cardinality".to_owned(),
+            tier: "P2".to_owned(),
+            horizon: "validate".to_owned(),
+            disposition: "differentiation".to_owned(),
+            ortyo_status: "implemented".to_owned(),
+            direct_demand: 2,
+            supporting_signals: 1,
+            known_external_peers: 2,
+            product_cohorts: 1,
+            research_channel: "external_usage".to_owned(),
             reasons: vec![],
         };
 

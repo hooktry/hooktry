@@ -1,5 +1,5 @@
-checked_at: 2026-10-01
-evidence_scope: "Public market evidence plus current Ortyo implementation; no first-party customer cohort yet."
+checked_at: 2026-10-02
+evidence_scope: "Public market evidence plus Ortyo self-dogfood and Operational cross-project first-party portfolio usage; no external customer cohort yet."
 
 priorities:
   - id: primary-inspector
@@ -34,16 +34,24 @@ priorities:
     horizon: next
     decision: differentiation
     confidence: medium
-    capabilities: [wait-for-event, deterministic-ci, contracts, observation-window]
+    capabilities: [wait-for-event, deterministic-ci, contracts]
     rationale: "CI authentication, bounded waits, reproducible test environments, request assertions, and structured evidence are clearly present across competitors. Current evidence does not establish the same stable behavior-vs-infrastructure outcome semantics, so Ortyo should differentiate only where richer temporal/causal evidence improves the outcome; the exact DSL remains a hypothesis."
 
-  - id: cardinality-ordering
+  - id: temporal-duplicate-proof
+    horizon: validate
+    decision: differentiation
+    confidence: medium
+    next_evidence: external_usage
+    capabilities: [cardinality, correlation-context, observation-window]
+    rationale: "Production bug reports validate duplicate and delivery-identity failures. Ortyo protects its real approval webhook with exact-count/idempotency/settle semantics, and Operational independently consumes a pinned Ortyo executable to verify its WebhookProviderAdapter across a repository/process/HTTP boundary. Thin first-party utility is therefore established; the next barrier is external usage, while richer ranged-cardinality and DSL depth remain hypotheses."
+
+  - id: temporal-ordering-proof
     horizon: validate
     decision: differentiation
     confidence: medium
     next_evidence: first_party_usage
-    capabilities: [cardinality, ordering, correlation-context]
-    rationale: "Multiple 2026 production bug reports directly validate duplicate-processing, out-of-order state regression, and incorrectly scoped delivery identity as recurring webhook failure classes. Ortyo now also uses exact cardinality + normalized idempotency context + a settle window as a maintained regression guard around its real approval-outbox webhook provider. That validates a first-party use of the thin duplicate/idempotency proof, but ordering still lacks independent live use and the broader ranged-cardinality/Contract DSL remains a hypothesis."
+    capabilities: [ordering]
+    rationale: "Production bug reports and provider behavior validate out-of-order delivery as a real failure class, and Ortyo's synthetic dogfood proves the ordering mechanism. No independent live product workflow currently needs the ordering assertion, so the next evidence remains first-party usage rather than deeper syntax."
 
   - id: reliable-delivery
     horizon: watch
