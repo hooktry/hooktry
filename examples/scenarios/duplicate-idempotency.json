@@ -1,0 +1,21 @@
+{
+  "name": "duplicate idempotency guard",
+  "target": {
+    "port": 3000
+  },
+  "observation": {
+    "within_ms": 5000,
+    "settle_ms": 500
+  },
+  "contracts": [
+    {
+      "name": "logical payment side effect occurs once",
+      "operation": "POST /webhook",
+      "count": 1,
+      "context": {
+        "correlation_id": "checkout-demo",
+        "idempotency_key": "payment-demo"
+      }
+    }
+  ]
+}
