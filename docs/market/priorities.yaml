@@ -40,9 +40,9 @@ priorities:
   - id: cardinality-ordering
     horizon: validate
     decision: differentiation
-    confidence: low
+    confidence: medium
     capabilities: [cardinality, ordering, correlation-context]
-    rationale: "Competitors now show partial count, timestamp-order, bounded-wait, and suite semantics, but current evidence does not establish ranged cardinality with quiet-period proof, durable observed-order assertions, or normalized causal/idempotency matching. Direct demand for these exact deeper primitives is still not established."
+    rationale: "Multiple 2026 production bug reports now directly validate duplicate-processing, out-of-order state regression, and incorrectly scoped delivery identity as recurring webhook failure classes. Provider docs independently confirm duplicate/retry and unordered delivery realities. This raises confidence in the problem family, but not in Ortyo's exact ranged-cardinality, durable-order, settle-window, or Contract DSL abstractions."
 
   - id: reliable-delivery
     horizon: watch
