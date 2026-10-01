@@ -8,6 +8,7 @@ use ortyo::{
     hosted_runtime::HostedRuntimeStatus,
     hosted_server::{HostedServerConfig, run_hosted_server},
     http::{AppState, app},
+    key_maintenance::{KeyMaintenance, KeyMaintenanceConfig},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
     scenario_run::{
         environment as scenario_environment, exit_code as scenario_run_exit_code,
@@ -58,6 +59,9 @@ async fn main() {
             approval_execute(&cli.base_url, id, &path).await.map(|_| 0)
         }
         Command::ExecutionGet { id } => execution_get(&cli.base_url, id).await.map(|_| 0),
+        Command::KeyStatus => key_status().map(|_| 0),
+        Command::KeyRewrap { version, apply } => key_rewrap(version, apply).map(|_| 0),
+        Command::KeyRetireCheck { version } => key_retire_check(version).map(|_| 0),
         Command::Expose {
             name,
             port,
@@ -108,6 +112,32 @@ async fn main() {
 async fn hosted() -> Result<(), String> {
     let config = HostedServerConfig::from_lookup(|key| std::env::var(key).ok())?;
     run_hosted_server(config).await
+}
+
+fn key_maintenance() -> Result<KeyMaintenance, String> {
+    let config = KeyMaintenanceConfig::from_lookup(|key| std::env::var(key).ok())?;
+    KeyMaintenance::open(config)
+}
+
+fn key_status() -> Result<(), String> {
+    let report = key_maintenance()?.status()?;
+    let value =
+        serde_json::to_value(report).map_err(|error| format!("serialize key status: {error}"))?;
+    print_json(&value)
+}
+
+fn key_rewrap(version: i32, apply: bool) -> Result<(), String> {
+    let report = key_maintenance()?.rewrap(version, apply)?;
+    let value =
+        serde_json::to_value(report).map_err(|error| format!("serialize key rewrap: {error}"))?;
+    print_json(&value)
+}
+
+fn key_retire_check(version: i32) -> Result<(), String> {
+    let report = key_maintenance()?.retire_check(version)?;
+    let value = serde_json::to_value(report)
+        .map_err(|error| format!("serialize key retirement check: {error}"))?;
+    print_json(&value)
 }
 
 async fn serve() -> Result<(), String> {
