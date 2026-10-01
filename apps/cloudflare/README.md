@@ -50,52 +50,55 @@ npm run check
 
 ## Production deployment
 
-Production deployment is intentionally explicit and currently runs only through the GitHub Actions **Deploy Cloudflare** workflow.
+Production deployment is intentionally explicit and runs through the GitHub Actions **Deploy Cloudflare** workflow using the GitHub `production` environment.
 
 This is an architectural boundary, not a temporary convenience: GitHub Actions is the canonical ORTYO deployment orchestrator, while Cloudflare is a deployment provider. Provider-native CI/CD may be added later for narrow provider-specific value, but must not become a second independent production deployment authority. See `docs/rfc/deployment-orchestration.md`.
 
-The workflow:
+Ordinary deployment is deliberately **not** infrastructure bootstrap. It uses the checked-in `wrangler.production.jsonc`, which identifies the already-provisioned ORTYO Worker, D1 database, and R2 bucket. Resource identifiers are deployment configuration, not credentials.
 
-1. validates deployment credentials
+The ordinary workflow:
+
+1. validates the production environment credentials
 2. verifies the Cloudflare adapter in the Workers runtime
-3. finds or creates `ortyo-cloudflare` D1 in Eastern Europe
-4. finds or creates `ortyo-payloads` R2 in Eastern Europe
-5. generates an untracked production Wrangler config with the real D1 UUID
-6. applies D1 migrations
-7. deploys the Worker and Durable Object migration
-8. installs `CLAIM_INTERNAL_TOKEN` as a Worker secret
-9. runs a live workers.dev acceptance:
+3. applies D1 migrations to the existing `ortyo-cloudflare` database
+4. deploys the existing Worker / Durable Object configuration
+5. runs a live workers.dev acceptance:
    `create -> view -> hook -> claim -> same hook -> single-use claim`
-10. removes the smoke Interaction bodies and D1 rows
+6. removes the smoke Interaction bodies and D1 rows
 
-The workflow requires these GitHub repository secrets:
+The GitHub `production` environment contains:
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `ORTYO_CLAIM_INTERNAL_TOKEN`
+- secret `CLOUDFLARE_API_TOKEN` - long-lived deployment token
+- secret `ORTYO_CLAIM_INTERNAL_TOKEN` - runtime claim authority used by acceptance
+- variable `CLOUDFLARE_ACCOUNT_ID` - non-secret Cloudflare account identifier
 
-The Cloudflare token should be scoped to the ORTYO account and needs only the permissions required to deploy Workers and manage D1/R2 resources. The account ID is not application runtime authority but is kept with deployment credentials rather than hard-coded into the public repository.
+The long-lived Cloudflare deployment token should use **Editor**, not Admin, and should be scoped to the existing ORTYO resources wherever Cloudflare offers resource scope:
+
+- Worker `ortyo-cloudflare`
+- D1 database `ortyo-cloudflare`
+- R2 bucket `ortyo-payloads`
+
+It must not have Account API Token provisioning authority.
+
+### Bootstrap authority
+
+Creating provider resources is a separate, exceptional operation.
+
+The manual **Bootstrap Cloudflare** workflow uses `CLOUDFLARE_BOOTSTRAP_API_TOKEN`, not the ordinary deployment token. A bootstrap token may temporarily hold Admin authority needed to create D1/R2/Worker resources. It should be short-lived and removed from the GitHub environment after bootstrap.
+
+The bootstrap workflow:
+
+1. finds or creates `ortyo-cloudflare` D1 in Eastern Europe
+2. finds or creates `ortyo-payloads` R2 in Eastern Europe
+3. generates an untracked Wrangler config for the discovered resource ids
+4. applies migrations and deploys the Worker / Durable Object
+5. installs `CLAIM_INTERNAL_TOKEN`
+6. runs the same production acceptance
+7. verifies that the checked-in production config still points to the bootstrapped D1 id
+
+This separation prevents ordinary CI/CD from retaining resource-creation/deletion authority.
 
 The initial acceptance endpoint uses the account Workers subdomain. Custom ORTYO domains are a separate networking slice after the runtime proof is green.
-
-## Production setup
-
-The checked-in `wrangler.jsonc` uses a placeholder D1 database id. Before deployment:
-
-1. create the D1 database and R2 bucket
-2. replace the D1 `database_id` with the real id
-3. ensure the R2 binding points at the production bucket
-4. apply D1 migrations
-5. set `CLAIM_INTERNAL_TOKEN` as a Worker secret
-6. deploy the Worker
-
-Example commands:
-
-```sh
-npx wrangler d1 migrations apply ortyo-cloudflare --remote
-npx wrangler secret put CLAIM_INTERNAL_TOKEN
-npx wrangler deploy
-```
 
 ## Claim authority
 

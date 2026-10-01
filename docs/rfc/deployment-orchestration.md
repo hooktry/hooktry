@@ -180,15 +180,38 @@ Avoid running two independent production deployment authorities for the same pro
 
 ## Secrets and authority
 
-Provider credentials belong to the provider deployment adapter.
+Provider credentials belong to the provider deployment adapter and must be scoped to the deployment lifecycle phase.
 
-For example, the Cloudflare deployment workflow may consume:
+Cloudflare uses two distinct authorities:
 
 ~~~text
-CLOUDFLARE_API_TOKEN
-CLOUDFLARE_ACCOUNT_ID
-ORTYO_CLAIM_INTERNAL_TOKEN
+bootstrap authority
+    |
+    | short-lived / Admin where resource creation requires it
+    v
+create D1 / R2 / Worker
+    |
+    v
+ordinary deployment authority
+    |
+    | long-lived / Editor / existing ORTYO resources only
+    v
+migrate -> deploy -> acceptance
 ~~~
+
+The GitHub `production` environment stores the ordinary deployment authority:
+
+~~~text
+secret: CLOUDFLARE_API_TOKEN
+secret: ORTYO_CLAIM_INTERNAL_TOKEN
+variable: CLOUDFLARE_ACCOUNT_ID
+~~~
+
+A privileged bootstrap credential, when required, uses the separate `CLOUDFLARE_BOOTSTRAP_API_TOKEN` secret and should be removed after bootstrap.
+
+Ordinary deployment must not silently recreate missing infrastructure. Missing provider resources are an infrastructure/bootstrap failure, not permission to escalate a normal deploy into provisioning.
+
+Cloudflare API token policy changes and token-secret rotation are separate operations. Prefer reducing an existing token's permissions without rolling its secret when the credential value itself has not been exposed.
 
 Those credentials authorize the Cloudflare deployment profile. They do not make Cloudflare the ORTYO release authority.
 
