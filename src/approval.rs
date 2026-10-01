@@ -449,12 +449,14 @@ impl ApprovalStore {
         Ok(ApprovalKeyDependencyReport {
             dependencies: counts
                 .into_iter()
-                .map(|(key_version, (pending, approved))| ApprovalKeyDependencyCount {
-                    key_version,
-                    pending,
-                    approved,
-                    total: pending + approved,
-                })
+                .map(
+                    |(key_version, (pending, approved))| ApprovalKeyDependencyCount {
+                        key_version,
+                        pending,
+                        approved,
+                        total: pending + approved,
+                    },
+                )
                 .collect(),
             malformed_keyed,
         })
