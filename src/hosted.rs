@@ -140,6 +140,7 @@ impl HostedRelayState {
             executor: HttpExecutionProvider::new(secrets),
             approvals: ApprovalStore::default(),
             executions: ExecutionStore::default(),
+            anonymous,
             control_token_digest: token_digest(control_token),
         }
     }
