@@ -54,10 +54,9 @@ fn asset_response(path: &str, head_only: bool) -> Option<Response> {
     });
     *response.status_mut() = StatusCode::OK;
 
-    response.headers_mut().insert(
-        CONTENT_TYPE,
-        HeaderValue::from_static(content_type(path)),
-    );
+    response
+        .headers_mut()
+        .insert(CONTENT_TYPE, HeaderValue::from_static(content_type(path)));
     response.headers_mut().insert(
         CACHE_CONTROL,
         HeaderValue::from_static(if path == "index.html" {
@@ -72,10 +71,9 @@ fn asset_response(path: &str, head_only: bool) -> Option<Response> {
         "x-content-type-options",
         HeaderValue::from_static("nosniff"),
     );
-    response.headers_mut().insert(
-        "referrer-policy",
-        HeaderValue::from_static("no-referrer"),
-    );
+    response
+        .headers_mut()
+        .insert("referrer-policy", HeaderValue::from_static("no-referrer"));
     response.headers_mut().insert(
         "content-security-policy",
         HeaderValue::from_static(
