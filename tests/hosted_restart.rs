@@ -24,7 +24,6 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
 
     let first_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let first_addr = first_listener.local_addr().unwrap();
-    drop(first_listener);
 
     let capabilities = CapabilityStore::open(&db_path).unwrap();
     let exposures = HostedExposureStore::open(&db_path).unwrap();
@@ -78,7 +77,7 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let listener = TcpListener::bind(first_addr).await.unwrap();
+    let listener = first_listener;
     let broker = RelayBroker::default();
     let hosted_state = HostedRelayState::websocket_only_with_store(
         broker,
