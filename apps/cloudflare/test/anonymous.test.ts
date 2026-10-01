@@ -30,6 +30,7 @@ describe("CF1 anonymous Exposure conformance", () => {
       new Request(provision.view_url, {
         headers: { Upgrade: "websocket" },
       }),
+      env,
     );
     expect(viewerResponse.status).toBe(101);
     const socket = viewerResponse.webSocket;
@@ -51,6 +52,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         },
         body: JSON.stringify({ type: "checkout.session.completed" }),
       }),
+      env,
     );
     expect(first.status).toBe(200);
 
@@ -69,6 +71,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "after-eviction",
       }),
+      env,
     );
     expect(afterEviction.status).toBe(200);
     const pushedAfterEviction = await nextJson(socket);
@@ -83,6 +86,7 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
+      env,
     );
     expect(claimed.status).toBe(200);
     const claimedBody = (await claimed.json()) as Record<string, unknown>;
@@ -95,6 +99,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "after-claim",
       }),
+      env,
     );
     expect(afterClaim.status).toBe(200);
     const pushedAfterClaim = await nextJson(socket);
@@ -109,6 +114,7 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
+      env,
     );
     expect(secondClaim.status).toBe(410);
 
@@ -127,6 +133,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "must-not-route",
       }),
+      env,
     );
     expect(response.status).toBe(404);
   });
@@ -144,6 +151,7 @@ describe("CF1 anonymous Exposure conformance", () => {
             method: "POST",
             headers,
           }),
+          env,
         )
       ).status,
     ).toBe(201);
@@ -155,6 +163,7 @@ describe("CF1 anonymous Exposure conformance", () => {
             method: "POST",
             headers,
           }),
+          env,
         )
       ).status,
     ).toBe(201);
@@ -166,6 +175,7 @@ describe("CF1 anonymous Exposure conformance", () => {
             method: "POST",
             headers,
           }),
+          env,
         )
       ).status,
     ).toBe(429);
@@ -184,6 +194,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "one-too-many",
       }),
+      env,
     );
     expect(requestLimitResponse.status).toBe(429);
     expect(await requestLimitResponse.json()).toEqual({
@@ -202,6 +213,7 @@ describe("CF1 anonymous Exposure conformance", () => {
         method: "POST",
         body: "one-byte-too-many",
       }),
+      env,
     );
     expect(byteLimitResponse.status).toBe(429);
     expect(await byteLimitResponse.json()).toEqual({
@@ -215,6 +227,7 @@ async function createAnonymous(): Promise<AnonymousProvision> {
     new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
       method: "POST",
     }),
+    env,
   );
   expect(response.status).toBe(201);
   return (await response.json()) as AnonymousProvision;
