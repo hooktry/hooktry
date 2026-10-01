@@ -37,10 +37,10 @@ Queues are intentionally omitted from CF1. There is no asynchronous enrichment/i
 
 ## Public contract
 
-CF1 exposes the canonical anonymous routes:
+CF1 exposes the canonical public Hook API and capability routes:
 
 ```text
-POST /_ortyo/anonymous/exposures
+POST /api/v1/hooks
 ANY  /hook/hk_<capability>/*
 GET  /view/vw_<capability>
 WS   /view/vw_<capability>
