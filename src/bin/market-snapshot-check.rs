@@ -136,7 +136,10 @@ fn validate_directory(dir: &Path) -> Result<Vec<String>, String> {
             .unwrap_or("<snapshot>");
 
         if !snapshot_ids.insert(snapshot.snapshot_id.clone()) {
-            errors.push(format!("{label}: duplicate snapshot_id {}", snapshot.snapshot_id));
+            errors.push(format!(
+                "{label}: duplicate snapshot_id {}",
+                snapshot.snapshot_id
+            ));
         }
         if !previous_date.is_empty() && snapshot.captured_at < previous_date {
             errors.push(format!(
@@ -197,18 +200,8 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
         }
     }
 
-    let scope_products = unique_set(
-        label,
-        "scope product",
-        &snapshot.scope_products,
-        errors,
-    );
-    let matrix_products = unique_set(
-        label,
-        "matrix product",
-        &snapshot.matrix_products,
-        errors,
-    );
+    let scope_products = unique_set(label, "scope product", &snapshot.scope_products, errors);
+    let matrix_products = unique_set(label, "matrix product", &snapshot.matrix_products, errors);
 
     if !scope_products.contains("ortyo") {
         errors.push(format!("{label}: scope_products must contain ortyo"));
@@ -334,7 +327,10 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
             ));
         }
         if signal.confidence.is_empty() {
-            errors.push(format!("{label}: signal {} is missing confidence", signal.id));
+            errors.push(format!(
+                "{label}: signal {} is missing confidence",
+                signal.id
+            ));
         }
     }
 
@@ -385,12 +381,28 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
 
     let expected = &snapshot.counts;
     for (name, actual, declared) in [
-        ("scope_products", snapshot.scope_products.len(), expected.scope_products),
-        ("matrix_products", snapshot.matrix_products.len(), expected.matrix_products),
-        ("capabilities", snapshot.capabilities.len(), expected.capabilities),
+        (
+            "scope_products",
+            snapshot.scope_products.len(),
+            expected.scope_products,
+        ),
+        (
+            "matrix_products",
+            snapshot.matrix_products.len(),
+            expected.matrix_products,
+        ),
+        (
+            "capabilities",
+            snapshot.capabilities.len(),
+            expected.capabilities,
+        ),
         ("matrix_rows", snapshot.matrix.len(), expected.matrix_rows),
         ("matrix_cells", matrix_cells, expected.matrix_cells),
-        ("observations", snapshot.observations.len(), expected.observations),
+        (
+            "observations",
+            snapshot.observations.len(),
+            expected.observations,
+        ),
         ("signals", snapshot.signals.len(), expected.signals),
     ] {
         if actual != declared {
@@ -608,10 +620,8 @@ mod tests {
 
     #[test]
     fn repository_snapshots_are_valid() {
-        let errors = validate_directory(
-            &Path::new(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOT_DIR),
-        )
-        .expect("snapshots should be readable");
+        let errors = validate_directory(&Path::new(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOT_DIR))
+            .expect("snapshots should be readable");
         assert!(
             errors.is_empty(),
             "snapshot validation errors:\n{}",
