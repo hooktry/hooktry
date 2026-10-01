@@ -169,7 +169,7 @@ async function routeView(
     );
   }
 
-  return viewerHtml();
+  return env.ASSETS.fetch(request);
 }
 
 async function routeClaim(
@@ -214,50 +214,3 @@ async function cleanupExpired(env: Env): Promise<void> {
   }
 }
 
-function viewerHtml(): Response {
-  const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ortyo webhook viewer</title>
-<style>
-body{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;margin:0;padding:24px;background:#0b0b0b;color:#f5f5f5}
-main{max-width:1100px;margin:auto}h1{font:600 22px system-ui,sans-serif;margin:0 0 8px}
-#status{color:#aaa;margin:0 0 20px}pre{white-space:pre-wrap;word-break:break-word;border:1px solid #2a2a2a;padding:16px;border-radius:8px}
-</style>
-</head>
-<body>
-<main>
-<h1>Ortyo webhook viewer</h1>
-<p id="status">Connecting...</p>
-<pre id="events"></pre>
-</main>
-<script>
-const status = document.getElementById("status");
-const events = document.getElementById("events");
-const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-const socket = new WebSocket(scheme + "//" + location.host + location.pathname);
-socket.onopen = () => { status.textContent = "Live"; };
-socket.onclose = () => { status.textContent = "Disconnected"; };
-socket.onerror = () => { status.textContent = "Connection error"; };
-socket.onmessage = event => {
-  try {
-    events.textContent += JSON.stringify(JSON.parse(event.data), null, 2) + "\\n";
-  } catch {
-    events.textContent += event.data + "\\n";
-  }
-};
-</script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store, max-age=0",
-      "referrer-policy": "no-referrer",
-      "x-content-type-options": "nosniff",
-    },
-  });
-}

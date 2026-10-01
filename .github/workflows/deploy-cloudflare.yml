@@ -49,6 +49,14 @@ jobs:
           done
           exit "$missing"
 
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm install --no-audit --no-fund
+
+      - name: Build shared web assets
+        working-directory: apps/web
+        run: npm run check
+
       - name: Install Cloudflare dependencies
         run: npm install --no-audit --no-fund
 

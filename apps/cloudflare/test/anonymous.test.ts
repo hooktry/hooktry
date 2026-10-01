@@ -166,6 +166,19 @@ describe("CF1 ephemeral Hook conformance", () => {
     socket.close(1000, "done");
   }, 12_000);
 
+  it("serves the shared React SPA for a direct view capability", async () => {
+    const provision = await createHook();
+    const response = await fetchWorker(
+      new Request(provision.view_url, {
+        headers: { accept: "text/html" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(await response.text()).toContain('<div id="root"></div>');
+  });
+
   it("does not allow the view capability to act as hook authority", async () => {
     const provision = await createHook();
     const viewToken = provision.view_url.split("/").pop();
