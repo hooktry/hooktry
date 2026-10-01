@@ -168,8 +168,17 @@ pub struct ApprovalStore {
 
 pub const KEYED_FINGERPRINT_PREFIX: &str = "hmac-sha256:v1:";
 
+const DIGEST_KEY_DOMAIN: &[u8] = b"ortyo/approval/digest-key/v1";
 const REQUEST_DIGEST_DOMAIN: &[u8] = b"ortyo/approval/request-digest/v1";
 const BODY_FINGERPRINT_DOMAIN: &[u8] = b"ortyo/approval/body-fingerprint/v1";
+
+pub fn derive_digest_key(master_key: &[u8; 32]) -> [u8; 32] {
+    let key = hmac::Key::new(hmac::HMAC_SHA256, master_key);
+    let tag = hmac::sign(&key, DIGEST_KEY_DOMAIN);
+    let mut derived = [0_u8; 32];
+    derived.copy_from_slice(tag.as_ref());
+    derived
+}
 
 impl Default for ApprovalStore {
     fn default() -> Self {
