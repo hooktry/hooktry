@@ -44,6 +44,9 @@ export default {
           ok: true,
           service: "ortyo-cloudflare",
           revision: env.ORTYO_RELEASE_SHA ?? null,
+          github_auth_configured: Boolean(
+            env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
+          ),
         });
       }
 
