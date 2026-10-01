@@ -49,7 +49,7 @@ Interaction
   -> deterministic CI result
 ```
 
-webhooks.cc already exposes isolated endpoints, count/timeout-based capture, request assertions with structured diffs, and deterministic cleanup. Hooklistener now exposes reusable replay cases, response assertions, suites, and durable run reports.
+webhooks.cc already exposes isolated endpoints, count/timeout-based capture, request assertions with structured diffs, and deterministic cleanup. Hooklistener exposes reusable replay cases, response assertions, suites, and durable run reports. Hookdeck, Webhook Relay, and Beeceptor also have meaningful CI/automation depth, but the current evidence supports only partial deterministic-CI semantics relative to Ortyo's stronger behavior-vs-infrastructure outcome contract.
 
 The differentiation hypothesis must therefore be narrower: **enter through the familiar webhook-development wedge, satisfy inspection/testing table stakes, then differentiate on temporal/causal integration evidence - ranged cardinality, durable observed ordering, observation windows, correlation/idempotency context, and explainable behavior outcomes.** This remains a hypothesis until supported by first-party demand evidence.
 
