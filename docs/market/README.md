@@ -129,6 +129,7 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `TEMPORAL_DEPTH_REPORT.md` - cardinality/order/window/correlation depth analysis
 - `DEMAND_PROOF_REPORT.md` - direct production evidence for duplicate/order/idempotency failure classes
 - `FIRST_PARTY_PROOF.md` - thin product evidence loop for duplicate/order temporal primitives
+- `DOGFOOD_PROOF.md` - end-to-end buggy/fixed temporal probe acceptance and its evidence limits
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -152,7 +153,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
-5. Run the FIRST-PARTY-PROOF duplicate/idempotency and out-of-order recipes, collect explicit opt-in usage/result evidence, and require evidence of caught pre-production value before deepening the temporal DSL.
+5. Keep the now-CI-proven duplicate/idempotency and out-of-order recipes in live integration dogfood; require a naturally useful caught failure, repeated external use, or a request for deeper syntax before deepening the temporal DSL.
 
 
 ## Executable validation
