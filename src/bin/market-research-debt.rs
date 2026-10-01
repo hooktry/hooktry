@@ -78,7 +78,9 @@ fn main() -> ExitCode {
     let config = match parse_args(&args) {
         Some(config) => config,
         None => {
-            eprintln!("usage: market-research-debt [--limit N] [--json]");
+            eprintln!(
+            "usage: market-research-debt [--limit N] [--max-per-capability N] [--json]"
+        );
             return ExitCode::from(2);
         }
     };
@@ -95,10 +97,11 @@ fn main() -> ExitCode {
     candidates.sort_by(compare_candidates);
 
     let debt = capability_debt(&model, &candidates);
+    let top_checks = select_top_checks(&candidates, config.limit, config.max_per_capability);
     let output = if config.json {
-        render_json(&model, &candidates, &debt, config.limit)
+        render_json(&model, &candidates, &debt, &top_checks)
     } else {
-        render_text(&model, &candidates, &debt, config.limit)
+        render_text(&model, &candidates, &debt, &top_checks)
     };
     print!("{output}");
 
@@ -107,11 +110,13 @@ fn main() -> ExitCode {
 
 struct Config {
     limit: usize,
+    max_per_capability: usize,
     json: bool,
 }
 
 fn parse_args(args: &[String]) -> Option<Config> {
     let mut limit = 20usize;
+    let mut max_per_capability = 3usize;
     let mut json = false;
     let mut index = 0;
 
@@ -121,13 +126,21 @@ fn parse_args(args: &[String]) -> Option<Config> {
                 index += 1;
                 limit = args.get(index)?.parse().ok()?;
             }
+            "--max-per-capability" => {
+                index += 1;
+                max_per_capability = args.get(index)?.parse().ok()?;
+            }
             "--json" => json = true,
             _ => return None,
         }
         index += 1;
     }
 
-    Some(Config { limit, json })
+    Some(Config {
+        limit,
+        max_per_capability,
+        json,
+    })
 }
 
 fn load_model(dir: &Path) -> Result<MarketModel, String> {
@@ -414,11 +427,36 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
     debt
 }
 
+fn select_top_checks(
+    candidates: &[Candidate],
+    limit: usize,
+    max_per_capability: usize,
+) -> Vec<&Candidate> {
+    let mut selected = Vec::new();
+    let mut per_capability: HashMap<&str, usize> = HashMap::new();
+
+    for candidate in candidates {
+        if selected.len() >= limit {
+            break;
+        }
+        let count = per_capability
+            .entry(candidate.capability.as_str())
+            .or_default();
+        if max_per_capability > 0 && *count >= max_per_capability {
+            continue;
+        }
+        *count += 1;
+        selected.push(candidate);
+    }
+
+    selected
+}
+
 fn render_text(
     model: &MarketModel,
     candidates: &[Candidate],
     debt: &[CapabilityDebt],
-    limit: usize,
+    top_checks: &[&Candidate],
 ) -> String {
     let external_cells = model.matrix_products.len().saturating_sub(1) * model.matrix.len();
     let unknown_cells = candidates.len();
@@ -458,8 +496,8 @@ fn render_text(
         ));
     }
 
-    output.push_str(&format!("\nTop {limit} research checks\n"));
-    for (index, candidate) in candidates.iter().take(limit).enumerate() {
+    output.push_str(&format!("\nTop {} research checks\n", top_checks.len()));
+    for (index, candidate) in top_checks.iter().enumerate() {
         output.push_str(&format!(
             "{}. {} {}/{} - {}\n",
             index + 1,
@@ -480,7 +518,7 @@ fn render_json(
     model: &MarketModel,
     candidates: &[Candidate],
     debt: &[CapabilityDebt],
-    limit: usize,
+    top_checks: &[&Candidate],
 ) -> String {
     let external_cells = model.matrix_products.len().saturating_sub(1) * model.matrix.len();
     let unknown_cells = candidates.len();
@@ -505,9 +543,8 @@ fn render_json(
         .collect::<Vec<_>>()
         .join(",");
 
-    let checks_json = candidates
+    let checks_json = top_checks
         .iter()
-        .take(limit)
         .map(|candidate| {
             format!(
                 "{{\"tier\":\"{}\",\"product\":\"{}\",\"capability\":\"{}\",\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{},\"known_external_peers\":{},\"product_cohorts\":{},\"reasons\":{}}}",
@@ -809,6 +846,56 @@ mod tests {
             decision_tier("validate", "implemented", "differentiation", 0, 1),
             "P2"
         );
+    }
+
+    #[test]
+    fn top_checks_are_diversified_by_capability() {
+        let candidates = vec![
+            Candidate {
+                product: "a".to_owned(),
+                capability: "search".to_owned(),
+                tier: "P0".to_owned(),
+                horizon: "now".to_owned(),
+                disposition: "must".to_owned(),
+                ortyo_status: "partial".to_owned(),
+                direct_demand: 0,
+                supporting_signals: 0,
+                known_external_peers: 1,
+                product_cohorts: 1,
+                reasons: vec![],
+            },
+            Candidate {
+                product: "b".to_owned(),
+                capability: "search".to_owned(),
+                tier: "P0".to_owned(),
+                horizon: "now".to_owned(),
+                disposition: "must".to_owned(),
+                ortyo_status: "partial".to_owned(),
+                direct_demand: 0,
+                supporting_signals: 0,
+                known_external_peers: 1,
+                product_cohorts: 1,
+                reasons: vec![],
+            },
+            Candidate {
+                product: "c".to_owned(),
+                capability: "response".to_owned(),
+                tier: "P0".to_owned(),
+                horizon: "now".to_owned(),
+                disposition: "must".to_owned(),
+                ortyo_status: "partial".to_owned(),
+                direct_demand: 0,
+                supporting_signals: 0,
+                known_external_peers: 1,
+                product_cohorts: 1,
+                reasons: vec![],
+            },
+        ];
+
+        let selected = select_top_checks(&candidates, 3, 1);
+        assert_eq!(selected.len(), 2);
+        assert_eq!(selected[0].capability, "search");
+        assert_eq!(selected[1].capability, "response");
     }
 
     #[test]
