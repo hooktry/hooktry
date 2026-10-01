@@ -29,7 +29,7 @@ For integration verification, prefer:
 
 For lower-level evidence work, use Exposure -> Interactions -> Recording -> Replay -> Contract -> Assertion.
 
-For a zero-signup inbound HTTP test, create an anonymous Exposure with `POST /_ortyo/anonymous/exposures`. The response contains three distinct capabilities: `https://ortyo.com/hook/hk_<token>` for webhook delivery, one `vw_<token>` exposed as both `https://ortyo.com/view/vw_<token>` for the browser viewer and `wss://ortyo.com/view/vw_<token>` for backlog + live push, and `https://ortyo.com/claim/cl_<token>` for one-shot claim. The response fields are `hook_url`, `view_url`, `view_ws_url`, and `claim_url`; `ingress_url` and `viewer_url` remain compatibility aliases. Each capability token uses a short type prefix plus 192 cryptographically random bits encoded as 32 unpadded Base64URL characters. Anonymous resources expire after five days unless claimed, accept at most 100 requests, 5 MiB per request, and 50 MiB retained body data. Do not poll the viewer.
+For a zero-signup inbound HTTP test, create an anonymous Exposure with `POST /_ortyo/anonymous/exposures`. The response contains three distinct capabilities: `https://ortyo.com/hook/hk_<token>` for webhook delivery, one `vw_<token>` exposed as both `https://ortyo.com/view/vw_<token>` for the browser viewer and `wss://ortyo.com/view/vw_<token>` for backlog + live push, and `https://ortyo.com/claim/cl_<token>` for one-shot claim. The response fields are `hook_url`, `view_url`, `view_websocket_url`, and `claim_url`. Each capability token uses a short type prefix plus 192 cryptographically random bits encoded as 32 unpadded Base64URL characters. Anonymous resources expire after five days unless claimed, accept at most 100 requests, 5 MiB per request, and 50 MiB retained body data. Do not poll the viewer.
 
 Use MCP when available because `tools/list` is the authoritative machine-readable tool schema. Use CLI structured JSON when MCP is unavailable.
 
@@ -39,7 +39,7 @@ Use MCP when available because `tools/list` is the authoritative machine-readabl
 - Prefer typed `ortyo://secrets/...` SecretRefs for hosted execution.
 - Typed SecretRefs are workspace-scoped and bound to an allowed HTTP origin; wrong-origin use fails closed.
 - Ordinary public relay Exposure URLs are reachability, not authentication credentials.
-- Anonymous Exposure ingress, viewer, and claim URLs are separate bearer capabilities. Treat all three as secrets and never substitute one for another.
+- Anonymous Exposure hook, view, and claim URLs are separate bearer capabilities. Treat all three as secrets and never substitute one for another.
 - Runtime capabilities are separate, short-lived credentials for a specific Exposure.
 - Hosted outbound execution permits bounded HTTP/HTTPS only and rejects unsafe destinations and redirects.
 - Do not bypass ORTYO policy by reaching directly into secret storage or provider-specific infrastructure.
