@@ -1,0 +1,22 @@
+checked_at: 2026-10-02
+
+usage_evidence:
+  - id: ortyo-approval-webhook-live
+    observed_at: 2026-10-02
+    class: self_dogfood
+    source_product: ortyo
+    source_repo: ortyohq/ortyo
+    source_commit: 9dd0e2597eb22b356c46c2106802d8c41687e1db
+    capabilities: [cardinality, correlation-context, observation-window]
+    assertion: "Ortyo uses exact cardinality, normalized idempotency context, and a settle window as a maintained regression guard around its real approval notification outbox and webhook provider."
+    source_url: "https://github.com/ortyohq/ortyo/pull/196"
+
+  - id: operational-webhook-cross-project
+    observed_at: 2026-10-02
+    class: first_party_portfolio
+    source_product: operational
+    source_repo: operationalsh/operational
+    source_commit: 4c8a844d2ab7bacec2ae1f7fc7310e686608ff8b
+    capabilities: [cardinality, correlation-context, observation-window, scenario-runs, deterministic-ci]
+    assertion: "Operational validates its real WebhookProviderAdapter through a pinned Ortyo executable over a process and HTTP boundary; Ortyo proves exact-count, delivery-idempotency, and settle semantics without importing Ortyo internals."
+    source_url: "https://github.com/operationalsh/operational/pull/261"
