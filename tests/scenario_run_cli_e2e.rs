@@ -145,7 +145,11 @@ async fn scenario_run_child_helper() {
     ] {
         assert!(!std::env::var(key).unwrap().is_empty());
     }
-    for key in ["ORTYO_USAGE_LOG", "ORTYO_USAGE_ENDPOINT", "ORTYO_USAGE_TOKEN"] {
+    for key in [
+        "ORTYO_USAGE_LOG",
+        "ORTYO_USAGE_ENDPOINT",
+        "ORTYO_USAGE_TOKEN",
+    ] {
         assert!(std::env::var_os(key).is_none(), "{key} leaked into child");
     }
 
