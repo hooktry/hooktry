@@ -102,14 +102,30 @@ That hypothesis still requires external demand evidence; competitor absence alon
 - `personas.yaml` - primary users and jobs-to-be-done
 - `scenarios.yaml` - mechanism-independent end-to-end webhook outcomes
 - `DEPTH_REPORT.md` - primary-cohort depth comparison and gap analysis
+- `signals.yaml` - direct demand, demand proxies, and market-motion evidence
+- `DEMAND_REPORT.md` - verification-first demand analysis and contradictory evidence
+- `priorities.yaml` - evidence-backed near-term dispositions with confidence
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
+## Current decision
+
+Public demand evidence now supports the primary capture/inspect/replay/local-development loop and gives moderate support to deterministic CI outcomes. It does not yet directly validate Ortyo's full Contract/Scenario/cardinality/ordering surface.
+
+The current sequencing rule is therefore:
+
+1. complete primary webhook inspection and replay ergonomics
+2. add narrow response/failure controls
+3. add provider-aware signatures/templates
+4. expose a thin deterministic CI proof
+5. collect first-party usage before deepening verification DSLs or optional vectors
+
+See `DEMAND_REPORT.md` and `priorities.yaml`.
+
 ## Next passes
 
-1. Complete atomic evidence for the primary cohort.
-2. Add depth profiles for inspection, replay, local development, CI, agent operation, and reliable delivery.
-3. Add persona/jobs and end-to-end scenarios.
-4. Build a product-by-capability projection without an aggregate score.
-5. Record pricing/retention/limits separately because these are volatile.
-6. Add direct-demand evidence before converting market gaps into roadmap priority.
+1. Complete remaining atomic product-capability evidence in the primary cohort.
+2. Build a generated product-by-capability projection without an aggregate score.
+3. Record pricing/retention/limits separately because these are volatile.
+4. Add an immutable baseline snapshot.
+5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.

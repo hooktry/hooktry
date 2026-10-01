@@ -1,0 +1,150 @@
+checked_at: 2026-10-01
+
+signals:
+  - id: direct-local-testing-friction-2026-01-23
+    capability: replay
+    class: direct_demand
+    direction: supports
+    assertion: "A developer working across Stripe, GitHub, and Shopify described local webhook testing as awkward: tunnels break/expire and do not solve replaying failed events or inspecting request/response pairs after the fact."
+    observed_at: 2026-01-23
+    confidence: medium
+    source:
+      type: community
+      url: "https://github.com/stripe/stripe-cli/discussions/1430"
+
+  - id: direct-api-access-for-webhook-tests-2025-04-22
+    capability: api
+    class: direct_demand
+    direction: supports
+    assertion: "A QA practitioner explicitly asked for a webhook testing service with an API from which tests can pull captured requests."
+    observed_at: 2025-04-22
+    confidence: medium
+    source:
+      type: community
+      url: "https://www.reddit.com/r/QualityAssurance/comments/1k5iate/webhook_testing/"
+
+  - id: direct-third-party-no-sandbox-2026-06-08
+    capability: portable-recording
+    class: direct_demand
+    direction: supports
+    assertion: "A developer described inaccurate fixtures and complex stateful mocks when testing third-party integrations without sandboxes; the community workaround proposed capturing one real webhook payload and replaying it in tests."
+    observed_at: 2026-06-08
+    confidence: medium
+    source:
+      type: community
+      url: "https://www.reddit.com/r/vibecoding/comments/1tzwp3g/testing_vibecoded_apps_endtoend_with_3rd_party/"
+
+  - id: direct-local-first-preference-2026-02-13
+    capability: self-host
+    class: direct_demand
+    direction: supports
+    assertion: "In feedback on a Stripe webhook-testing idea, a developer said the behavior could be useful but rejected depending on another remote service and preferred a locally running proxy/tool."
+    observed_at: 2026-02-13
+    confidence: medium
+    source:
+      type: community
+      url: "https://www.reddit.com/r/SaasDevelopers/comments/1r3x34q/stripe_webhook_testing_tool_validation/"
+
+  - id: direct-provider-cli-substitution-2026-02-13
+    capability: provider-templates
+    class: direct_demand
+    direction: mixed
+    assertion: "Feedback on a Stripe-specific testing product noted that Stripe CLI already creates and forwards fake events, challenging the value of a separate service unless it adds cross-provider or delivery-behavior value."
+    observed_at: 2026-02-13
+    confidence: medium
+    source:
+      type: community
+      url: "https://www.reddit.com/r/SaasDevelopers/comments/1r3x34q/stripe_webhook_testing_tool_validation/"
+
+  - id: direct-duplicate-order-failure-testing-2026-02-13
+    capability: ordering
+    class: direct_demand
+    direction: supports
+    assertion: "A developer validating a webhook-testing tool explicitly targeted duplicate deliveries, out-of-order events, and delayed retries as behavior worth exercising before production; responses were mixed on whether this requires a separate hosted product."
+    observed_at: 2026-02-13
+    confidence: low
+    source:
+      type: community
+      url: "https://www.reddit.com/r/SaasDevelopers/comments/1r3x34q/stripe_webhook_testing_tool_validation/"
+
+  - id: direct-replay-self-built-2026-07-29
+    capability: replay
+    class: direct_demand
+    direction: supports
+    assertion: "A developer built a local save/replay tool because repeatedly triggering real Stripe/GitHub events was sufficiently annoying during handler development."
+    observed_at: 2026-07-29
+    confidence: medium
+    source:
+      type: community
+      url: "https://www.reddit.com/r/node/comments/1va6rq5/made_a_small_tool_to_savereplay_webhook_payloads/"
+
+  - id: direct-signature-format-gap-2026-09-03
+    capability: signature-verification
+    class: direct_demand
+    direction: supports
+    assertion: "A public webhook-adapter issue reports that Standard Webhooks signatures are rejected because the adapter recognizes only fixed provider/header families and offers no custom signature-header configuration."
+    observed_at: 2026-09-03
+    confidence: medium
+    source:
+      type: community_issue
+      url: "https://github.com/NousResearch/hermes-agent/issues/101837"
+
+  - id: proxy-github-order-delay-signature-2026-10-01
+    capability: ordering
+    class: demand_proxy
+    assertion: "GitHub's official troubleshooting guide separately documents out-of-order deliveries, delayed deliveries, and failed signature verification as webhook troubleshooting cases."
+    observed_at: 2026-10-01
+    confidence: high
+    source:
+      type: provider_docs
+      url: "https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/troubleshooting-webhooks"
+
+  - id: proxy-svix-play-customer-use
+    capability: deterministic-ci
+    class: demand_proxy
+    assertion: "Svix reported using the Play API in its own test suite for over a year and having customers test the API for months before public release, supporting automated webhook testing as an adopted workflow."
+    observed_at: 2023-07-06
+    confidence: high
+    source:
+      type: vendor_blog
+      url: "https://www.svix.com/blog/svix-play-an-api-for-testing-webhooks/"
+
+  - id: proxy-deterministic-outcome-testing-2026-09-22
+    capability: deterministic-ci
+    class: demand_proxy
+    assertion: "An independent engineering article argues that useful webhook E2E tests must prove the downstream outcome deterministically rather than only a 200 delivery, and highlights async waits, duplicate delivery, signatures, retries, and out-of-order events."
+    observed_at: 2026-09-22
+    confidence: medium
+    source:
+      type: independent_engineering
+      url: "https://pie.inc/blog/how-to-test-webhooks-end-to-end/"
+
+  - id: market-hookdeck-mcp-write-2026-09-25
+    capability: mcp-agent
+    class: market_motion
+    assertion: "Hookdeck CLI v3 added write-enabled Event Gateway MCP operations including resource changes, retries, and issue actions, with read/write permission separation."
+    observed_at: 2026-09-25
+    confidence: high
+    source:
+      type: vendor_release
+      url: "https://hookdeck.com/blog/hookdeck-cli-v3"
+
+  - id: market-webhookscc-ci-agent-2026-05
+    capability: deterministic-ci
+    class: market_motion
+    assertion: "webhooks.cc documentation updated in May 2026 presents deterministic signed-payload CI testing, asynchronous waits, cleanup, and MCP workflows as first-class product surfaces."
+    observed_at: 2026-05-01
+    confidence: high
+    source:
+      type: vendor_docs
+      url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"
+
+  - id: market-hook0-agent-operations-2026-10-01
+    capability: mcp-agent
+    class: market_motion
+    assertion: "Hook0 exposes MCP operations for inspecting webhook infrastructure, debugging delivery attempts, sending test events, and replaying failures."
+    observed_at: 2026-10-01
+    confidence: high
+    source:
+      type: vendor_docs
+      url: "https://documentation.hook0.com/reference/mcp"
