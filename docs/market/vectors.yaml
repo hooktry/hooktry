@@ -21,9 +21,9 @@ vectors:
     type: adjacent
     from_cohort: primary
     target_cohorts: [api-virtualization]
-    thesis: "Use the same boundary/evidence primitives to simulate upstream and downstream HTTP dependencies around webhook flows."
+    thesis: "Extend the same programmable boundary/evidence primitives from webhook responses into stateful upstream and downstream HTTP dependency simulation."
     deepen_if: null
-    expand_if: "Webhook users repeatedly need configurable responses, dependency simulation, failure injection, or contract-backed mocks."
+    expand_if: "Webhook users repeatedly need configurable responses, dependency simulation, failure injection, or contract-backed mocks; bridge-product evidence becomes stronger when the same users traverse both jobs in one workflow."
     stop_if: "Mocking requirements are well served by integrations with specialist tools and do not benefit from Ortyo evidence."
 
   - id: multi-protocol
