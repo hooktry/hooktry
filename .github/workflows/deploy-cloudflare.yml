@@ -22,6 +22,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
       ORTYO_CLAIM_INTERNAL_TOKEN: ${{ secrets.ORTYO_CLAIM_INTERNAL_TOKEN }}
 
     steps:
@@ -41,7 +42,7 @@ jobs:
         run: |
           set -u
           missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID ORTYO_CLAIM_INTERNAL_TOKEN; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GITHUB_CLIENT_ID ORTYO_CLAIM_INTERNAL_TOKEN; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Missing $name"
               missing=1
@@ -74,10 +75,12 @@ jobs:
           npx wrangler deploy
           --config wrangler.production.jsonc
           --var "ORTYO_RELEASE_SHA:${GITHUB_SHA}"
+          --var "GITHUB_CLIENT_ID:${GITHUB_CLIENT_ID}"
 
       - name: Production acceptance
         env:
           ORTYO_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
           ORTYO_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
           ORTYO_EXPECTED_RELEASE_SHA: ${{ github.sha }}
+          ORTYO_EXPECT_GITHUB_AUTH: "1"
         run: node scripts/smoke-production.mjs
