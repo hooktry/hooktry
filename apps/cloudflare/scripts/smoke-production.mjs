@@ -12,7 +12,9 @@ try {
   await waitForHealth();
 
   const create = await fetch(`${baseUrl}/api/v1/hooks`, { method: "POST" });
-  assert(create.status === 201, `create Hook failed: ${create.status} ${await create.text()}`);
+  if (create.status !== 201) {
+    throw new Error(`create Hook failed: ${create.status} ${await create.text()}`);
+  }
   provision = await create.json();
 
   assert(provision.hook_url?.startsWith(baseUrl), "hook_url does not use deployed Worker");
@@ -44,7 +46,9 @@ try {
       "x-ortyo-workspace-id": workspaceId,
     },
   });
-  assert(claim.ok, `claim failed: ${claim.status} ${await claim.text()}`);
+  if (!claim.ok) {
+    throw new Error(`claim failed: ${claim.status} ${await claim.text()}`);
+  }
   const claimed = await claim.json();
   assert(claimed.claimed === true, "claim response did not become persistent");
   assert(claimed.workspace_id === workspaceId, "claim workspace mismatch");
