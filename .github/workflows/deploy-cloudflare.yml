@@ -2,8 +2,7 @@ name: Deploy Cloudflare
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
+  pull_request:
     paths:
       - ".github/workflows/deploy-cloudflare.yml"
 
@@ -17,6 +16,7 @@ concurrency:
 jobs:
   deploy:
     name: deploy production
+    if: github.event_name != 'pull_request' || github.head_ref == 'deploy/production-environment'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
