@@ -121,6 +121,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `priorities.yaml` - evidence-backed near-term dispositions with confidence
 - `matrix.yaml` - current product-by-capability projection with explicit unknowns
 - `MATRIX_REPORT.md` - primary-cohort completeness and sharpened differentiation analysis
+- `snapshots/` - immutable, self-contained MCIF market-state snapshots for temporal comparison
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -143,7 +144,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 1. Complete remaining atomic product-capability evidence in the primary cohort.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
-4. Add an immutable baseline snapshot.
+4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
 5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.
 
 
@@ -168,3 +169,23 @@ Current invariants include:
 - direct-demand signals require an explicit `supports | contradicts | mixed` direction
 
 Missing evidence is represented as `unknown`, not inferred as absence.
+
+
+## Snapshot discipline
+
+Market snapshots live under `docs/market/snapshots/` and are append-only.
+
+The baseline is `2026-10-01-baseline.yaml`. A snapshot is self-contained enough to compare future market states without reconstructing old Git trees: it records scope products, matrix products, capability dispositions and Ortyo status, the evidence-backed matrix, signal metadata, and atomic observation metadata.
+
+Validation:
+
+```bash
+cargo run --locked --bin market-snapshot-check -- --check
+```
+
+CI enforces two separate invariants:
+
+- snapshot contents must be internally consistent and use the MCIF vocabularies
+- an existing snapshot file may not be modified, renamed, or deleted; later research creates a new snapshot
+
+The snapshot's `source_commit` is provenance, not a mutable pointer to the current repository state.
