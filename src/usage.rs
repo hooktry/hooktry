@@ -1,19 +1,10 @@
-use std::{
-    fs::OpenOptions,
-    io::Write,
-    path::Path,
-    time::Duration,
-};
+use std::{fs::OpenOptions, io::Write, path::Path, time::Duration};
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    domain::ScenarioOrdering,
-    scenario::CreateScenario,
-    scenario_run::ScenarioRunReport,
-};
+use crate::{domain::ScenarioOrdering, scenario::CreateScenario, scenario_run::ScenarioRunReport};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ScenarioUsageFeatures {
@@ -51,10 +42,12 @@ impl ScenarioUsageFeatures {
             .contracts
             .iter()
             .any(|contract| contract.min.is_some() || contract.max.is_some());
-        let context_match = request
-            .contracts
-            .iter()
-            .any(|contract| contract.context.as_ref().is_some_and(|context| !context.is_empty()));
+        let context_match = request.contracts.iter().any(|contract| {
+            contract
+                .context
+                .as_ref()
+                .is_some_and(|context| !context.is_empty())
+        });
         let idempotency_context = request.contracts.iter().any(|contract| {
             contract
                 .context
@@ -165,7 +158,10 @@ async fn post_event(endpoint: &str, event: &ScenarioUsageEvent) -> Result<(), St
     if response.status().is_success() {
         Ok(())
     } else {
-        Err(format!("usage endpoint returned HTTP {}", response.status()))
+        Err(format!(
+            "usage endpoint returned HTTP {}",
+            response.status()
+        ))
     }
 }
 
