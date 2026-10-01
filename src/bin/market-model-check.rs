@@ -833,9 +833,7 @@ fn scalar(value: &str) -> String {
 fn http_token(value: &str) -> Option<String> {
     let start = value.find("http")?;
     let tail = &value[start..];
-    let end = tail
-        .find(['"', '\'', '}', ' ', ','])
-        .unwrap_or(tail.len());
+    let end = tail.find(['"', '\'', '}', ' ', ',']).unwrap_or(tail.len());
     Some(tail[..end].to_owned())
 }
 
