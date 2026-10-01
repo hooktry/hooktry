@@ -9,8 +9,7 @@ let provision;
 const interactions = [];
 
 try {
-  const health = await fetch(`${baseUrl}/healthz`);
-  assert(health.ok, `healthz failed: ${health.status}`);
+  await waitForHealth();
 
   const create = await fetch(`${baseUrl}/api/v1/hooks`, { method: "POST" });
   assert(create.status === 201, `create Hook failed: ${create.status} ${await create.text()}`);
@@ -78,6 +77,22 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function waitForHealth() {
+  const deadline = Date.now() + 30_000;
+  let lastStatus = 0;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(`${baseUrl}/healthz`).catch(() => null);
+    if (response?.ok) {
+      return;
+    }
+    lastStatus = response?.status ?? 0;
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(`healthz did not become ready within 30s; last status: ${lastStatus}`);
 }
 
 async function cleanup(exposureId, captured) {
