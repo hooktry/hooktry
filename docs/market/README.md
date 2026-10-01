@@ -123,6 +123,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `MATRIX_REPORT.md` - primary-cohort completeness and sharpened differentiation analysis
 - `snapshots/` - immutable, self-contained MCIF market-state snapshots for temporal comparison
 - `TREND_REPORT.md` - current temporal-analysis status and trend interpretation rules
+- `RESEARCH_DEBT.md` - decision-value research queue over unresolved matrix evidence
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -214,3 +215,20 @@ The analyzer deliberately separates:
 - **decision impact** - changes touching in-scope capability dispositions or newly recorded direct-demand/market-motion signals
 
 Do not call a matrix evidence-resolution event "market motion" unless independent evidence establishes that the product itself changed.
+
+
+## Research debt
+
+Do not optimize for matrix completeness. Rank missing evidence by whether resolving it can change a product decision:
+
+```bash
+cargo run --locked --bin market-research-debt -- \
+  --limit 20 \
+  --max-per-capability 3
+```
+
+Use `--json` for automation.
+
+The queue separates current/next/validation/vector decisions from baseline-completion debt. An already implemented table stake does not become high-priority research merely because demand evidence exists.
+
+See `RESEARCH_DEBT.md`.
