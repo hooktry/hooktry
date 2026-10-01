@@ -7,6 +7,7 @@ import {
   ANONYMOUS_REQUEST_LIMIT,
 } from "../src/core";
 import worker from "../src/index";
+import { INTERNAL_EXPOSURE_HEADER } from "../src/exposure-runtime";
 import type { AnonymousProvision, Env } from "../src/types";
 
 const bindings = env as unknown as Env;
@@ -63,20 +64,6 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(pushed.interaction.query).toBe("delivery=42");
     expect(pushed.interaction.body_encoding).toBe("utf8");
 
-    const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
-    await withStage("evict", evictDurableObject(stub), 8_000);
-
-    const afterEviction = await withStage("capture-after-eviction", fetchWorker(
-      new Request(provision.hook_url, {
-        method: "POST",
-        body: "after-eviction",
-      }),
-    ));
-    expect(afterEviction.status).toBe(200);
-    const pushedAfterEviction = await withStage("push-after-eviction", inbox.next());
-    expect(pushedAfterEviction.interaction.sequence).toBe(2);
-    expect(pushedAfterEviction.interaction.body).toBe("after-eviction");
-
     const claimed = await withStage("claim", fetchWorker(
       new Request(provision.claim_url, {
         method: "POST",
@@ -100,7 +87,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     ));
     expect(afterClaim.status).toBe(200);
     const pushedAfterClaim = await withStage("push-after-claim", inbox.next());
-    expect(pushedAfterClaim.interaction.sequence).toBe(3);
+    expect(pushedAfterClaim.interaction.sequence).toBe(2);
     expect(pushedAfterClaim.interaction.body).toBe("after-claim");
 
     const secondClaim = await withStage("second-claim", fetchWorker(
@@ -118,6 +105,60 @@ describe("CF1 anonymous Exposure conformance", () => {
     },
     35_000,
   );
+
+  it("keeps a hibernatable viewer connected across Durable Object eviction", async () => {
+    const provision = await createAnonymous();
+    const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
+
+    const viewerResponse = await stub.fetch(
+      new Request("https://ortyo.internal/view", {
+        headers: {
+          Upgrade: "websocket",
+          [INTERNAL_EXPOSURE_HEADER]: provision.exposure_id,
+        },
+      }),
+    );
+    expect(viewerResponse.status).toBe(101);
+
+    const socket = viewerResponse.webSocket;
+    if (!socket) {
+      throw new Error("expected WebSocket response");
+    }
+
+    const inbox = jsonInbox(socket);
+    socket.accept();
+
+    const ready = await withStage("direct-viewer-ready", inbox.next());
+    expect(ready.type).toBe("ready");
+    expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
+
+    await withStage(
+      "direct-evict",
+      evictDurableObject(stub, { webSockets: "hibernate" }),
+      5_000,
+    );
+
+    const captured = await withStage(
+      "direct-capture-after-eviction",
+      stub.fetch(
+        new Request("https://ortyo.internal/hook/hk_test", {
+          method: "POST",
+          headers: {
+            [INTERNAL_EXPOSURE_HEADER]: provision.exposure_id,
+          },
+          body: "after-eviction",
+        }),
+      ),
+    );
+    expect(captured.status).toBe(200);
+
+    const pushed = await withStage("direct-push-after-eviction", inbox.next());
+    expect(pushed.type).toBe("interaction");
+    expect(pushed.interaction.sequence).toBe(1);
+    expect(pushed.interaction.body).toBe("after-eviction");
+
+    socket.close(1000, "done");
+  }, 12_000);
 
   it("does not allow the view capability to act as hook authority", async () => {
     const provision = await createAnonymous();
