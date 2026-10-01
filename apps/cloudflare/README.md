@@ -15,9 +15,9 @@ It is an adapter, not the ORTYO domain model.
 | expiry cleanup | scheduled Worker |
 | HTTP ingress | Worker routes |
 
-The Worker exposes the same anonymous public routes as the native implementation:
+The Worker exposes the same public Hook API and capability routes as the native implementation:
 
-- `POST /_ortyo/anonymous/exposures`
+- `POST /api/v1/hooks`
 - `ANY /hook/hk_<capability>/*`
 - `GET /view/vw_<capability>`
 - `POST /claim/cl_<capability>`
