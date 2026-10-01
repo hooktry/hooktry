@@ -6,9 +6,7 @@ use crate::{
         derive_digest_keyring,
     },
     keyring::{VersionedKeyring, VersionedKeyringError},
-    secret::{
-        SecretKeyVersionCount, SecretRewrapReport, SecretStore, decode_master_key,
-    },
+    secret::{SecretKeyVersionCount, SecretRewrapReport, SecretStore, decode_master_key},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,12 +134,7 @@ impl KeyMaintenance {
             .copied()
             .filter(|version| *version != self.keyring.active_version())
             .map(|version| {
-                retirement_readiness(
-                    &self.keyring,
-                    version,
-                    &secret_versions,
-                    &approval_report,
-                )
+                retirement_readiness(&self.keyring, version, &secret_versions, &approval_report)
             })
             .collect();
 
@@ -170,7 +163,9 @@ impl KeyMaintenance {
         let rewrap = self
             .secrets
             .rewrap_key_version(from_version, apply)
-            .map_err(|error| format!("rewrap secrets from key version {from_version}: {error:?}"))?;
+            .map_err(|error| {
+                format!("rewrap secrets from key version {from_version}: {error:?}")
+            })?;
         let retirement = self.retire_check(from_version)?;
         Ok(KeyRewrapOutcome { rewrap, retirement })
     }
