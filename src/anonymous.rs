@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     path::Path as FsPath,
     sync::{Arc, Mutex},
 };
@@ -24,10 +23,18 @@ use rand::RngCore;
 use ring::digest::{SHA256, digest};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use crate::hosted_identity::{ApiScope, HostedIdentityStore};
+
+mod native_realtime;
+mod ports;
+
+use native_realtime::TokioAnonymousInteractionStream;
+use ports::{
+    AnonymousExposureRepository, AnonymousInteractionStream, CaptureAnonymousInteraction,
+    CreateAnonymousExposure, InteractionStreamError, StoredInteraction,
+};
 
 pub const ANONYMOUS_TTL_SECONDS: u64 = 5 * 24 * 60 * 60;
 pub const ANONYMOUS_REQUEST_LIMIT: u32 = 100;
@@ -81,19 +88,6 @@ pub struct AnonymousInteraction {
     pub body_bytes: usize,
 }
 
-#[derive(Debug, Clone)]
-struct StoredInteraction {
-    interaction_id: Uuid,
-    exposure_id: Uuid,
-    sequence: u32,
-    received_at_unix_ms: u64,
-    method: String,
-    path: String,
-    query: Option<String>,
-    headers: Vec<(String, String)>,
-    body: Vec<u8>,
-}
-
 impl StoredInteraction {
     fn wire(&self) -> AnonymousInteraction {
         let (body_encoding, body) = match std::str::from_utf8(&self.body) {
@@ -114,28 +108,6 @@ impl StoredInteraction {
             body_bytes: self.body.len(),
         }
     }
-}
-
-#[derive(Clone)]
-struct CreateAnonymousExposure {
-    principal_digest: [u8; 32],
-    ingress_digest: [u8; 32],
-    viewer_digest: [u8; 32],
-    claim_digest: [u8; 32],
-    exposure_id: Uuid,
-    now: u64,
-    expires_at: u64,
-}
-
-#[derive(Clone)]
-struct CaptureAnonymousInteraction {
-    ingress_digest: [u8; 32],
-    received_at_ms: u64,
-    method: String,
-    path: String,
-    query: Option<String>,
-    headers: Vec<(String, String)>,
-    body: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -838,30 +810,42 @@ impl AnonymousExposureStore {
 
 #[derive(Clone)]
 pub struct AnonymousExposureService {
-    store: AnonymousExposureStore,
+    store: Arc<dyn AnonymousExposureRepository>,
+    stream: Arc<dyn AnonymousInteractionStream>,
     public_base_url: String,
     viewer_ws_base_url: String,
-    viewers: Arc<Mutex<HashMap<Uuid, broadcast::Sender<StoredInteraction>>>>,
 }
 
 impl AnonymousExposureService {
     pub fn new(store: AnonymousExposureStore, public_base_url: impl Into<String>) -> Self {
+        Self::with_ports(
+            Arc::new(store),
+            Arc::new(TokioAnonymousInteractionStream::default()),
+            public_base_url,
+        )
+    }
+
+    fn with_ports(
+        store: Arc<dyn AnonymousExposureRepository>,
+        stream: Arc<dyn AnonymousInteractionStream>,
+        public_base_url: impl Into<String>,
+    ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let viewer_ws_base_url = websocket_base_url(&public_base_url);
         Self {
             store,
+            stream,
             public_base_url,
             viewer_ws_base_url,
-            viewers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub fn with_store(&self, store: AnonymousExposureStore) -> Self {
         Self {
-            store,
+            store: Arc::new(store),
+            stream: self.stream.clone(),
             public_base_url: self.public_base_url.clone(),
             viewer_ws_base_url: self.viewer_ws_base_url.clone(),
-            viewers: self.viewers.clone(),
         }
     }
 
@@ -878,7 +862,7 @@ impl AnonymousExposureService {
         let expires_at = now + ANONYMOUS_TTL_SECONDS;
         let exposure = self
             .store
-            .create_async(CreateAnonymousExposure {
+            .create(CreateAnonymousExposure {
                 principal_digest: token_digest(&principal),
                 ingress_digest: token_digest(&ingress),
                 viewer_digest: token_digest(&viewer),
@@ -910,7 +894,7 @@ impl AnonymousExposureService {
     ) -> Result<StoredInteraction, AnonymousError> {
         let interaction = self
             .store
-            .capture_async(CaptureAnonymousInteraction {
+            .capture(CaptureAnonymousInteraction {
                 ingress_digest: token_digest(ingress_token),
                 received_at_ms: unix_millis_now(),
                 method,
@@ -920,20 +904,18 @@ impl AnonymousExposureService {
                 body,
             })
             .await?;
-        let _ = self
-            .sender(interaction.exposure_id)
-            .send(interaction.clone());
+        self.stream.publish(interaction.clone());
         Ok(interaction)
     }
 
     async fn viewer(&self, viewer_token: &str) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .viewer_async(token_digest(viewer_token), unix_seconds_now())
+            .viewer(token_digest(viewer_token), unix_seconds_now())
             .await
     }
 
     async fn backlog(&self, exposure_id: Uuid) -> Result<Vec<StoredInteraction>, AnonymousError> {
-        self.store.interactions_async(exposure_id).await
+        self.store.interactions(exposure_id).await
     }
 
     async fn claim(
@@ -942,20 +924,15 @@ impl AnonymousExposureService {
         workspace_id: Uuid,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .claim_async(token_digest(claim_token), workspace_id, unix_seconds_now())
+            .claim(token_digest(claim_token), workspace_id, unix_seconds_now())
             .await
     }
 
-    fn subscribe(&self, exposure_id: Uuid) -> broadcast::Receiver<StoredInteraction> {
-        self.sender(exposure_id).subscribe()
-    }
-
-    fn sender(&self, exposure_id: Uuid) -> broadcast::Sender<StoredInteraction> {
-        let mut viewers = self.viewers.lock().expect("anonymous viewers poisoned");
-        viewers
-            .entry(exposure_id)
-            .or_insert_with(|| broadcast::channel(256).0)
-            .clone()
+    fn subscribe(
+        &self,
+        exposure_id: Uuid,
+    ) -> Box<dyn ports::AnonymousInteractionSubscription> {
+        self.stream.subscribe(exposure_id)
     }
 }
 
@@ -1214,7 +1191,7 @@ async fn serve_viewer(
                             }),
                         ).await?;
                     }
-                    Err(broadcast::error::RecvError::Lagged(_)) => {
+                    Err(InteractionStreamError::Lagged) => {
                         send_frame(
                             &mut writer,
                             serde_json::json!({
@@ -1223,7 +1200,7 @@ async fn serve_viewer(
                         ).await?;
                         return Ok(());
                     }
-                    Err(broadcast::error::RecvError::Closed) => return Ok(()),
+                    Err(InteractionStreamError::Closed) => return Ok(()),
                 }
             }
         }
