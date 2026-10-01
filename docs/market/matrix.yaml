@@ -1,0 +1,299 @@
+checked_at: 2026-10-01
+scope: "Material primary-cohort products and capabilities that currently affect Ortyo webhook development/testing/pilot decisions."
+projection_rule: "External product cells are present/partial only when current official evidence supports the claim. Missing evidence is unknown, not absent. Ortyo cells project the current implementation overlay."
+status_vocabulary:
+  present: "Current evidence supports useful implementation of the capability."
+  partial: "Current evidence supports a narrower or materially incomplete implementation."
+  absent: "Verified absent. Used only when absence is actually evidenced."
+  unknown: "Current research does not establish the state."
+
+products:
+  - ortyo
+  - webhook-site
+  - hookdeck
+  - webhook-relay
+  - svix
+  - beeceptor
+  - webhooks-cc
+  - hooklistener
+  - webhooker
+  - hook0
+  - requestbin-net
+
+matrix:
+  instant-public-endpoint:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  no-signup-ephemeral-start:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  persistent-endpoint:
+    ortyo: partial
+    webhook-site: partial
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: partial
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  request-inspection:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  request-history:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  search-filter:
+    ortyo: partial
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: partial
+  custom-response:
+    ortyo: partial
+    webhook-site: present
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: partial
+  failure-simulation:
+    ortyo: partial
+    webhook-site: partial
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: present
+    webhooks-cc: partial
+    hooklistener: partial
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  replay:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: partial
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  local-forwarding:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  provider-templates:
+    ortyo: absent
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+  signature-verification:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: present
+    requestbin-net: unknown
+  api:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  cli:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  mcp-agent:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: present
+    webhook-relay: present
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: present
+    requestbin-net: present
+  wait-for-event:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: present
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: partial
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  deterministic-ci:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: partial
+    webhook-relay: partial
+    svix: partial
+    beeceptor: partial
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: partial
+  request-diff:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  self-host:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: partial
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: present
+    requestbin-net: unknown
+  team-collaboration:
+    ortyo: partial
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: present
+    requestbin-net: present
+  durable-retries:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: present
+    hook0: present
+    requestbin-net: unknown
+  dlq:
+    ortyo: absent
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  api-mocking:
+    ortyo: partial
+    webhook-site: partial
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: partial
+    beeceptor: present
+    webhooks-cc: partial
+    hooklistener: partial
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
