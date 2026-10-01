@@ -8,9 +8,9 @@ export interface Env {
 export interface AnonymousExposureRow {
   exposure_id: string;
   principal_digest: string;
-  ingress_digest: string;
-  viewer_digest: string;
-  claim_digest: string | null;
+  ingress_capability_digest: string;
+  view_capability_digest: string;
+  claim_capability_digest: string | null;
   workspace_id: string | null;
   created_at: number;
   expires_at: number;
