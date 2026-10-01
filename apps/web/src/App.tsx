@@ -5,7 +5,13 @@ import {
   type ReactNode,
 } from "react";
 
-import { createHook, websocketUrl } from "./api";
+import {
+  authSession,
+  claimHook,
+  createHook,
+  githubSignInUrl,
+  websocketUrl,
+} from "./api";
 import {
   formatBytes,
   formatTimestamp,
@@ -43,6 +49,7 @@ export function App() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<InspectorTab>("body");
   const [creating, setCreating] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -148,6 +155,21 @@ export function App() {
     };
   }, [viewWebSocketUrl]);
 
+  useEffect(() => {
+    if (!provision || provision.claimed) return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("claim") !== "1") return;
+
+    url.searchParams.delete("claim");
+    window.history.replaceState(
+      {},
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    void completeClaim(provision);
+  }, [provision]);
+
   const filtered = useMemo(
     () => interactions.filter((interaction) => interactionMatches(interaction, search)),
     [interactions, search],
@@ -178,6 +200,63 @@ export function App() {
     } finally {
       setCreating(false);
     }
+  }
+
+  async function handleClaim() {
+    if (!provision || provision.claimed || claiming) return;
+
+    setClaiming(true);
+    setError(null);
+
+    try {
+      const session = await authSession();
+      if (!session.authenticated) {
+        const returnTo = `${pathname}?claim=1`;
+        window.location.assign(githubSignInUrl(returnTo));
+        return;
+      }
+
+      await claimCurrent(provision);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to start claim flow.",
+      );
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  async function completeClaim(current: HookProvision) {
+    if (claiming) return;
+
+    setClaiming(true);
+    setError(null);
+    try {
+      const session = await authSession();
+      if (!session.authenticated) {
+        throw new Error("GitHub sign-in did not create an Ortyo session.");
+      }
+      await claimCurrent(current);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to claim Hook.",
+      );
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  async function claimCurrent(current: HookProvision) {
+    const claimed = await claimHook(current.claim_url);
+    const updated: HookProvision = {
+      ...current,
+      ...claimed,
+    };
+    saveOwnerProvision(updated);
+    setProvision(updated);
+    setSummary(claimed);
   }
 
   function handleNewHook() {
@@ -217,6 +296,8 @@ export function App() {
               provision={provision}
               summary={activeSummary}
               copied={copied}
+              claiming={claiming}
+              onClaim={handleClaim}
               onCopy={copy}
               onNewHook={handleNewHook}
             />
@@ -383,12 +464,16 @@ function HookHeader({
   provision,
   summary,
   copied,
+  claiming,
+  onClaim,
   onCopy,
   onNewHook,
 }: {
   provision: HookProvision | null;
   summary: ExposureSummary | null;
   copied: string | null;
+  claiming: boolean;
+  onClaim: () => void;
   onCopy: (value: string, key: string) => void;
   onNewHook: () => void;
 }) {
@@ -396,19 +481,24 @@ function HookHeader({
     <div className="hook-header">
       <div className="hook-title-row">
         <div>
-          <div className="eyebrow">EPHEMERAL HOOK</div>
+          <div className="eyebrow">
+            {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
+          </div>
           <h1>{summary ? shortId(summary.exposure_id) : "Loading viewer…"}</h1>
         </div>
         <div className="header-actions">
-          {provision ? (
+          {provision && !summary?.claimed ? (
             <button
               className="button secondary"
               type="button"
-              title="AUTH1 will exchange the claim capability after login."
-              disabled
+              onClick={onClaim}
+              disabled={claiming}
             >
-              Claim · sign-in required
+              {claiming ? "Claiming…" : "Claim · sign in with GitHub"}
             </button>
+          ) : null}
+          {summary?.claimed ? (
+            <span className="badge claimed-badge">claimed · persistent</span>
           ) : null}
           <button className="button ghost" type="button" onClick={onNewHook}>
             New Hook

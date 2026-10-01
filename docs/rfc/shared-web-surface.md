@@ -62,11 +62,24 @@ This is a product invariant, not merely UI hiding.
 
 ## Claim boundary
 
-WEB1 must not expose CLAIM_INTERNAL_TOKEN to browser code.
+WEB1 must not expose `CLAIM_INTERNAL_TOKEN` to browser code.
 
-The current Cloudflare claim endpoint accepts authority from the future authenticated control plane. Until AUTH1 exists, the owner UI may indicate that claim requires sign-in but must not fake claim by embedding internal credentials.
+AUTH1 completes the human claim flow with GitHub sign-in:
 
-AUTH1 will later exchange authenticated workspace authority plus the owner's claim capability.
+~~~text
+owner-only claim capability
+        +
+authenticated Ortyo session
+        |
+        v
+same Exposure becomes persistent in personal workspace
+~~~
+
+If the browser has no Ortyo session, the Claim action starts the GitHub OAuth authorization-code + PKCE flow and returns to the same view capability with `?claim=1`. Session storage retains the owner-only provision during the same-tab redirect, so WEB1 can finish the claim without putting the claim capability into an OAuth parameter, cookie, or server-side redirect state.
+
+The internal claim bearer remains CI/control-plane authority only and is never exposed to WEB1.
+
+See [AUTH1 - GitHub sign-in and anonymous Hook claim](github-auth-claim.md).
 
 ## Deployment neutrality
 

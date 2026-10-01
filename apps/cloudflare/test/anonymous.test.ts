@@ -29,6 +29,7 @@ describe("CF1 ephemeral Hook conformance", () => {
       ok: true,
       service: "ortyo-cloudflare",
       revision: "deadbeef",
+      github_auth_configured: true,
     });
   });
 

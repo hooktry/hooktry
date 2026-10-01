@@ -7,10 +7,16 @@ import { defineConfig } from "vitest/config";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const testSchemaStatements = fs
-  .readFileSync(path.join(root, "migrations", "0001_anonymous.sql"), "utf8")
-  .split(";")
-  .map((statement) => statement.trim())
-  .filter(Boolean);
+  .readdirSync(path.join(root, "migrations"))
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .flatMap((name) =>
+    fs
+      .readFileSync(path.join(root, "migrations", name), "utf8")
+      .split(";")
+      .map((statement) => statement.trim())
+      .filter(Boolean),
+  );
 
 export default defineConfig({
   plugins: [
@@ -21,6 +27,8 @@ export default defineConfig({
       miniflare: {
         bindings: {
           CLAIM_INTERNAL_TOKEN: "test-internal-token",
+          GITHUB_CLIENT_ID: "test-github-client",
+          GITHUB_CLIENT_SECRET: "test-github-secret",
           TEST_SCHEMA_STATEMENTS: JSON.stringify(testSchemaStatements),
         },
       },

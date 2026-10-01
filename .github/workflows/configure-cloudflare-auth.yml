@@ -1,0 +1,67 @@
+name: Configure Cloudflare Auth
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configure-cloudflare-auth-production
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: configure production auth
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
+      GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Validate auth configuration
+        shell: bash
+        run: |
+          set -u
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install Cloudflare dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install GitHub OAuth client secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$GITHUB_CLIENT_SECRET" |
+            npx wrangler secret put GITHUB_CLIENT_SECRET --config wrangler.production.jsonc
+
+      - name: Explain next step
+        shell: bash
+        run: |
+          echo "GitHub OAuth client secret installed."
+          echo "Run Deploy Cloudflare next so GITHUB_CLIENT_ID and the current Git SHA are bound and production acceptance verifies auth readiness."
