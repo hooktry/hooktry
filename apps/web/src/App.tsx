@@ -106,19 +106,17 @@ export function App() {
               mergeInteraction(current, frame.interaction),
             );
             setSelectedId((current) => current ?? frame.interaction.interaction_id);
-            setSummary((current) =>
-              current
-                ? {
-                    ...current,
-                    request_count: Math.max(
-                      current.request_count,
-                      frame.interaction.sequence,
-                    ),
-                    retained_bytes:
-                      current.retained_bytes + frame.interaction.body_bytes,
-                  }
-                : current,
-            );
+            setSummary((current) => {
+              if (!current || frame.interaction.sequence <= current.request_count) {
+                return current;
+              }
+              return {
+                ...current,
+                request_count: frame.interaction.sequence,
+                retained_bytes:
+                  current.retained_bytes + frame.interaction.body_bytes,
+              };
+            });
             return;
           }
 
