@@ -6,10 +6,11 @@ import { cloudflareTest } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const testSchema = fs.readFileSync(
-  path.join(root, "migrations", "0001_anonymous.sql"),
-  "utf8",
-);
+const testSchemaStatements = fs
+  .readFileSync(path.join(root, "migrations", "0001_anonymous.sql"), "utf8")
+  .split(";")
+  .map((statement) => statement.trim())
+  .filter(Boolean);
 
 export default defineConfig({
   plugins: [
@@ -20,7 +21,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           CLAIM_INTERNAL_TOKEN: "test-internal-token",
-          TEST_SCHEMA: testSchema,
+          TEST_SCHEMA_STATEMENTS: JSON.stringify(testSchemaStatements),
         },
       },
     }),
