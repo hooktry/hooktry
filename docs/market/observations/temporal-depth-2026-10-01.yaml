@@ -1,0 +1,110 @@
+observations:
+  - id: webhooks-cc-contracts-temporal-2026-10-01
+    product: webhooks-cc
+    capability: contracts
+    assertion: "webhooks.cc assertRequest declares structured expectations over captured request method, path, headers, raw body or partial JSON body and returns structured diffs on mismatch; the contract is request-local rather than a richer multi-event interaction contract."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-scenario-runs-temporal-2026-10-01
+    product: webhooks-cc
+    capability: scenario-runs
+    assertion: "webhooks.cc packages repeatable webhook flows with temporary endpoint setup, signed send, bounded wait/capture, verification or request assertions, replay, and deterministic cleanup through testing helpers and test_webhook_flow."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/mcp/workflows"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-cardinality-temporal-2026-10-01
+    product: webhooks-cc
+    capability: cardinality
+    assertion: "webhooks.cc captureDuring waits until an expected count of matching requests arrives and count_requests can count filtered requests, but current official evidence does not establish ranged at-least/at-most assertions or a post-count quiet period that proves no extra matching events arrived."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-ordering-temporal-2026-10-01
+    product: webhooks-cc
+    capability: ordering
+    assertion: "webhooks.cc captureDuring returns multiple captured requests sorted by timestamp and examples assert against positional requests, enabling basic sequence checks; current official evidence does not establish a dedicated durable observed-order assertion primitive."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-observation-window-temporal-2026-10-01
+    product: webhooks-cc
+    capability: observation-window
+    assertion: "webhooks.cc waitFor and captureDuring provide explicit timeout-bounded observation horizons, but current official evidence does not establish quiet/settle periods after expectations are satisfied."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/sdk/testing"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-contracts-temporal-2026-10-01
+    product: hooklistener
+    capability: contracts
+    assertion: "Hooklistener request cases persist expected response status and JSON-body-subset assertions, but the assertion contract is replay-response focused rather than a general multi-event interaction contract."
+    state: partial
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/api/request-cases/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-scenario-runs-temporal-2026-10-01
+    product: hooklistener
+    capability: scenario-runs
+    assertion: "Hooklistener saves captured requests as repeatable cases, groups them into suites, runs suites against a target with assertions, bounded waiting, and durable aggregate run reports."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/api/request-cases/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-observation-window-temporal-2026-10-01
+    product: hooklistener
+    capability: observation-window
+    assertion: "Hooklistener suite execution supports wait=true with an explicit timeout_ms hard horizon for queued forwards to finish, but current official evidence does not establish quiet/settle observation periods over incoming event streams."
+    state: partial
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/api/request-cases/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-scenario-runs-temporal-2026-10-01
+    product: webhook-relay
+    capability: scenario-runs
+    assertion: "Webhook Relay exposes a repeatable agentic send_webhook -> wait_for_webhook_log -> inspect execution evidence loop through the real routing path, but current official evidence does not establish reusable assertion-bearing scenario definitions."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhook-relay-observation-window-temporal-2026-10-01
+    product: webhook-relay
+    capability: observation-window
+    assertion: "Webhook Relay wait_for_webhook_log waits up to a caller-specified timeout for one delivery to settle into a terminal delivery state, providing a hard horizon but not a multi-event quiet/settle window."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current

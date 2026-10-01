@@ -42,7 +42,7 @@ priorities:
     decision: differentiation
     confidence: low
     capabilities: [cardinality, ordering, correlation-context]
-    rationale: "Duplicates, out-of-order events, and idempotency are real problems; direct demand for these exact assertion primitives is not yet established."
+    rationale: "Competitors now show partial count, timestamp-order, bounded-wait, and suite semantics, but current evidence does not establish ranged cardinality with quiet-period proof, durable observed-order assertions, or normalized causal/idempotency matching. Direct demand for these exact deeper primitives is still not established."
 
   - id: reliable-delivery
     horizon: watch

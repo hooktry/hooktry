@@ -213,6 +213,78 @@ matrix:
     webhooker: unknown
     hook0: unknown
     requestbin-net: unknown
+  contracts:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: partial
+    hooklistener: partial
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  scenario-runs:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: partial
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  cardinality:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: partial
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  ordering:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: partial
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  observation-window:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: partial
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: partial
+    hooklistener: partial
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  correlation-context:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
   deterministic-ci:
     ortyo: present
     webhook-site: unknown
