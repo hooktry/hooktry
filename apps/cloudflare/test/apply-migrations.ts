@@ -1,9 +1,10 @@
 import { env as testEnv } from "cloudflare:workers";
-import { applyD1Migrations } from "cloudflare:test";
 
 import type { Env } from "../src/types";
 
-type MigrationList = Parameters<typeof applyD1Migrations>[1];
-const env = testEnv as unknown as Env & { TEST_MIGRATIONS: MigrationList };
+const env = testEnv as unknown as Env & { TEST_SCHEMA_STATEMENTS: string };
+const statements = JSON.parse(env.TEST_SCHEMA_STATEMENTS) as string[];
 
-await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+if (statements.length > 0) {
+  await env.DB.batch(statements.map((statement) => env.DB.prepare(statement)));
+}
