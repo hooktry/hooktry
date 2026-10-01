@@ -18,10 +18,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{any, get, post},
 };
-use futures_util::{
-    SinkExt, StreamExt,
-    stream::SplitSink,
-};
+use futures_util::{SinkExt, StreamExt, stream::SplitSink};
 use postgres::{Client, NoTls};
 use rand::RngCore;
 use ring::digest::{SHA256, digest};
@@ -149,8 +146,8 @@ impl Default for AnonymousExposureStore {
 
 impl AnonymousExposureStore {
     pub fn in_memory() -> Result<Self, AnonymousError> {
-        let connection =
-            Connection::open_in_memory().map_err(|error| AnonymousError::Storage(error.to_string()))?;
+        let connection = Connection::open_in_memory()
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?;
         Self::from_sqlite(connection)
     }
 
@@ -161,8 +158,8 @@ impl AnonymousExposureStore {
     }
 
     pub fn open_postgres(database_url: &str) -> Result<Self, AnonymousError> {
-        let mut client =
-            Client::connect(database_url, NoTls).map_err(|error| AnonymousError::Storage(error.to_string()))?;
+        let mut client = Client::connect(database_url, NoTls)
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?;
         client
             .batch_execute(
                 "CREATE TABLE IF NOT EXISTS anonymous_exposures (
@@ -405,8 +402,8 @@ impl AnonymousExposureStore {
         let body_len = u64::try_from(body.len())
             .map_err(|error| AnonymousError::Storage(error.to_string()))?;
         let interaction_id = Uuid::now_v7();
-        let headers_json =
-            serde_json::to_string(&headers).map_err(|error| AnonymousError::Storage(error.to_string()))?;
+        let headers_json = serde_json::to_string(&headers)
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?;
 
         let (exposure_id, sequence) = match &self.backend {
             AnonymousBackend::Sqlite(connection) => {
@@ -432,10 +429,9 @@ impl AnonymousExposureStore {
                     .optional()
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?
                     .ok_or(AnonymousError::NotFound)?;
-                let exposure_id: Uuid = raw
-                    .0
-                    .parse()
-                    .map_err(|error| AnonymousError::Storage(format!("invalid exposure id: {error}")))?;
+                let exposure_id: Uuid = raw.0.parse().map_err(|error| {
+                    AnonymousError::Storage(format!("invalid exposure id: {error}"))
+                })?;
                 check_capture_policy(raw.1.is_some(), raw.2, raw.3, raw.4, now_i64, body_len)?;
                 let sequence = u32::try_from(raw.3 + 1)
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?;
@@ -497,9 +493,9 @@ impl AnonymousExposureStore {
                     now_i64,
                     body_len,
                 )?;
-                let exposure_id: Uuid = exposure_id_text
-                    .parse()
-                    .map_err(|error| AnonymousError::Storage(format!("invalid exposure id: {error}")))?;
+                let exposure_id: Uuid = exposure_id_text.parse().map_err(|error| {
+                    AnonymousError::Storage(format!("invalid exposure id: {error}"))
+                })?;
                 let sequence = u32::try_from(i64::from(request_count) + 1)
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 let sequence_i32 = i32::try_from(sequence)
@@ -656,8 +652,13 @@ impl AnonymousExposureStore {
                         ))
                     })
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?;
-                rows.map(|row| interaction_from_raw(exposure_id, row.map_err(|error| AnonymousError::Storage(error.to_string()))?))
-                    .collect()
+                rows.map(|row| {
+                    interaction_from_raw(
+                        exposure_id,
+                        row.map_err(|error| AnonymousError::Storage(error.to_string()))?,
+                    )
+                })
+                .collect()
             }
             AnonymousBackend::Postgres(client) => {
                 let rows = client
@@ -750,7 +751,10 @@ impl AnonymousExposureStore {
                 .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 tx.commit()
                     .map_err(|error| AnonymousError::Storage(error.to_string()))?;
-                summary_from_raw((raw.0, Some(workspace_id_text), raw.2, raw.3, raw.4, raw.5), now_i64)
+                summary_from_raw(
+                    (raw.0, Some(workspace_id_text), raw.2, raw.3, raw.4, raw.5),
+                    now_i64,
+                )
             }
             AnonymousBackend::Postgres(client) => {
                 let mut client = client.lock().expect("anonymous store poisoned");
@@ -857,14 +861,8 @@ impl AnonymousExposureService {
         Ok(AnonymousProvision {
             exposure,
             ingress_url: format!("{}/h/{ingress}", self.public_base_url),
-            viewer_url: format!(
-                "{}/_ortyo/anonymous/view/{viewer}",
-                self.viewer_ws_base_url
-            ),
-            claim_url: format!(
-                "{}/_ortyo/anonymous/claim/{claim}",
-                self.public_base_url
-            ),
+            viewer_url: format!("{}/_ortyo/anonymous/view/{viewer}", self.viewer_ws_base_url),
+            claim_url: format!("{}/_ortyo/anonymous/claim/{claim}", self.public_base_url),
             anonymous_principal: principal,
         })
     }
@@ -890,23 +888,19 @@ impl AnonymousExposureService {
                 body,
             )
             .await?;
-        let _ = self.sender(interaction.exposure_id).send(interaction.clone());
+        let _ = self
+            .sender(interaction.exposure_id)
+            .send(interaction.clone());
         Ok(interaction)
     }
 
-    async fn viewer(
-        &self,
-        viewer_token: &str,
-    ) -> Result<AnonymousExposureSummary, AnonymousError> {
+    async fn viewer(&self, viewer_token: &str) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
             .viewer_async(token_digest(viewer_token), unix_seconds_now())
             .await
     }
 
-    async fn backlog(
-        &self,
-        exposure_id: Uuid,
-    ) -> Result<Vec<StoredInteraction>, AnonymousError> {
+    async fn backlog(&self, exposure_id: Uuid) -> Result<Vec<StoredInteraction>, AnonymousError> {
         self.store.interactions_async(exposure_id).await
     }
 
@@ -916,11 +910,7 @@ impl AnonymousExposureService {
         workspace_id: Uuid,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .claim_async(
-                token_digest(claim_token),
-                workspace_id,
-                unix_seconds_now(),
-            )
+            .claim_async(token_digest(claim_token), workspace_id, unix_seconds_now())
             .await
     }
 
@@ -953,19 +943,13 @@ pub fn anonymous_app(
     };
     Router::new()
         .route("/_ortyo/anonymous/exposures", post(create_anonymous))
-        .route(
-            "/_ortyo/anonymous/view/{viewer_token}",
-            get(view_anonymous),
-        )
+        .route("/_ortyo/anonymous/view/{viewer_token}", get(view_anonymous))
         .route(
             "/_ortyo/anonymous/claim/{claim_token}",
             post(claim_anonymous),
         )
         .route("/h/{ingress_token}", any(anonymous_ingress_root))
-        .route(
-            "/h/{ingress_token}/{*path}",
-            any(anonymous_ingress_path),
-        )
+        .route("/h/{ingress_token}/{*path}", any(anonymous_ingress_path))
         .with_state(state)
 }
 
@@ -1165,8 +1149,8 @@ async fn send_frame(
     writer: &mut SplitSink<WebSocket, Message>,
     value: serde_json::Value,
 ) -> Result<(), AnonymousError> {
-    let payload =
-        serde_json::to_string(&value).map_err(|error| AnonymousError::Storage(error.to_string()))?;
+    let payload = serde_json::to_string(&value)
+        .map_err(|error| AnonymousError::Storage(error.to_string()))?;
     writer
         .send(Message::Text(payload.into()))
         .await
@@ -1309,7 +1293,16 @@ fn summary_from_raw(
 
 fn interaction_from_raw(
     exposure_id: Uuid,
-    raw: (String, i64, i64, String, String, Option<String>, String, Vec<u8>),
+    raw: (
+        String,
+        i64,
+        i64,
+        String,
+        String,
+        Option<String>,
+        String,
+        Vec<u8>,
+    ),
 ) -> Result<StoredInteraction, AnonymousError> {
     let interaction_id = raw
         .0
@@ -1318,8 +1311,8 @@ fn interaction_from_raw(
     let sequence =
         u32::try_from(raw.1).map_err(|error| AnonymousError::Storage(error.to_string()))?;
     let received_at_unix_ms = u64_from_i64(raw.2)?;
-    let headers = serde_json::from_str(&raw.6)
-        .map_err(|error| AnonymousError::Storage(error.to_string()))?;
+    let headers =
+        serde_json::from_str(&raw.6).map_err(|error| AnonymousError::Storage(error.to_string()))?;
     Ok(StoredInteraction {
         interaction_id,
         exposure_id,
@@ -1373,10 +1366,7 @@ fn purge_sqlite(tx: &rusqlite::Transaction<'_>, now: i64) -> Result<(), Anonymou
     Ok(())
 }
 
-fn purge_postgres(
-    tx: &mut postgres::Transaction<'_>,
-    now: i64,
-) -> Result<(), AnonymousError> {
+fn purge_postgres(tx: &mut postgres::Transaction<'_>, now: i64) -> Result<(), AnonymousError> {
     tx.execute(
         "DELETE FROM anonymous_interactions
          WHERE exposure_id IN (
@@ -1494,10 +1484,8 @@ mod tests {
 
     #[tokio::test]
     async fn principal_is_limited_to_three_active_exposures() {
-        let service = AnonymousExposureService::new(
-            AnonymousExposureStore::default(),
-            "https://ortyo.test",
-        );
+        let service =
+            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
         let principal = random_token("ortyo_ap_");
         for _ in 0..ANONYMOUS_ACTIVE_LIMIT {
             service
@@ -1556,10 +1544,10 @@ mod tests {
 
     #[test]
     fn websocket_url_tracks_public_scheme() {
+        assert_eq!(websocket_base_url("https://ortyo.test"), "wss://ortyo.test");
         assert_eq!(
-            websocket_base_url("https://ortyo.test"),
-            "wss://ortyo.test"
+            websocket_base_url("http://127.0.0.1:8080"),
+            "ws://127.0.0.1:8080"
         );
-        assert_eq!(websocket_base_url("http://127.0.0.1:8080"), "ws://127.0.0.1:8080");
     }
 }
