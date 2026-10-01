@@ -50,10 +50,8 @@ fn sqlite_secret_survives_restart_and_plaintext_is_absent() {
 
 #[test]
 fn master_key_rotation_reads_old_secrets_and_writes_new_version() {
-    let path = std::env::temp_dir().join(format!(
-        "ortyo-secret-key-rotation-{}.db",
-        Uuid::now_v7()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("ortyo-secret-key-rotation-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let v1 = [0x11; 32];
     let v2 = [0x22; 32];
