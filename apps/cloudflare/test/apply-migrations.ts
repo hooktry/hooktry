@@ -1,10 +1,8 @@
-import { env } from "cloudflare:workers";
+import { env as testEnv } from "cloudflare:workers";
+import { applyD1Migrations } from "cloudflare:test";
 
 import type { Env } from "../src/types";
 
-const testEnv = env as unknown as Env & { TEST_SCHEMA_STATEMENTS: string };
-const statements = JSON.parse(testEnv.TEST_SCHEMA_STATEMENTS) as string[];
+const env = testEnv as unknown as Env & { TEST_MIGRATIONS: D1Migration[] };
 
-await testEnv.DB.batch(
-  statements.map((statement) => testEnv.DB.prepare(statement)),
-);
+await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
