@@ -25,6 +25,12 @@ describe("CF1 ephemeral Hook conformance", () => {
 
     expect(provision.hook_url).toMatch(/\/hook\/hk_[A-Za-z0-9_-]{32}$/);
     expect(provision.view_url).toMatch(/\/view\/vw_[A-Za-z0-9_-]{32}$/);
+    expect(provision.view_websocket_url).toMatch(
+      /^wss?:\/\/[^/]+\/view\/vw_[A-Za-z0-9_-]{32}$/,
+    );
+    expect(
+      provision.view_websocket_url.replace(/^wss?:\/\//, ""),
+    ).toBe(provision.view_url.replace(/^https?:\/\//, ""));
     expect(provision.claim_url).toMatch(/\/claim\/cl_[A-Za-z0-9_-]{32}$/);
     expect(provision.expires_at_unix_seconds).toBeTypeOf("number");
 
