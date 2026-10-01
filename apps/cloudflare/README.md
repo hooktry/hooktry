@@ -73,7 +73,11 @@ The GitHub `production` environment contains:
 
 - secret `CLOUDFLARE_API_TOKEN` - long-lived deployment token
 - secret `ORTYO_CLAIM_INTERNAL_TOKEN` - runtime claim authority used by acceptance
+- secret `GITHUB_CLIENT_SECRET` - GitHub OAuth confidential client credential
 - variable `CLOUDFLARE_ACCOUNT_ID` - non-secret Cloudflare account identifier
+- variable `GITHUB_CLIENT_ID` - non-secret GitHub OAuth client identifier
+
+`GITHUB_CLIENT_SECRET` is installed into the Worker by the separate manual **Configure Cloudflare Auth** workflow. Ordinary deploys pass `GITHUB_CLIENT_ID` as a Worker variable and never rewrite the OAuth secret.
 
 The long-lived Cloudflare deployment token should use **Editor**, not Admin, and should be scoped to the existing ORTYO resources wherever Cloudflare offers resource scope:
 
@@ -102,6 +106,26 @@ The bootstrap workflow:
 This separation prevents ordinary CI/CD from retaining resource-creation/deletion authority.
 
 The initial acceptance endpoint uses the account Workers subdomain. Custom ORTYO domains are a separate networking slice after the runtime proof is green.
+
+## GitHub authentication
+
+AUTH1 adds a managed-cloud browser identity flow:
+
+~~~text
+GET  /api/v1/auth/github/start
+GET  /api/v1/auth/github/callback
+GET  /api/v1/session
+POST /api/v1/logout
+POST /claim/cl_<capability>
+~~~
+
+The GitHub OAuth access token is ephemeral and is discarded immediately after `GET https://api.github.com/user` returns the stable GitHub user id and current profile metadata.
+
+OAuth state and Ortyo session values are bearer secrets in the browser but only SHA-256 digests are stored in D1. The authorization-code exchange uses PKCE.
+
+`/healthz` exposes only whether both GitHub OAuth bindings are configured. Production acceptance requires that boolean to be true after AUTH1.
+
+See `docs/rfc/github-auth-claim.md`.
 
 ## Claim authority
 
