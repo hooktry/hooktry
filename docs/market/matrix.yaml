@@ -216,10 +216,10 @@ matrix:
   deterministic-ci:
     ortyo: present
     webhook-site: unknown
-    hookdeck: unknown
-    webhook-relay: unknown
+    hookdeck: partial
+    webhook-relay: partial
     svix: unknown
-    beeceptor: unknown
+    beeceptor: partial
     webhooks-cc: present
     hooklistener: present
     webhooker: unknown
@@ -231,7 +231,7 @@ matrix:
     hookdeck: unknown
     webhook-relay: unknown
     svix: unknown
-    beeceptor: unknown
+    beeceptor: partial
     webhooks-cc: present
     hooklistener: present
     webhooker: unknown
