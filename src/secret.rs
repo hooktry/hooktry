@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     path::Path,
     sync::{Arc, Mutex, RwLock},
 };
@@ -9,7 +9,7 @@ use rand::RngCore;
 use reqwest::Url;
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
 use rusqlite::{Connection, OptionalExtension, params};
-
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::keyring::VersionedKeyring;
@@ -26,6 +26,22 @@ pub struct SecretRef {
 pub struct SecretMetadata {
     pub reference: SecretRef,
     pub key_version: i32,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct SecretKeyVersionCount {
+    pub key_version: i32,
+    pub count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct SecretRewrapReport {
+    pub from_version: i32,
+    pub to_version: i32,
+    pub dry_run: bool,
+    pub candidates: u64,
+    pub rewrapped: u64,
+    pub skipped_concurrent: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -510,6 +526,283 @@ impl SecretStore {
         Ok(metadata)
     }
 
+    pub fn key_version_counts(&self) -> Result<Vec<SecretKeyVersionCount>, SecretError> {
+        let counts = match &self.backend {
+            SecretBackend::Memory(inner) => {
+                let mut counts = BTreeMap::<i32, u64>::new();
+                for secret in inner.read().expect("secret store poisoned").values() {
+                    *counts.entry(secret.key_version).or_default() += 1;
+                }
+                counts
+                    .into_iter()
+                    .map(|(key_version, count)| SecretKeyVersionCount { key_version, count })
+                    .collect()
+            }
+            SecretBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("secret store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT key_version, COUNT(*)
+                         FROM hosted_secrets
+                         GROUP BY key_version
+                         ORDER BY key_version",
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map([], |row| {
+                        Ok(SecretKeyVersionCount {
+                            key_version: row.get(0)?,
+                            count: row.get::<_, i64>(1)? as u64,
+                        })
+                    })
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                rows.collect::<Result<Vec<_>, _>>()
+                    .map_err(|error| SecretError::Storage(error.to_string()))?
+            }
+            SecretBackend::Postgres(client) => client
+                .lock()
+                .expect("secret store poisoned")
+                .query(
+                    "SELECT key_version, COUNT(*)
+                     FROM hosted_secrets
+                     GROUP BY key_version
+                     ORDER BY key_version",
+                    &[],
+                )
+                .map_err(|error| SecretError::Storage(error.to_string()))?
+                .into_iter()
+                .map(|row| SecretKeyVersionCount {
+                    key_version: row.get(0),
+                    count: row.get::<_, i64>(1) as u64,
+                })
+                .collect(),
+        };
+        Ok(counts)
+    }
+
+    pub fn rewrap_key_version(
+        &self,
+        from_version: i32,
+        apply: bool,
+    ) -> Result<SecretRewrapReport, SecretError> {
+        let to_version = self.keyring.active_version();
+        if from_version == to_version || from_version <= 0 {
+            return Err(SecretError::InvalidKey);
+        }
+
+        let candidates = self.list_stored_by_key_version(from_version)?;
+        let candidate_count = candidates.len() as u64;
+        if !apply {
+            return Ok(SecretRewrapReport {
+                from_version,
+                to_version,
+                dry_run: true,
+                candidates: candidate_count,
+                rewrapped: 0,
+                skipped_concurrent: 0,
+            });
+        }
+
+        let from_key = self.keyring.key(from_version).ok_or(SecretError::InvalidKey)?;
+        let mut rewrapped = 0_u64;
+        let mut skipped_concurrent = 0_u64;
+
+        for secret in candidates {
+            let plaintext = decrypt(
+                from_key,
+                from_version,
+                secret.reference.workspace_id,
+                &secret.reference.name,
+                &secret.envelope,
+            )?;
+            let next_envelope = encrypt(
+                self.keyring.active_key(),
+                to_version,
+                secret.reference.workspace_id,
+                &secret.reference.name,
+                &plaintext,
+            )?;
+            if self.compare_and_swap_rewrap(&secret, next_envelope, to_version)? {
+                rewrapped += 1;
+            } else {
+                skipped_concurrent += 1;
+            }
+        }
+
+        Ok(SecretRewrapReport {
+            from_version,
+            to_version,
+            dry_run: false,
+            candidates: candidate_count,
+            rewrapped,
+            skipped_concurrent,
+        })
+    }
+
+    fn list_stored_by_key_version(
+        &self,
+        key_version: i32,
+    ) -> Result<Vec<StoredSecret>, SecretError> {
+        match &self.backend {
+            SecretBackend::Memory(inner) => Ok(inner
+                .read()
+                .expect("secret store poisoned")
+                .values()
+                .filter(|secret| secret.key_version == key_version)
+                .cloned()
+                .collect()),
+            SecretBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("secret store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT secret_id, workspace_id, name, envelope
+                         FROM hosted_secrets
+                         WHERE key_version=?1
+                         ORDER BY workspace_id, name",
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map(params![key_version], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, String>(3)?,
+                        ))
+                    })
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                let mut secrets = Vec::new();
+                for row in rows {
+                    let (id, workspace_id, name, envelope) =
+                        row.map_err(|error| SecretError::Storage(error.to_string()))?;
+                    secrets.push(StoredSecret {
+                        reference: SecretRef {
+                            id: id.parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid secret id: {error}"))
+                            })?,
+                            workspace_id: workspace_id.parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid workspace id: {error}"))
+                            })?,
+                            name,
+                            allowed_origin: None,
+                        },
+                        envelope,
+                        key_version,
+                    });
+                }
+                Ok(secrets)
+            }
+            SecretBackend::Postgres(client) => client
+                .lock()
+                .expect("secret store poisoned")
+                .query(
+                    "SELECT secret_id, workspace_id, name, envelope
+                     FROM hosted_secrets
+                     WHERE key_version=$1
+                     ORDER BY workspace_id, name",
+                    &[&key_version],
+                )
+                .map_err(|error| SecretError::Storage(error.to_string()))?
+                .into_iter()
+                .map(|row| {
+                    Ok(StoredSecret {
+                        reference: SecretRef {
+                            id: row.get::<_, String>(0).parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid secret id: {error}"))
+                            })?,
+                            workspace_id: row.get::<_, String>(1).parse().map_err(|error| {
+                                SecretError::Storage(format!("invalid workspace id: {error}"))
+                            })?,
+                            name: row.get(2),
+                            allowed_origin: None,
+                        },
+                        envelope: row.get(3),
+                        key_version,
+                    })
+                })
+                .collect::<Result<Vec<_>, SecretError>>(),
+        }
+    }
+
+    fn compare_and_swap_rewrap(
+        &self,
+        original: &StoredSecret,
+        next_envelope: String,
+        next_key_version: i32,
+    ) -> Result<bool, SecretError> {
+        match &self.backend {
+            SecretBackend::Memory(inner) => {
+                let mut inner = inner.write().expect("secret store poisoned");
+                let key = (
+                    original.reference.workspace_id,
+                    original.reference.name.clone(),
+                );
+                let Some(current) = inner.get_mut(&key) else {
+                    return Ok(false);
+                };
+                if current.reference.id != original.reference.id
+                    || current.key_version != original.key_version
+                    || current.envelope != original.envelope
+                {
+                    return Ok(false);
+                }
+                current.envelope = next_envelope;
+                current.key_version = next_key_version;
+                Ok(true)
+            }
+            SecretBackend::Sqlite(connection) => {
+                let updated = connection
+                    .lock()
+                    .expect("secret store poisoned")
+                    .execute(
+                        "UPDATE hosted_secrets
+                         SET envelope=?1, key_version=?2
+                         WHERE secret_id=?3
+                           AND workspace_id=?4
+                           AND name=?5
+                           AND envelope=?6
+                           AND key_version=?7",
+                        params![
+                            next_envelope,
+                            next_key_version,
+                            original.reference.id.to_string(),
+                            original.reference.workspace_id.to_string(),
+                            &original.reference.name,
+                            &original.envelope,
+                            original.key_version,
+                        ],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                Ok(updated == 1)
+            }
+            SecretBackend::Postgres(client) => {
+                let updated = client
+                    .lock()
+                    .expect("secret store poisoned")
+                    .execute(
+                        "UPDATE hosted_secrets
+                         SET envelope=$1, key_version=$2
+                         WHERE secret_id=$3
+                           AND workspace_id=$4
+                           AND name=$5
+                           AND envelope=$6
+                           AND key_version=$7",
+                        &[
+                            &next_envelope,
+                            &next_key_version,
+                            &original.reference.id.to_string(),
+                            &original.reference.workspace_id.to_string(),
+                            &original.reference.name,
+                            &original.envelope,
+                            &original.key_version,
+                        ],
+                    )
+                    .map_err(|error| SecretError::Storage(error.to_string()))?;
+                Ok(updated == 1)
+            }
+        }
+    }
+
     pub fn delete(&self, workspace_id: Uuid, name: &str) -> Result<bool, SecretError> {
         match &self.backend {
             SecretBackend::Memory(inner) => Ok(inner
@@ -840,4 +1133,59 @@ fn decrypt(
         .open_in_place(nonce, Aad::from(aad_text.as_bytes()), &mut in_out)
         .map_err(|_| SecretError::Crypto)?;
     Ok(plaintext.to_vec())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::{SecretStore, encrypt};
+    use crate::keyring::VersionedKeyring;
+    use uuid::Uuid;
+
+    #[test]
+    fn rewrap_compare_and_swap_does_not_overwrite_concurrent_rotation() {
+        let workspace = Uuid::now_v7();
+        let v1 = [0x51; 32];
+        let v2 = [0x52; 32];
+
+        let original_store = SecretStore::memory_with_key(v1);
+        original_store
+            .put(workspace, "provider-token", "old-value")
+            .unwrap();
+
+        let rotated_store = SecretStore {
+            backend: original_store.backend.clone(),
+            keyring: Arc::new(VersionedKeyring::new(2, v2, [(1, v1)]).unwrap()),
+        };
+        let snapshot = rotated_store.list_stored_by_key_version(1).unwrap();
+        assert_eq!(snapshot.len(), 1);
+        let snapshot = snapshot.into_iter().next().unwrap();
+
+        let replacement = rotated_store
+            .rotate(workspace, "provider-token", "new-value")
+            .unwrap();
+
+        let stale_rewrap_envelope =
+            encrypt(&v2, 2, workspace, "provider-token", b"old-value").unwrap();
+        let updated = rotated_store
+            .compare_and_swap_rewrap(&snapshot, stale_rewrap_envelope, 2)
+            .unwrap();
+
+        assert!(!updated);
+        assert_eq!(
+            rotated_store.resolve(workspace, "provider-token").unwrap(),
+            "new-value"
+        );
+        assert_eq!(
+            rotated_store
+                .metadata(workspace, "provider-token")
+                .unwrap()
+                .unwrap()
+                .reference
+                .id,
+            replacement.id
+        );
+    }
 }
