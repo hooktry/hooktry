@@ -48,6 +48,34 @@ Tests run inside the Workers runtime with local D1, R2, and Durable Object bindi
 npm run check
 ```
 
+## Production deployment
+
+Production deployment is intentionally explicit and currently runs only through the GitHub Actions **Deploy Cloudflare** workflow.
+
+The workflow:
+
+1. validates deployment credentials
+2. verifies the Cloudflare adapter in the Workers runtime
+3. finds or creates `ortyo-cloudflare` D1 in Eastern Europe
+4. finds or creates `ortyo-payloads` R2 in Eastern Europe
+5. generates an untracked production Wrangler config with the real D1 UUID
+6. applies D1 migrations
+7. deploys the Worker and Durable Object migration
+8. installs `CLAIM_INTERNAL_TOKEN` as a Worker secret
+9. runs a live workers.dev acceptance:
+   `create -> view -> hook -> claim -> same hook -> single-use claim`
+10. removes the smoke Interaction bodies and D1 rows
+
+The workflow requires these GitHub repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `ORTYO_CLAIM_INTERNAL_TOKEN`
+
+The Cloudflare token should be scoped to the ORTYO account and needs only the permissions required to deploy Workers and manage D1/R2 resources. The account ID is not application runtime authority but is kept with deployment credentials rather than hard-coded into the public repository.
+
+The initial acceptance endpoint uses the account Workers subdomain. Custom ORTYO domains are a separate networking slice after the runtime proof is green.
+
 ## Production setup
 
 The checked-in `wrangler.jsonc` uses a placeholder D1 database id. Before deployment:
