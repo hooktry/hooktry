@@ -17,8 +17,8 @@ Labels are summaries of independently evidenced dimensions, not rankings. `unkno
 | Webhook Relay | deep | present | deep | deep | deep | present | **deep** |
 | Svix / Play | present | present | present | deep | present | basic | **deep** |
 | Beeceptor | deep | **deep** | present | present | deep | basic | not focus |
-| webhooks.cc | deep | deep | deep | **deep** | **deep** | present | basic |
-| Hooklistener | deep | deep | deep | deep | present | unknown | basic |
+| webhooks.cc | deep | deep | deep | **deep** | **deep** | **deep** | basic |
+| Hooklistener | deep | deep | deep | deep | present | present | basic |
 | Webhooker | deep | basic | present | present | present | basic | **deep** |
 | Hook0 / Play | present | basic | deep | present | deep | basic | **deep** |
 | RequestBin.net | deep | present | basic | deep | present | unknown | basic |
@@ -33,7 +33,7 @@ The primary cohort currently clusters around three established centers.
 
 **Delivery-first** products extend the same entry point toward routing, transformations, retries, DLQ/failure recovery, signing, tenant controls, and operational visibility. Hookdeck, Webhook Relay, Svix, Hook0, and Webhooker are strong references.
 
-Ortyo's current distinct center is **verification-first**:
+Ortyo's current center is **verification-first**, but this pass shows that verification is no longer an uncontested category:
 
 ```text
 Interaction
@@ -49,7 +49,7 @@ Interaction
   -> deterministic CI result
 ```
 
-The product hypothesis is therefore: **enter through the familiar webhook-development wedge, satisfy inspection/testing table stakes, then differentiate by turning traffic into deterministic integration evidence.** This remains a hypothesis until supported by direct demand evidence.
+webhooks.cc already exposes isolated endpoints, count/timeout-based capture, request assertions with structured diffs, and deterministic cleanup. Hooklistener now exposes reusable replay cases, response assertions, suites, and durable run reports.\n\nThe differentiation hypothesis must therefore be narrower: **enter through the familiar webhook-development wedge, satisfy inspection/testing table stakes, then differentiate on temporal/causal integration evidence - ranged cardinality, durable observed ordering, observation windows, correlation/idempotency context, and explainable behavior outcomes.** This remains a hypothesis until supported by first-party demand evidence.
 
 ## Primary table-stakes gaps
 
