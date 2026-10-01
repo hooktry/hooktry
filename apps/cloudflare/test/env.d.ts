@@ -4,6 +4,6 @@ declare module "cloudflare:workers" {
     PAYLOADS: R2Bucket;
     EXPOSURES: DurableObjectNamespace;
     CLAIM_INTERNAL_TOKEN?: string;
-    TEST_MIGRATIONS: D1Migration[];
+    TEST_SCHEMA: string;
   }
 }
