@@ -368,6 +368,9 @@ async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Resul
     let output = std::process::Command::new(program)
         .args(&command[1..])
         .envs(scenario_environment(base_url, &run))
+        .env_remove("ORTYO_USAGE_LOG")
+        .env_remove("ORTYO_USAGE_ENDPOINT")
+        .env_remove("ORTYO_USAGE_TOKEN")
         .output();
 
     let output = match output {
