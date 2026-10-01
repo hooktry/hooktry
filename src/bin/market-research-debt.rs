@@ -888,7 +888,7 @@ mod tests {
                 known_external_peers: 1,
                 product_cohorts: 1,
                 research_channel: "market_research".to_owned(),
-            reasons: vec![],
+                reasons: vec![],
             },
             Candidate {
                 product: "b".to_owned(),
@@ -902,7 +902,7 @@ mod tests {
                 known_external_peers: 1,
                 product_cohorts: 1,
                 research_channel: "market_research".to_owned(),
-            reasons: vec![],
+                reasons: vec![],
             },
             Candidate {
                 product: "c".to_owned(),
@@ -916,7 +916,7 @@ mod tests {
                 known_external_peers: 1,
                 product_cohorts: 1,
                 research_channel: "market_research".to_owned(),
-            reasons: vec![],
+                reasons: vec![],
             },
         ];
 
