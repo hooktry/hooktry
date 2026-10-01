@@ -221,10 +221,7 @@ impl ApprovalStore {
     }
 
     pub fn open_postgres(database_url: &str, digest_key: [u8; 32]) -> Result<Self, ApprovalError> {
-        Self::open_postgres_with_digest_keyring(
-            database_url,
-            VersionedKeyring::single(digest_key),
-        )
+        Self::open_postgres_with_digest_keyring(database_url, VersionedKeyring::single(digest_key))
     }
 
     pub fn open_postgres_with_digest_keyring(
