@@ -212,6 +212,11 @@ kbd,
   gap: 8px;
 }
 
+.claimed-badge {
+  border-color: rgba(169, 211, 88, 0.24);
+  color: #c7e884;
+}
+
 .badge,
 .connection {
   display: inline-flex;
