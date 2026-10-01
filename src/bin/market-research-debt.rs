@@ -194,7 +194,14 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
             candidates.push(Candidate {
                 product: product_id.clone(),
                 capability: capability_id.clone(),
-                tier: priority_tier(&priority.horizon).to_owned(),
+                tier: decision_tier(
+                    &priority.horizon,
+                    &capability.ortyo_status,
+                    &capability.disposition,
+                    signal.direct_demand,
+                    supporting_signals,
+                )
+                .to_owned(),
                 horizon: priority.horizon,
                 disposition: capability.disposition.clone(),
                 ortyo_status: capability.ortyo_status.clone(),
@@ -239,13 +246,39 @@ fn effective_priority(capability: &Capability, priorities: &[Priority]) -> Prior
     }
 }
 
-fn priority_tier(horizon: &str) -> &'static str {
-    match horizon_rank(horizon) {
-        0 => "P0",
-        1 => "P1",
-        2 => "P2",
-        3 => "P3",
-        _ => "P4",
+fn decision_tier(
+    horizon: &str,
+    ortyo_status: &str,
+    disposition: &str,
+    direct_demand: usize,
+    supporting_signals: usize,
+) -> &'static str {
+    let open_gap = ortyo_status != "implemented";
+
+    if horizon == "now" && open_gap {
+        "P0"
+    } else if horizon == "next" && open_gap && direct_demand > 0 {
+        "P1"
+    } else if horizon == "next" && open_gap {
+        "P2"
+    } else if horizon == "validate" && open_gap && direct_demand > 0 {
+        "P2"
+    } else if disposition == "differentiation" && (direct_demand > 0 || supporting_signals > 0) {
+        "P2"
+    } else if matches!(horizon, "validate" | "watch" | "option") && open_gap {
+        "P3"
+    } else {
+        "P4"
+    }
+}
+
+fn tier_rank(tier: &str) -> usize {
+    match tier {
+        "P0" => 0,
+        "P1" => 1,
+        "P2" => 2,
+        "P3" => 3,
+        _ => 4,
     }
 }
 
@@ -294,9 +327,10 @@ fn disposition_rank(disposition: &str) -> usize {
 
 fn compare_candidates(left: &Candidate, right: &Candidate) -> Ordering {
     (
-        horizon_rank(&left.horizon),
+        tier_rank(&left.tier),
         signal_rank(left),
         ortyo_gap_rank(&left.ortyo_status),
+        horizon_rank(&left.horizon),
         disposition_rank(&left.disposition),
         left.known_external_peers,
         usize::MAX - left.product_cohorts,
@@ -304,9 +338,10 @@ fn compare_candidates(left: &Candidate, right: &Candidate) -> Ordering {
         &left.product,
     )
         .cmp(&(
-            horizon_rank(&right.horizon),
+            tier_rank(&right.tier),
             signal_rank(right),
             ortyo_gap_rank(&right.ortyo_status),
+            horizon_rank(&right.horizon),
             disposition_rank(&right.disposition),
             right.known_external_peers,
             usize::MAX - right.product_cohorts,
@@ -436,7 +471,7 @@ fn render_text(
     }
 
     output.push_str(
-        "\nPriority semantics: horizon -> direct demand -> Ortyo gap -> disposition -> supporting signals -> evidence scarcity -> product cohort breadth. No aggregate score is used.\n",
+        "\nPriority semantics: decision-changing tier -> direct demand -> Ortyo gap -> horizon -> disposition -> supporting signals -> evidence scarcity -> product cohort breadth. No aggregate score is used.\n",
     );
     output
 }
@@ -729,27 +764,51 @@ mod tests {
     use super::*;
 
     #[test]
-    fn horizon_beats_other_factors() {
+    fn open_now_gap_beats_completed_table_stake() {
         let now = Candidate {
             product: "a".to_owned(),
             capability: "x".to_owned(),
             tier: "P0".to_owned(),
             horizon: "now".to_owned(),
             disposition: "must".to_owned(),
-            ortyo_status: "implemented".to_owned(),
+            ortyo_status: "partial".to_owned(),
             direct_demand: 0,
             supporting_signals: 0,
             known_external_peers: 5,
             product_cohorts: 1,
             reasons: vec![],
         };
-        let next = Candidate {
-            horizon: "next".to_owned(),
+        let completed = Candidate {
+            tier: "P4".to_owned(),
             direct_demand: 10,
-            ortyo_status: "absent".to_owned(),
+            ortyo_status: "implemented".to_owned(),
             ..now.clone()
         };
-        assert_eq!(compare_candidates(&now, &next), Ordering::Less);
+        assert_eq!(compare_candidates(&now, &completed), Ordering::Less);
+    }
+
+    #[test]
+    fn tiering_prioritizes_decision_change_over_existing_coverage() {
+        assert_eq!(
+            decision_tier("now", "partial", "must", 0, 0),
+            "P0"
+        );
+        assert_eq!(
+            decision_tier("next", "absent", "should", 1, 0),
+            "P1"
+        );
+        assert_eq!(
+            decision_tier("next", "unknown", "should", 0, 0),
+            "P2"
+        );
+        assert_eq!(
+            decision_tier("next", "implemented", "must", 4, 0),
+            "P4"
+        );
+        assert_eq!(
+            decision_tier("validate", "implemented", "differentiation", 0, 1),
+            "P2"
+        );
     }
 
     #[test]
