@@ -1,0 +1,121 @@
+observations:
+  - id: hookdeck-search-filter-research-2026-10-01
+    product: hookdeck
+    capability: search-filter
+    assertion: "Hookdeck documents payload search across webhook JSON bodies, HTTP headers, and query parameters as a core debugging workflow."
+    state: present
+    source: {type: vendor_blog, url: "https://hookdeck.com/blog/how-we-made-payload-search-60x-faster-in-clickhouse"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhook-relay-search-filter-research-2026-10-01
+    product: webhook-relay
+    capability: search-filter
+    assertion: "Webhook Relay MCP can list webhook logs filtered by delivery status, output, and time range, but current official evidence does not establish payload-content search."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-search-filter-research-2026-10-01
+    product: beeceptor
+    capability: search-filter
+    assertion: "Beeceptor request history supports search plus filters over time, path, response status, headers, query parameters, and request/response body keywords."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/query-mock-request-history/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-custom-response-research-2026-10-01
+    product: hookdeck
+    capability: custom-response
+    assertion: "Hookdeck sources support customizable synchronous response bodies, including empty, text, JSON, and XML, and provider source types can preconfigure expected response behavior; the current docs do not establish the full arbitrary status/header/delay surface."
+    state: partial
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs/sources"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-custom-response-research-2026-10-01
+    product: webhook-relay
+    capability: custom-response
+    assertion: "Webhook Relay input response configuration supports static status code, body, and headers or a dynamic response returned by an output."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/custom-webhook-response/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-failure-simulation-research-2026-10-01
+    product: hooklistener
+    capability: failure-simulation
+    assertion: "Hooklistener response rules can return controlled failure status codes and response delays; its documented example returns HTTP 500 with a 3000 ms delay to exercise timeout/failure behavior."
+    state: present
+    source: {type: vendor_docs, url: "https://www.hooklistener.com/learn/mock-webhook-server-in-2-minutes"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-failure-simulation-research-2026-10-01
+    product: webhook-relay
+    capability: failure-simulation
+    assertion: "Webhook Relay can return chosen static HTTP status codes, headers, and bodies to the webhook sender, enabling controlled error-path testing; current official evidence does not establish a general latency/fault simulation model."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/custom-webhook-response/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-provider-templates-research-2026-10-01
+    product: hookdeck
+    capability: provider-templates
+    assertion: "Hookdeck documents 182 provider Source Types with provider-aware authentication, required headers, response formats, guides, agent skills, and sample payloads."
+    state: present
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs/sources"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: hookdeck-signature-verification-research-2026-10-01
+    product: hookdeck
+    capability: signature-verification
+    assertion: "Hookdeck Source Types preconfigure provider-specific verification such as Stripe signatures, while generic sources support configurable HMAC authentication."
+    state: present
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs/sources"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-signature-verification-research-2026-10-01
+    product: hooklistener
+    capability: signature-verification
+    assertion: "Hooklistener MCP exposes verify_request_signature for Stripe, GitHub, and Slack against encrypted stored secrets and reports timestamp freshness separately."
+    state: present
+    source: {type: vendor_docs, url: "https://www.hooklistener.com/mcp"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhook-relay-signature-verification-research-2026-10-01
+    product: webhook-relay
+    capability: signature-verification
+    assertion: "Webhook Relay Functions support HMAC verification with supplied secrets and provider-specific walkthroughs such as GitHub; verification is programmable rather than a broad turnkey provider-template surface."
+    state: partial
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/auth/hmac/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
