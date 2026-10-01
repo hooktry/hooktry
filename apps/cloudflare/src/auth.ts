@@ -59,7 +59,13 @@ export async function startGitHubOAuth(
   });
   response.headers.append(
     "set-cookie",
-    cookie(OAUTH_STATE_COOKIE, state, OAUTH_STATE_TTL_SECONDS, requestUrl),
+    cookie(
+      OAUTH_STATE_COOKIE,
+      state,
+      OAUTH_STATE_TTL_SECONDS,
+      requestUrl,
+      "/api/v1/auth/github",
+    ),
   );
   response.headers.set("cache-control", "no-store");
   return response;
@@ -249,7 +255,8 @@ export function safeReturnTo(value: string): string {
   if (
     parsed.origin !== base.origin ||
     !value.startsWith("/") ||
-    value.startsWith("//")
+    value.startsWith("//") ||
+    value.includes("\\")
   ) {
     throw new AdapterError(400, "invalid_return_to");
   }
@@ -297,11 +304,12 @@ function cookie(
   value: string,
   maxAge: number,
   url: URL,
+  path = "/",
 ): string {
   return [
     `${name}=${value}`,
     `Max-Age=${maxAge}`,
-    "Path=/",
+    `Path=${path}`,
     "HttpOnly",
     "SameSite=Lax",
     ...(url.protocol === "https:" ? ["Secure"] : []),
