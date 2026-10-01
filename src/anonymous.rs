@@ -972,10 +972,7 @@ impl AnonymousExposureService {
             .await
     }
 
-    fn subscribe(
-        &self,
-        exposure_id: Uuid,
-    ) -> Box<dyn ports::AnonymousInteractionSubscription> {
+    fn subscribe(&self, exposure_id: Uuid) -> Box<dyn ports::AnonymousInteractionSubscription> {
         self.stream.subscribe(exposure_id)
     }
 }
@@ -1735,10 +1732,7 @@ mod tests {
             .await
             .unwrap();
 
-        let published = stream
-            .published
-            .lock()
-            .expect("recording stream poisoned");
+        let published = stream.published.lock().expect("recording stream poisoned");
         assert_eq!(published.len(), 1);
         assert_eq!(published[0].path, "/portable");
         assert_eq!(published[0].body, b"portable");
