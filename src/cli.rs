@@ -3,6 +3,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Serve,
+    Ui,
     Hosted,
     Interactions,
     Expose {
@@ -102,6 +103,7 @@ impl Cli {
         } else {
             match remaining.as_slice() {
                 [command] if command == "serve" => Command::Serve,
+                [command] if command == "ui" => Command::Ui,
                 [command] if command == "hosted" => Command::Hosted,
                 [command] if command == "interactions" => Command::Interactions,
                 [command] if command == "exposures" => Command::Exposures,
@@ -274,6 +276,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|approval inbox|approval create FILE|approval get ID|approval approve ID|approval deny ID|approval execute ID FILE|execution get ID|key status|key rewrap VERSION [--apply]|key retire-check VERSION|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|ui|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|approval inbox|approval create FILE|approval get ID|approval approve ID|approval deny ID|approval execute ID FILE|execution get ID|key status|key rewrap VERSION [--apply]|key retire-check VERSION|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }

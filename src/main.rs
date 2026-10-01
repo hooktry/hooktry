@@ -7,14 +7,13 @@ use ortyo::{
     hosted_client::HostedClient,
     hosted_runtime::HostedRuntimeStatus,
     hosted_server::{HostedServerConfig, run_hosted_server},
-    http::{AppState, app},
     key_maintenance::{KeyMaintenance, KeyMaintenanceConfig},
+    local::{LocalServerConfig, run_local_server},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
     scenario_run::{
         environment as scenario_environment, exit_code as scenario_run_exit_code,
         report as scenario_run_report,
     },
-    store::InteractionStore,
 };
 
 #[tokio::main]
@@ -28,7 +27,8 @@ async fn main() {
     };
 
     let result = match cli.command {
-        Command::Serve => serve().await.map(|_| 0),
+        Command::Serve => local(false).await.map(|_| 0),
+        Command::Ui => local(true).await.map(|_| 0),
         Command::Hosted => hosted().await.map(|_| 0),
         Command::Interactions => get_json(&format!("{}/_ortyo/interactions", cli.base_url))
             .await
@@ -140,20 +140,12 @@ fn key_retire_check(version: i32) -> Result<(), String> {
     print_json(&value)
 }
 
-async fn serve() -> Result<(), String> {
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:7777")
-        .await
-        .map_err(|error| format!("bind ORTYO HTTP boundary: {error}"))?;
-    let state = AppState {
-        store: InteractionStore::open("ortyo.db")
-            .map_err(|error| format!("open ORTYO evidence database: {error}"))?,
-        ..AppState::default()
-    };
-
-    println!("ORTYO HTTP boundary: http://127.0.0.1:7777");
-    axum::serve(listener, app(state))
-        .await
-        .map_err(|error| format!("serve ORTYO: {error}"))
+async fn local(open_browser: bool) -> Result<(), String> {
+    run_local_server(LocalServerConfig {
+        open_browser,
+        ..LocalServerConfig::default()
+    })
+    .await
 }
 
 async fn get_json(url: &str) -> Result<(), String> {

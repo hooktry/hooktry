@@ -78,9 +78,26 @@ For development, Vite proxies canonical HTTP/WebSocket paths to a local runtime.
 
 For Cloudflare, Workers Static Assets serves the compiled bundle.
 
-For LOCAL1, the Rust binary will serve the same compiled assets.
+For LOCAL1, the Rust binary serves the same compiled assets directly from the executable.
 
 For DESKTOP1, Tauri may wrap the same bundle. Native OS integration must stay a shell concern and must not fork ORTYO domain semantics.
+
+## Native local mapping
+
+LOCAL1 embeds the WEB1 dist files into the Rust executable at compile time.
+
+~~~text
+ortyo serve / ortyo ui
+        |
+        +-- canonical Hook API
+        +-- native WebSocket viewer
+        +-- SQLite
+        +-- embedded WEB1 assets
+~~~
+
+The local runtime binds to loopback and serves the same SPA paths as the managed cloud profile.
+
+See [LOCAL1 - Embedded Local Web Runtime](local-embedded-web.md).
 
 ## Cloudflare mapping
 
@@ -146,7 +163,6 @@ WEB1 does not implement:
 - replay UI
 - contract/scenario UI
 - Tauri
-- local asset embedding
 - a component library
 - Cloudflare-specific browser APIs
 

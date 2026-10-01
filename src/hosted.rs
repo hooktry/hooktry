@@ -29,6 +29,7 @@ use crate::{
     relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
     secret::SecretStore,
+    web_assets,
     websocket_transport::serve_websocket,
 };
 
@@ -327,6 +328,7 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
         .with_state(state)
         .merge(ingress)
         .merge(anonymous)
+        .fallback(web_assets::fallback)
 }
 
 async fn health() -> Json<serde_json::Value> {

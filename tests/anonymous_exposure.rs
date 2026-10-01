@@ -72,8 +72,8 @@ async fn anonymous_hook_pushes_interactions_and_can_be_claimed_without_rotating_
         "no-store, max-age=0"
     );
     let browser_html = browser.text().await.unwrap();
-    assert!(browser_html.contains("Ortyo webhook viewer"));
-    assert!(browser_html.contains("new WebSocket"));
+    assert!(browser_html.contains("<div id=\"root\"></div>"));
+    assert!(browser_html.contains("/assets/"));
 
     let (mut viewer, _) = tokio_tungstenite::connect_async(&provision.view_websocket_url)
         .await
