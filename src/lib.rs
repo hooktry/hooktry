@@ -1,5 +1,5 @@
-pub mod anonymous;
 pub mod agent_surface;
+pub mod anonymous;
 pub mod approval;
 pub mod approval_webhook;
 pub mod cli;
