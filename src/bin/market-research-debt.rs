@@ -16,15 +16,12 @@ struct Capability {
 #[derive(Debug, Clone, Default)]
 struct Product {
     id: String,
-    roles: Vec<String>,
     cohorts: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Priority {
     horizon: String,
-    decision: String,
-    confidence: String,
     capabilities: Vec<String>,
 }
 
@@ -79,8 +76,8 @@ fn main() -> ExitCode {
         Some(config) => config,
         None => {
             eprintln!(
-            "usage: market-research-debt [--limit N] [--max-per-capability N] [--json]"
-        );
+                "usage: market-research-debt [--limit N] [--max-per-capability N] [--json]"
+            );
             return ExitCode::from(2);
         }
     };
@@ -253,8 +250,6 @@ fn effective_priority(capability: &Capability, priorities: &[Priority]) -> Prior
 
     Priority {
         horizon: horizon.to_owned(),
-        decision: capability.disposition.clone(),
-        confidence: "derived".to_owned(),
         capabilities: vec![capability.id.clone()],
     }
 }
@@ -624,9 +619,7 @@ fn parse_products(text: &str) -> Vec<Product> {
                 ..Product::default()
             });
         } else if let Some(item) = current.as_mut() {
-            if let Some(value) = line.strip_prefix("    roles: ") {
-                item.roles = inline_list(value);
-            } else if let Some(value) = line.strip_prefix("    cohorts: ") {
+            if let Some(value) = line.strip_prefix("    cohorts: ") {
                 item.cohorts = inline_list(value);
             }
         }
@@ -652,10 +645,6 @@ fn parse_priorities(text: &str) -> Vec<Priority> {
             let trimmed = line.trim();
             if let Some(value) = trimmed.strip_prefix("horizon: ") {
                 item.horizon = scalar(value);
-            } else if let Some(value) = trimmed.strip_prefix("decision: ") {
-                item.decision = scalar(value);
-            } else if let Some(value) = trimmed.strip_prefix("confidence: ") {
-                item.confidence = scalar(value);
             } else if let Some(value) = trimmed.strip_prefix("capabilities: ") {
                 item.capabilities = inline_list(value);
             }
