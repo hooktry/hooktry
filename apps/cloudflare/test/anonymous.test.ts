@@ -17,11 +17,11 @@ function fetchWorker(request: Request): Promise<Response> {
   return worker.fetch(request, bindings);
 }
 
-describe("CF1 anonymous Exposure conformance", () => {
+describe("CF1 ephemeral Hook conformance", () => {
   it(
     "creates, pushes, survives DO eviction, claims, and preserves the hook URL",
     async () => {
-    const provision = await withStage("create", createAnonymous());
+    const provision = await withStage("create", createHook());
 
     expect(provision.hook_url).toMatch(/\/hook\/hk_[A-Za-z0-9_-]{32}$/);
     expect(provision.view_url).toMatch(/\/view\/vw_[A-Za-z0-9_-]{32}$/);
@@ -107,7 +107,7 @@ describe("CF1 anonymous Exposure conformance", () => {
   );
 
   it("keeps a hibernatable viewer connected across Durable Object eviction", async () => {
-    const provision = await createAnonymous();
+    const provision = await createHook();
     const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
 
     const viewerResponse = await stub.fetch(
@@ -161,7 +161,7 @@ describe("CF1 anonymous Exposure conformance", () => {
   }, 12_000);
 
   it("does not allow the view capability to act as hook authority", async () => {
-    const provision = await createAnonymous();
+    const provision = await createHook();
     const viewToken = provision.view_url.split("/").pop();
     if (!viewToken) {
       throw new Error("missing view token");
@@ -176,15 +176,15 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(response.status).toBe(404);
   });
 
-  it("enforces three active anonymous Exposures per principal", async () => {
-    const first = await createAnonymous();
+  it("enforces three active ephemeral Hooks per principal", async () => {
+    const first = await createHook();
     const headers = {
       "x-ortyo-anonymous-principal": first.anonymous_principal,
     };
 
     for (let index = 0; index < 2; index += 1) {
       const response = await fetchWorker(
-        new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
+        new Request("https://ortyo.test/api/v1/hooks", {
           method: "POST",
           headers,
         }),
@@ -193,7 +193,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     }
 
     const fourth = await fetchWorker(
-      new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
+      new Request("https://ortyo.test/api/v1/hooks", {
         method: "POST",
         headers,
       }),
@@ -202,7 +202,7 @@ describe("CF1 anonymous Exposure conformance", () => {
   });
 
   it("enforces request and retained-byte quotas from canonical metadata", async () => {
-    const requestLimited = await createAnonymous();
+    const requestLimited = await createHook();
     await bindings.DB.prepare(
       "UPDATE anonymous_exposures SET request_count = ? WHERE exposure_id = ?",
     )
@@ -220,7 +220,7 @@ describe("CF1 anonymous Exposure conformance", () => {
       error: { code: "request_limit" },
     });
 
-    const byteLimited = await createAnonymous();
+    const byteLimited = await createHook();
     await bindings.DB.prepare(
       "UPDATE anonymous_exposures SET retained_bytes = ? WHERE exposure_id = ?",
     )
@@ -240,9 +240,9 @@ describe("CF1 anonymous Exposure conformance", () => {
   });
 });
 
-async function createAnonymous(): Promise<AnonymousProvision> {
+async function createHook(): Promise<AnonymousProvision> {
   const response = await fetchWorker(
-    new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
+    new Request("https://ortyo.test/api/v1/hooks", {
       method: "POST",
     }),
   );
