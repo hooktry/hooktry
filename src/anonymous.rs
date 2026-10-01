@@ -956,7 +956,10 @@ impl AnonymousExposureService {
         Ok(interaction)
     }
 
-    async fn view(&self, view_capability_token: &str) -> Result<AnonymousExposureSummary, AnonymousError> {
+    async fn view(
+        &self,
+        view_capability_token: &str,
+    ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
             .view(token_digest(view_capability_token), unix_seconds_now())
             .await
@@ -1646,17 +1649,17 @@ mod tests {
         let service =
             AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
         let provision = service.provision(None).await.unwrap();
-        let ingress_token = provision
+        let hook_token = provision
             .hook_url
             .rsplit('/')
             .next()
-            .expect("ingress token")
+            .expect("hook token")
             .to_owned();
 
         for _ in 0..ANONYMOUS_REQUEST_LIMIT {
             service
                 .capture(
-                    &ingress_token,
+                    &hook_token,
                     "POST".to_owned(),
                     "/".to_owned(),
                     None,
@@ -1669,7 +1672,7 @@ mod tests {
         assert_eq!(
             service
                 .capture(
-                    &ingress_token,
+                    &hook_token,
                     "POST".to_owned(),
                     "/".to_owned(),
                     None,
@@ -1722,11 +1725,11 @@ mod tests {
             "https://ortyo.test",
         );
         let provision = service.provision(None).await.unwrap();
-        let ingress_token = provision.hook_url.rsplit('/').next().unwrap();
+        let hook_token = provision.hook_url.rsplit('/').next().unwrap();
 
         service
             .capture(
-                ingress_token,
+                hook_token,
                 "POST".to_owned(),
                 "/portable".to_owned(),
                 None,
