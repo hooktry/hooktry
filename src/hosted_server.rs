@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::{
     approval::{ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore},
-    approval_webhook::{ensure_webhook_secret, run_worker, validate_webhook_url},
+    approval_webhook::{
+        ensure_webhook_secret, run_worker, validate_webhook_url, webhook_headers, webhook_payload,
+    },
     domain::{ExposureAccess, ExposureMode},
     execution::{
         ExecutionError, ExecutionOutcome, HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
@@ -487,11 +489,20 @@ async fn run_dogfood_approval_webhook(
     workspace_id: Uuid,
 ) -> Result<(), String> {
     const ATTEMPTS: usize = 30;
+    const DOGFOOD_HEADER: &str = "x-ortyo-dogfood-secret";
+
+    let canary_id = Uuid::now_v7();
+    let query_canary = format!("ortyo-query-canary-{canary_id}");
+    let header_canary = format!("ortyo-header-canary-{canary_id}");
+    let body_canary = format!("ortyo-body-canary-{canary_id}");
     let request = HttpExecutionRequest {
-        method: "GET".to_owned(),
-        url: format!("{}/llms.txt", state.public_base_url),
-        headers: BTreeMap::new(),
-        body: None,
+        method: "POST".to_owned(),
+        url: format!(
+            "{}/llms.txt?dogfood_secret={query_canary}",
+            state.public_base_url
+        ),
+        headers: BTreeMap::from([(DOGFOOD_HEADER.to_owned(), header_canary.clone())]),
+        body: Some(json!({"secret": body_canary.clone()})),
         secret_headers: BTreeMap::new(),
         capture: vec![],
         timeout_ms: 5_000,
@@ -522,6 +533,26 @@ async fn run_dogfood_approval_webhook(
             approval.state
         ));
     }
+    if approval.summary.method != "POST"
+        || approval.summary.origin != state.public_base_url
+        || approval.summary.path != "/llms.txt"
+        || approval.summary.header_names != [DOGFOOD_HEADER.to_owned()]
+        || !approval.summary.secret_header_names.is_empty()
+        || approval.summary.body_sha256.is_none()
+        || !approval.summary.capture_names.is_empty()
+    {
+        return Err(
+            "dogfood webhook approval summary was not the expected redacted action".to_owned(),
+        );
+    }
+
+    let approval_json = serde_json::to_string(&approval)
+        .map_err(|error| format!("serialize dogfood webhook approval record: {error}"))?;
+    for canary in [&query_canary, &header_canary, &body_canary] {
+        if approval_json.contains(canary) {
+            return Err("dogfood webhook approval record leaked a request canary".to_owned());
+        }
+    }
 
     let notification = state
         .approvals
@@ -529,6 +560,30 @@ async fn run_dogfood_approval_webhook(
         .await
         .map_err(|error| format!("load dogfood webhook notification: {error:?}"))?
         .ok_or_else(|| "dogfood webhook approval had no notification intent".to_owned())?;
+
+    let payload = webhook_payload(notification.notification_id, &approval);
+    let payload_json = serde_json::to_string(&payload)
+        .map_err(|error| format!("serialize dogfood webhook payload proof: {error}"))?;
+    for canary in [&query_canary, &header_canary, &body_canary] {
+        if payload_json.contains(canary) {
+            return Err("dogfood webhook payload leaked a request canary".to_owned());
+        }
+    }
+    if payload.notification_id != notification.notification_id
+        || payload.approval_id != approval.approval_id
+        || payload.requested_at_unix_ms != approval.requested_at_unix_ms
+        || payload.summary != approval.summary
+    {
+        return Err("dogfood webhook payload did not match the redacted approval".to_owned());
+    }
+
+    let headers = webhook_headers(notification.notification_id);
+    let expected_idempotency_key = notification.notification_id.to_string();
+    if headers.get("idempotency-key").map(String::as_str) != Some(expected_idempotency_key.as_str())
+        || headers.get("x-ortyo-event").map(String::as_str) != Some("approval_requested")
+    {
+        return Err("dogfood webhook delivery headers were not deterministic".to_owned());
+    }
 
     let mut delivered = false;
     for attempt in 0..ATTEMPTS {
@@ -573,13 +628,24 @@ async fn run_dogfood_approval_webhook(
         ));
     }
 
+    let revision = render_revision().unwrap_or_else(|| "unknown".to_owned());
+    println!(
+        "{}",
+        serde_json::to_string(&DogfoodWebhookEvent {
+            event: "dogfood_approval_webhook_redaction_ready",
+            approval_id: approval.approval_id,
+            notification_id: notification.notification_id,
+            revision: revision.clone(),
+        })
+        .expect("dogfood webhook redaction event is serializable")
+    );
     println!(
         "{}",
         serde_json::to_string(&DogfoodWebhookEvent {
             event: "dogfood_approval_webhook_ready",
             approval_id: approval.approval_id,
             notification_id: notification.notification_id,
-            revision: render_revision().unwrap_or_else(|| "unknown".to_owned()),
+            revision,
         })
         .expect("dogfood webhook event is serializable")
     );

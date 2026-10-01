@@ -6,7 +6,7 @@ use tokio::time::sleep;
 use uuid::Uuid;
 
 use crate::{
-    approval::{ApprovalNotificationClaim, ApprovalState, ApprovalSummary},
+    approval::{ApprovalNotificationClaim, ApprovalRecord, ApprovalState, ApprovalSummary},
     execution::{ExecutionError, HttpExecutionRequest},
     hosted::HostedRelayState,
     secret::{SecretError, SecretStore},
@@ -26,6 +26,26 @@ pub struct ApprovalWebhookPayload {
     pub approval_id: Uuid,
     pub requested_at_unix_ms: u64,
     pub summary: ApprovalSummary,
+}
+
+pub(crate) fn webhook_payload(
+    notification_id: Uuid,
+    approval: &ApprovalRecord,
+) -> ApprovalWebhookPayload {
+    ApprovalWebhookPayload {
+        event: "approval_requested",
+        notification_id,
+        approval_id: approval.approval_id,
+        requested_at_unix_ms: approval.requested_at_unix_ms,
+        summary: approval.summary.clone(),
+    }
+}
+
+pub(crate) fn webhook_headers(notification_id: Uuid) -> BTreeMap<String, String> {
+    BTreeMap::from([
+        ("idempotency-key".to_owned(), notification_id.to_string()),
+        ("x-ortyo-event".to_owned(), "approval_requested".to_owned()),
+    ])
 }
 
 pub fn validate_webhook_url(value: &str) -> Result<(), String> {
@@ -134,19 +154,8 @@ async fn process_one(
         return release_failed_claim(state, workspace_id, &claim, "invalid_webhook_url").await;
     }
 
-    let payload = ApprovalWebhookPayload {
-        event: "approval_requested",
-        notification_id: claim.record.notification_id,
-        approval_id: approval.approval_id,
-        requested_at_unix_ms: approval.requested_at_unix_ms,
-        summary: approval.summary,
-    };
-    let mut headers = BTreeMap::new();
-    headers.insert(
-        "idempotency-key".to_owned(),
-        claim.record.notification_id.to_string(),
-    );
-    headers.insert("x-ortyo-event".to_owned(), "approval_requested".to_owned());
+    let payload = webhook_payload(claim.record.notification_id, &approval);
+    let headers = webhook_headers(claim.record.notification_id);
 
     let request = HttpExecutionRequest {
         method: "POST".to_owned(),
