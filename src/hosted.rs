@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     agent_surface,
+    anonymous::{AnonymousExposureService, AnonymousExposureStore, anonymous_app},
     approval::{ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
     execution::{
@@ -44,6 +45,7 @@ pub struct HostedRelayState {
     pub executor: HttpExecutionProvider,
     pub approvals: ApprovalStore,
     pub executions: ExecutionStore,
+    pub anonymous: AnonymousExposureService,
     control_token_digest: [u8; 32],
 }
 
@@ -57,6 +59,10 @@ impl HostedRelayState {
     ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let runtime_ws_base_url = websocket_base_url(&public_base_url);
+        let anonymous = AnonymousExposureService::new(
+            AnonymousExposureStore::default(),
+            public_base_url.clone(),
+        );
         Self {
             broker,
             capabilities,
@@ -69,6 +75,7 @@ impl HostedRelayState {
             executor: HttpExecutionProvider::new(SecretStore::default()),
             approvals: ApprovalStore::default(),
             executions: ExecutionStore::default(),
+            anonymous,
             control_token_digest: token_digest(control_token),
         }
     }
@@ -117,6 +124,10 @@ impl HostedRelayState {
     ) -> Self {
         let public_base_url = public_base_url.into().trim_end_matches('/').to_owned();
         let runtime_ws_base_url = websocket_base_url(&public_base_url);
+        let anonymous = AnonymousExposureService::new(
+            AnonymousExposureStore::default(),
+            public_base_url.clone(),
+        );
         Self {
             broker,
             capabilities,
@@ -131,6 +142,11 @@ impl HostedRelayState {
             executions: ExecutionStore::default(),
             control_token_digest: token_digest(control_token),
         }
+    }
+
+    pub fn with_anonymous_store(mut self, store: AnonymousExposureStore) -> Self {
+        self.anonymous = self.anonymous.with_store(store);
+        self
     }
 
     pub fn with_approval_store(mut self, approvals: ApprovalStore) -> Self {
@@ -264,6 +280,7 @@ impl IntoResponse for HostedApiError {
 
 pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     let ingress = relay_ingress_app(RelayIngressState::new(state.broker.clone()));
+    let anonymous = anonymous_app(state.anonymous.clone(), state.identities.clone());
     Router::new()
         .route("/llms.txt", get(agent_surface::llms_txt))
         .route("/llms-full.txt", get(agent_surface::llms_full_txt))
@@ -308,6 +325,7 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
         )
         .with_state(state)
         .merge(ingress)
+        .merge(anonymous)
 }
 
 async fn health() -> Json<serde_json::Value> {
