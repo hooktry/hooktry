@@ -5,6 +5,7 @@ const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 const databaseId = required("ORTYO_D1_DATABASE_ID");
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 const expectedReleaseSha = process.env.ORTYO_EXPECTED_RELEASE_SHA?.trim() || null;
+const expectGitHubAuth = process.env.ORTYO_EXPECT_GITHUB_AUTH === "1";
 
 let provision;
 const interactions = [];
@@ -107,6 +108,7 @@ async function waitForHealth() {
   let consecutive = 0;
   let lastStatus = 0;
   let lastRevision = null;
+  let lastGitHubAuthConfigured = false;
 
   while (Date.now() < deadline) {
     const response = await fetch(`${baseUrl}/healthz`).catch(() => null);
@@ -115,8 +117,13 @@ async function waitForHealth() {
     if (response?.ok) {
       const payload = await response.json().catch(() => null);
       lastRevision = payload?.revision ?? null;
+      lastGitHubAuthConfigured = payload?.github_auth_configured === true;
 
-      if (!expectedReleaseSha || lastRevision === expectedReleaseSha) {
+      const revisionReady =
+        !expectedReleaseSha || lastRevision === expectedReleaseSha;
+      const authReady = !expectGitHubAuth || lastGitHubAuthConfigured;
+
+      if (revisionReady && authReady) {
         consecutive += 1;
         if (consecutive >= 3) {
           return;
@@ -132,7 +139,7 @@ async function waitForHealth() {
   }
 
   throw new Error(
-    `healthz did not converge within 30s; last status: ${lastStatus}; expected revision: ${expectedReleaseSha ?? "any"}; last revision: ${lastRevision ?? "none"}`,
+    `healthz did not converge within 30s; last status: ${lastStatus}; expected revision: ${expectedReleaseSha ?? "any"}; last revision: ${lastRevision ?? "none"}; github auth configured: ${lastGitHubAuthConfigured}`,
   );
 }
 
