@@ -555,7 +555,7 @@ impl AnonymousExposureStore {
         now: u64,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         let store = self.clone();
-        tokio::task::spawn_blocking(move || store.viewer(view_capability_digest, now))
+        tokio::task::spawn_blocking(move || store.view(view_capability_digest, now))
             .await
             .map_err(|error| AnonymousError::Storage(error.to_string()))?
     }
@@ -835,7 +835,7 @@ impl AnonymousExposureRepository for AnonymousExposureStore {
         Box::pin(self.capture_async(input))
     }
 
-    fn viewer(
+    fn view(
         &self,
         view_capability_digest: [u8; 32],
         now: u64,
