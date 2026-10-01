@@ -21,8 +21,14 @@ const DIRECT_DEMAND_DIRECTIONS: &[&str] = &["supports", "contradicts", "mixed"];
 const NEXT_EVIDENCE: &[&str] = &[
     "market_research",
     "first_party_usage",
+    "external_usage",
     "implementation",
     "watch",
+];
+const USAGE_EVIDENCE_CLASSES: &[&str] = &[
+    "self_dogfood",
+    "first_party_portfolio",
+    "external_customer",
 ];
 const VECTOR_TYPES: &[&str] = &["depth", "adjacent", "option"];
 
@@ -30,6 +36,7 @@ const VECTOR_TYPES: &[&str] = &["depth", "adjacent", "option"];
 struct ValidationReport {
     errors: Vec<String>,
     observations: usize,
+    usage_evidence: usize,
     matrix_cells: usize,
 }
 
@@ -90,6 +97,19 @@ struct Scenario {
 }
 
 #[derive(Debug, Clone, Default)]
+struct UsageEvidence {
+    id: String,
+    class: String,
+    observed_at: String,
+    source_product: String,
+    source_repo: String,
+    source_commit: String,
+    source_url: String,
+    assertion: String,
+    capabilities: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
 struct Vector {
     id: String,
     kind: String,
@@ -107,16 +127,17 @@ fn main() -> ExitCode {
     match validate_repository(Path::new(".")) {
         Ok(report) if report.errors.is_empty() => {
             println!(
-                "market model OK: {} observations, {} matrix cells",
-                report.observations, report.matrix_cells
+                "market model OK: {} observations, {} usage evidence records, {} matrix cells",
+                report.observations, report.usage_evidence, report.matrix_cells
             );
             ExitCode::SUCCESS
         }
         Ok(report) => {
             eprintln!(
-                "market model invalid: {} error(s), {} observations, {} matrix cells",
+                "market model invalid: {} error(s), {} observations, {} usage evidence records, {} matrix cells",
                 report.errors.len(),
                 report.observations,
+                report.usage_evidence,
                 report.matrix_cells
             );
             for error in report.errors {
@@ -139,12 +160,14 @@ fn validate_repository(root: &Path) -> Result<ValidationReport, String> {
     let observations = load_observations(&market.join("observations"))?;
     let signals = parse_signals(&read(&market.join("signals.yaml"))?);
     let priorities = parse_priorities(&read(&market.join("priorities.yaml"))?);
+    let usage_evidence = parse_usage_evidence(&read(&market.join("usage-evidence.yaml"))?);
     let scenarios = parse_scenarios(&read(&market.join("scenarios.yaml"))?);
     let vectors = parse_vectors(&read(&market.join("vectors.yaml"))?);
     let competitors = parse_competitor_ids(&read(&market.join("competitors.yaml"))?);
 
     let mut report = ValidationReport {
         observations: observations.len(),
+        usage_evidence: usage_evidence.len(),
         matrix_cells: matrix.rows.values().map(HashMap::len).sum(),
         ..ValidationReport::default()
     };
@@ -168,6 +191,7 @@ fn validate_repository(root: &Path) -> Result<ValidationReport, String> {
     );
     validate_signals(&signals, &capability_map, &mut report.errors);
     validate_priorities(&priorities, &capability_map, &mut report.errors);
+    validate_usage_evidence(&usage_evidence, &capability_map, &mut report.errors);
     validate_scenarios(&scenarios, &capability_map, &mut report.errors);
     validate_vectors(&vectors, &scope, &mut report.errors);
 
@@ -455,6 +479,54 @@ fn validate_priorities(
     }
 }
 
+fn validate_usage_evidence(
+    evidence: &[UsageEvidence],
+    capabilities: &HashMap<&str, &Capability>,
+    errors: &mut Vec<String>,
+) {
+    let mut ids = HashSet::new();
+    for item in evidence {
+        if item.id.is_empty() {
+            errors.push("usage evidence without id".to_owned());
+        } else if !ids.insert(item.id.as_str()) {
+            errors.push(format!("duplicate usage evidence id: {}", item.id));
+        }
+        if !USAGE_EVIDENCE_CLASSES.contains(&item.class.as_str()) {
+            errors.push(format!(
+                "usage evidence {} has invalid class: {}",
+                item.id, item.class
+            ));
+        }
+        if item.observed_at.is_empty() {
+            errors.push(format!("usage evidence {} is missing observed_at", item.id));
+        }
+        if item.source_product.is_empty()
+            || item.source_repo.is_empty()
+            || item.source_commit.is_empty()
+            || item.source_url.is_empty()
+        {
+            errors.push(format!(
+                "usage evidence {} is missing source provenance",
+                item.id
+            ));
+        }
+        if item.assertion.is_empty() {
+            errors.push(format!("usage evidence {} is missing assertion", item.id));
+        }
+        if item.capabilities.is_empty() {
+            errors.push(format!("usage evidence {} has no capabilities", item.id));
+        }
+        for capability in &item.capabilities {
+            if !capabilities.contains_key(capability.as_str()) {
+                errors.push(format!(
+                    "usage evidence {} references unknown capability: {capability}",
+                    item.id
+                ));
+            }
+        }
+    }
+}
+
 fn validate_scenarios(
     scenarios: &[Scenario],
     capabilities: &HashMap<&str, &Capability>,
@@ -726,6 +798,47 @@ fn parse_priorities(text: &str) -> Vec<Priority> {
                 item.decision = scalar(value);
             } else if let Some(value) = trimmed.strip_prefix("next_evidence: ") {
                 item.next_evidence = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("capabilities: ") {
+                item.capabilities = inline_list(value);
+            }
+        }
+    }
+
+    if let Some(item) = current {
+        items.push(item);
+    }
+    items
+}
+
+fn parse_usage_evidence(text: &str) -> Vec<UsageEvidence> {
+    let mut items = Vec::new();
+    let mut current: Option<UsageEvidence> = None;
+
+    for line in text.lines() {
+        if let Some(value) = line.strip_prefix("  - id: ") {
+            if let Some(item) = current.take() {
+                items.push(item);
+            }
+            current = Some(UsageEvidence {
+                id: scalar(value),
+                ..UsageEvidence::default()
+            });
+        } else if let Some(item) = current.as_mut() {
+            let trimmed = line.trim();
+            if let Some(value) = trimmed.strip_prefix("observed_at: ") {
+                item.observed_at = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("class: ") {
+                item.class = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("source_product: ") {
+                item.source_product = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("source_repo: ") {
+                item.source_repo = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("source_commit: ") {
+                item.source_commit = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("source_url: ") {
+                item.source_url = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("assertion: ") {
+                item.assertion = scalar(value);
             } else if let Some(value) = trimmed.strip_prefix("capabilities: ") {
                 item.capabilities = inline_list(value);
             }
