@@ -269,11 +269,11 @@ fn decision_tier(
         "P0"
     } else if horizon == "next" && open_gap && direct_demand > 0 {
         "P1"
-    } else if horizon == "next" && open_gap {
-        "P2"
-    } else if horizon == "validate" && open_gap && direct_demand > 0 {
-        "P2"
-    } else if disposition == "differentiation" && (direct_demand > 0 || supporting_signals > 0) {
+    } else if (horizon == "next" && open_gap)
+        || (horizon == "validate" && open_gap && direct_demand > 0)
+        || (disposition == "differentiation"
+            && (direct_demand > 0 || supporting_signals > 0))
+    {
         "P2"
     } else if matches!(horizon, "validate" | "watch" | "option") && open_gap {
         "P3"
@@ -623,10 +623,10 @@ fn parse_products(text: &str) -> Vec<Product> {
                 id: scalar(value),
                 ..Product::default()
             });
-        } else if let Some(item) = current.as_mut() {
-            if let Some(value) = line.strip_prefix("    cohorts: ") {
-                item.cohorts = inline_list(value);
-            }
+        } else if let Some(item) = current.as_mut()
+            && let Some(value) = line.strip_prefix("    cohorts: ")
+        {
+            item.cohorts = inline_list(value);
         }
     }
 
