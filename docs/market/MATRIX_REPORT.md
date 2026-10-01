@@ -11,29 +11,29 @@ Legend: **P** present, **~** partial, **A** verified absent, **?** unknown / not
 
 | Capability | Ortyo | Webhook.site | Hookdeck | Webhook Relay | Svix | Beeceptor | webhooks.cc | Hooklistener | Webhooker | Hook0 | RequestBin |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Instant public endpoint | P | P | P | P | P | P | P | P | P | P | P |
-| No-signup ephemeral start | P | P | P | ? | ? | P | P | P | ? | ? | ? |
-| Persistent endpoint | ~ | ~ | P | P | P | ~ | P | P | P | P | P |
-| Request inspection | P* | P | P | P | P | P | P | P | P | P | P |
-| Request history | P | P | P | P | P | P | P | P | P | P | P |
-| Search/filter | ~ | P | P | ? | ? | ? | P | P | P | ? | ~ |
-| Configurable response | ~ | P | ? | ? | P | P | P | P | ? | ? | ~ |
-| Failure/latency simulation | ~ | ~ | ? | ? | P | P | ~ | ~ | ? | ? | ? |
-| Replay | P* | P | P | P | ~ | ? | P | P | P | P | P |
-| Local forwarding | P | P | P | P | P | P | P | P | P | ? | ? |
+| Instant public endpoint | P | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
+| No-signup ephemeral start | P | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
+| Persistent endpoint | ~ | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
+| Request inspection | P* | P | ? | ? | ? | P | ? | ? | ? | ? | P |
+| Request history | P | ? | ? | ? | ? | P | ? | ? | ? | ? | P |
+| Search/filter | ~ | P | ? | ? | ? | ? | P | P | P | ? | ? |
+| Configurable response | ~ | P | ? | ? | P | P | P | P | ? | ? | ? |
+| Failure/latency simulation | ~ | ~ | ? | ? | P | P | ? | ? | ? | ? | ? |
+| Replay | P* | P | P | ? | ? | ? | ? | P | ? | ? | P |
+| Local forwarding | P | P | P | P | ? | P | P | ? | P | ? | ? |
 | Provider templates | A | ? | ? | ? | ? | ? | P | ? | ? | ? | P |
-| Signature verification | ? | ? | ? | ? | P | ? | P | P | ? | P | ? |
-| API | P | P | P | P | P | P | P | P | P | P | P |
-| CLI | P | P | P | P | P | ? | P | P | P | ? | ? |
+| Signature verification | ? | ? | ? | ? | P | ? | P | ? | ? | P | ? |
+| API | P | ? | ? | ? | ? | ? | ? | P | P | ? | P |
+| CLI | P | P | ? | ? | P | ? | ? | P | P | ? | ? |
 | MCP/agent surface | P | ? | P | P | ? | ? | P | P | ? | P | P |
-| Async wait | P | ? | ? | P | P | ? | P | ~ | ? | ? | ? |
-| Deterministic CI | P | ? | ~ | ~ | ~ | ~ | P | P | ? | ? | ~ |
+| Async wait | P | ? | ? | P | P | ? | ? | ? | ? | ? | ? |
+| Deterministic CI | P | ? | ? | ? | ? | ? | P | P | ? | ? | ? |
 | Structured request diff | ? | ? | ? | ? | ? | ? | P | P | ? | ? | ? |
-| Self-host/local runtime | P | ? | ~ | ? | ? | ? | ? | ? | ? | P | ? |
-| Team collaboration | ~ | P | P | P | P | P | P | P | P | P | P |
-| Durable retries | ? | ? | P | P | P | ? | ? | ? | P | P | ? |
+| Self-host/local runtime | P | ? | ? | ? | ? | ? | ? | ? | ? | P | ? |
+| Team collaboration | ~ | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
+| Durable retries | ? | ? | P | P | P | ? | ? | ? | ? | P | ? |
 | DLQ | A | ? | ? | ? | ? | ? | ? | ? | P | ? | ? |
-| API/service mocking | ~ | ~ | ? | ? | ~ | P | ~ | ~ | ? | ? | P |
+| API/service mocking | ~ | ? | ? | ? | ? | P | ? | ? | ? | ? | P |
 
 `P*` means the capability exists in Ortyo but the current human-facing depth is materially below the primary-market reference bar.
 

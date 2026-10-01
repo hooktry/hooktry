@@ -145,3 +145,26 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Add an immutable baseline snapshot.
 5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.
+
+
+## Executable validation
+
+The market model is checked in CI:
+
+```bash
+cargo run --locked --bin market-model-check -- --check
+```
+
+The validator treats `matrix.yaml` as a projection over atomic evidence rather than an independent source of truth.
+
+Current invariants include:
+
+- capability, product, cohort, scenario, signal, priority, and vector references must resolve
+- capability dispositions and Ortyo implementation states use the canonical vocabularies
+- matrix states are limited to `present | partial | absent | unknown`
+- Ortyo matrix cells must agree with `capabilities.yaml`
+- every external non-`unknown` matrix cell requires a current atomic observation with the same state
+- observations require date, applicability, freshness, confidence, assertion, and source URL
+- direct-demand signals require an explicit `supports | contradicts | mixed` direction
+
+Missing evidence is represented as `unknown`, not inferred as absence.
