@@ -11,10 +11,12 @@ It answers:
 
 ## Current coverage
 
-The primary matrix has 230 external product-capability cells:
+The temporal-depth projection now has 290 external product-capability cells:
 
-- 74 evidenced
-- 156 unknown
+- 84 evidenced
+- 206 unknown
+
+The denominator increased by 60 because six differentiation capabilities were intentionally added to the matrix. This is projection-scope expansion, not lost evidence.
 
 This does **not** mean 171 equally important research tasks remain.
 
@@ -112,7 +114,7 @@ cargo run --locked --bin market-research-debt -- \
 
 ## Next research sprint
 
-Research sprints 1-2 resolved 15 decision-relevant cells. Four P0/P1 checks remain unknown by design; the next sprint should concentrate on differentiation-depth uncertainty across:
+Research sprints 1-2 resolved 15 decision-relevant cells. Temporal-depth pass 3 expanded the decision projection and added 10 evidence-backed states on the new rows. Four P0/P1 checks remain unknown by design; further research should concentrate on the remaining differentiation-depth uncertainty across:
 
 1. temporal/cardinality/ordering semantics
 2. correlation/idempotency-aware matching
