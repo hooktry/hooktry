@@ -1,0 +1,23 @@
+{
+  "name": "customer before subscription",
+  "target": {
+    "port": 3000
+  },
+  "observation": {
+    "within_ms": 5000,
+    "settle_ms": 500
+  },
+  "ordering": "declared",
+  "contracts": [
+    {
+      "name": "customer created",
+      "operation": "POST /customer",
+      "count": 1
+    },
+    {
+      "name": "subscription created",
+      "operation": "POST /subscription",
+      "count": 1
+    }
+  ]
+}
