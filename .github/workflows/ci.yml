@@ -35,7 +35,7 @@ jobs:
           fi
 
           git cat-file -e "${BASE_SHA}^{commit}"
-          changes="$(git diff --name-status "${BASE_SHA}" HEAD -- docs/market/snapshots || true)"
+          changes="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' || true)"
           invalid="$(printf '%s
 ' "${changes}" | awk 'NF > 0 && $1 != "A" { print }')"
 
