@@ -1,3 +1,4 @@
+pub mod anonymous;
 pub mod agent_surface;
 pub mod approval;
 pub mod approval_webhook;
