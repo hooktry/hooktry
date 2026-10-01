@@ -39,22 +39,22 @@ export default {
         request.method === "POST" &&
         url.pathname === "/_ortyo/anonymous/exposures"
       ) {
-        return createAnonymous(request, env);
+        return await createAnonymous(request, env);
       }
 
       const hook = url.pathname.match(/^\/hook\/(hk_[A-Za-z0-9_-]{32})(?:\/.*)?$/);
       if (hook) {
-        return routeHook(request, env, hook[1]);
+        return await routeHook(request, env, hook[1]);
       }
 
       const view = url.pathname.match(/^\/view\/(vw_[A-Za-z0-9_-]{32})$/);
       if (view && request.method === "GET") {
-        return routeView(request, env, view[1]);
+        return await routeView(request, env, view[1]);
       }
 
       const claim = url.pathname.match(/^\/claim\/(cl_[A-Za-z0-9_-]{32})$/);
       if (claim && request.method === "POST") {
-        return routeClaim(request, env, claim[1]);
+        return await routeClaim(request, env, claim[1]);
       }
 
       return json({ error: { code: "not_found" } }, 404);
