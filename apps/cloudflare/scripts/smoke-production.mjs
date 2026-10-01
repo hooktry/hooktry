@@ -131,7 +131,7 @@ async function verifyGitHubAuthStart() {
   const authorize = new URL(location);
   assert(authorize.origin === "https://github.com", "GitHub auth origin mismatch");
   assert(authorize.pathname === "/login/oauth/authorize", "GitHub auth path mismatch");
-  assert(authorize.searchParams.get("scope") === "read:user", "GitHub auth scope mismatch");
+  assert(!authorize.searchParams.has("scope"), "GitHub auth unexpectedly requests OAuth scopes");
   assert(
     authorize.searchParams.get("code_challenge_method") === "S256",
     "GitHub auth PKCE method mismatch",
