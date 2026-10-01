@@ -16,6 +16,7 @@ pub mod hosted_runtime;
 pub mod hosted_server;
 pub mod hosted_state;
 pub mod http;
+pub mod key_maintenance;
 pub mod keyring;
 pub mod mcp;
 pub mod recording;
