@@ -29,7 +29,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
 
     let client = reqwest::Client::new();
     let create = client
-        .post(format!("http://{addr}/_ortyo/anonymous/exposures"))
+        .post(format!("http://{addr}/api/v1/exposures"))
         .send()
         .await
         .unwrap();
@@ -171,7 +171,7 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
 
     let client = reqwest::Client::new();
     let provision: AnonymousProvision = client
-        .post(format!("http://{addr}/_ortyo/anonymous/exposures"))
+        .post(format!("http://{addr}/api/v1/exposures"))
         .send()
         .await
         .unwrap()
@@ -180,6 +180,13 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
         .json()
         .await
         .unwrap();
+
+    let legacy_create = client
+        .post(format!("http://{addr}/_ortyo/anonymous/exposures"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(legacy_create.status(), reqwest::StatusCode::NOT_FOUND);
 
     let viewer_token = provision.view_url.rsplit('/').next().unwrap();
     let hook_token = provision.hook_url.rsplit('/').next().unwrap();
