@@ -36,7 +36,7 @@ describe("AUTH1 GitHub claim flow", () => {
     expect(location.origin).toBe("https://github.com");
     expect(location.pathname).toBe("/login/oauth/authorize");
     expect(location.searchParams.get("client_id")).toBe("test-github-client");
-    expect(location.searchParams.get("scope")).toBe("read:user");
+    expect(location.searchParams.has("scope")).toBe(false);
     expect(location.searchParams.get("redirect_uri")).toBe(
       "https://ortyo.test/api/v1/auth/github/callback",
     );
@@ -321,7 +321,7 @@ const fakeGitHubFetch: typeof fetch = async (input, init) => {
     expect(String(init?.body)).toMatch(/code_verifier=[A-Za-z0-9_-]{43}/);
     return Response.json({
       access_token: "gho_ephemeral_test_token",
-      scope: "read:user",
+      scope: "",
       token_type: "bearer",
     });
   }
