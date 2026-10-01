@@ -98,6 +98,13 @@ jobs:
           --to docs/market/snapshots/2026-10-01-baseline.yaml
           --json
 
+      - name: Market research debt
+        run: >
+          cargo run --locked --bin market-research-debt --
+          --limit 20
+          --max-per-capability 3
+          --json
+
       - name: Tests
         run: cargo test --locked --all-targets --all-features
 
