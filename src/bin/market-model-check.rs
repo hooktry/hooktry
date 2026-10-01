@@ -25,11 +25,8 @@ const NEXT_EVIDENCE: &[&str] = &[
     "implementation",
     "watch",
 ];
-const USAGE_EVIDENCE_CLASSES: &[&str] = &[
-    "self_dogfood",
-    "first_party_portfolio",
-    "external_customer",
-];
+const USAGE_EVIDENCE_CLASSES: &[&str] =
+    &["self_dogfood", "first_party_portfolio", "external_customer"];
 const VECTOR_TYPES: &[&str] = &["depth", "adjacent", "option"];
 
 #[derive(Debug, Default)]
