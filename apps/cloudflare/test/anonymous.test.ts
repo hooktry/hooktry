@@ -27,7 +27,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(provision.expires_at_unix_seconds).toBeTypeOf("number");
 
     const viewerResponse = await fetchWorker(
-      new Request(provision.view_websocket_url, {
+      new Request(provision.view_url, {
         headers: { Upgrade: "websocket" },
       }),
     );
