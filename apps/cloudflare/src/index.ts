@@ -118,7 +118,7 @@ async function createAnonymous(request: Request, env: Env): Promise<Response> {
   const response = json(provision, 201);
   response.headers.set(
     "set-cookie",
-    `ortyo_anon=${principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax; Secure`,
+    `ortyo_anon=${principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${url.protocol === "https:" ? "; Secure" : ""}`,
   );
   response.headers.set("cache-control", "no-store");
   return response;
@@ -237,7 +237,7 @@ main{max-width:1100px;margin:auto}h1{font:600 22px system-ui,sans-serif;margin:0
 const status = document.getElementById("status");
 const events = document.getElementById("events");
 const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-const socket = new WebSocket(`${scheme}//${location.host}${location.pathname}`);
+const socket = new WebSocket(scheme + "//" + location.host + location.pathname);
 socket.onopen = () => { status.textContent = "Live"; };
 socket.onclose = () => { status.textContent = "Disconnected"; };
 socket.onerror = () => { status.textContent = "Connection error"; };
