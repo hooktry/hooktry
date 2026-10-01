@@ -226,7 +226,9 @@ fn validate_matrix(
             errors.push(format!("matrix.yaml declares duplicate product: {product}"));
         }
         if !scope.products.contains_key(product) {
-            errors.push(format!(\n                "matrix.yaml references product outside scope: {product}"\n            ));
+            errors.push(format!(
+                "matrix.yaml references product outside scope: {product}"
+            ));
         }
         if product != "ortyo" && !competitors.contains(product) {
             errors.push(format!(
@@ -335,7 +337,10 @@ fn validate_observations(
             ));
         }
         if observation.observed_at.is_empty() {
-            errors.push(format!(\n                "observation {} is missing observed_at",\n                observation.id\n            ));
+            errors.push(format!(
+                "observation {} is missing observed_at",
+                observation.id
+            ));
         } else if !checked_at.is_empty() && observation.observed_at.as_str() > checked_at {
             errors.push(format!(
                 "observation {} is dated after matrix checked_at: {} > {}",
@@ -355,13 +360,22 @@ fn validate_observations(
             ));
         }
         if observation.confidence.is_empty() {
-            errors.push(format!(\n                "observation {} is missing confidence",\n                observation.id\n            ));
+            errors.push(format!(
+                "observation {} is missing confidence",
+                observation.id
+            ));
         }
         if observation.assertion.is_empty() {
-            errors.push(format!(\n                "observation {} is missing assertion",\n                observation.id\n            ));
+            errors.push(format!(
+                "observation {} is missing assertion",
+                observation.id
+            ));
         }
         if observation.source_url.is_empty() {
-            errors.push(format!(\n                "observation {} is missing source URL",\n                observation.id\n            ));
+            errors.push(format!(
+                "observation {} is missing source URL",
+                observation.id
+            ));
         }
     }
 }
@@ -581,7 +595,12 @@ fn load_observations(dir: &Path) -> Result<Vec<Observation>, String> {
         .map_err(|error| format!("read {}: {error}", dir.display()))?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| {\n            matches!(\n                path.extension().and_then(|value| value.to_str()),\n                Some("yaml" | "yml")\n            )\n        })
+        .filter(|path| {
+            matches!(
+                path.extension().and_then(|value| value.to_str()),
+                Some("yaml" | "yml")
+            )
+        })
         .collect();
     paths.sort();
 
@@ -789,7 +808,10 @@ fn key_value(value: &str) -> Option<(String, String)> {
 
 fn inline_list(value: &str) -> Vec<String> {
     let value = value.trim();
-    let Some(inner) = value\n        .strip_prefix('[')\n        .and_then(|value| value.strip_suffix(']'))\n    else {
+    let Some(inner) = value
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+    else {
         return Vec::new();
     };
     if inner.trim().is_empty() {
