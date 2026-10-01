@@ -137,6 +137,48 @@ describe("AUTH1 GitHub claim flow", () => {
     ).first<Record<string, unknown>>();
 
     expect(JSON.stringify(persisted)).not.toContain("gho_ephemeral_test_token");
+    expect(JSON.stringify(persisted)).not.toContain(
+      first.sessionCookie.split("=")[1],
+    );
+  });
+
+  it("consumes OAuth state exactly once", async () => {
+    const start = await startGitHubOAuth(
+      new Request(
+        "https://ortyo.test/api/v1/auth/github/start?return_to=%2F",
+      ),
+      bindings,
+    );
+    const authorize = new URL(requiredHeader(start, "location"));
+    const state = authorize.searchParams.get("state");
+    if (!state) throw new Error("missing OAuth state");
+
+    const cookies = requiredHeader(start, "set-cookie");
+    const pkce = cookies.match(/ortyo_oauth_pkce=([^;,]+)/)?.[1];
+    if (!pkce) throw new Error("missing OAuth PKCE cookie");
+
+    const callback = new Request(
+      `https://ortyo.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
+      {
+        headers: {
+          cookie: `ortyo_oauth_state=${state}; ortyo_oauth_pkce=${pkce}`,
+        },
+      },
+    );
+
+    const first = await finishGitHubOAuth(
+      callback.clone(),
+      bindings,
+      fakeGitHubFetch,
+    );
+    expect(first.status).toBe(302);
+
+    await expect(
+      finishGitHubOAuth(callback, bindings, fakeGitHubFetch),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "oauth_state_invalid",
+    });
   });
 
   it("claims an existing anonymous Hook with the authenticated personal workspace and preserves the Hook", async () => {
