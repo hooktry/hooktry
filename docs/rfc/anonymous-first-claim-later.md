@@ -106,6 +106,8 @@ The same operation should be discoverable from `llms.txt`, MCP, CLI help, and ag
 
 ## Cloudflare shape
 
+Cloudflare is the first managed-cloud deployment target, not an ORTYO domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.
+
 Anonymous Exposures must be data, not infrastructure objects.
 
 Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one shared origin with capability-specific paths:
