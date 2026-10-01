@@ -60,11 +60,8 @@ pub struct AnonymousProvision {
     pub exposure: AnonymousExposureSummary,
     pub hook_url: String,
     pub view_url: String,
-    pub view_ws_url: String,
+    pub view_websocket_url: String,
     pub claim_url: String,
-    // Compatibility aliases for the first anonymous Exposure contract.
-    pub ingress_url: String,
-    pub viewer_url: String,
     pub anonymous_principal: String,
 }
 
@@ -892,17 +889,12 @@ impl AnonymousExposureService {
             })
             .await?;
 
-        let hook_url = format!("{}/hook/{ingress}", self.public_base_url);
-        let view_url = format!("{}/view/{viewer}", self.public_base_url);
-        let view_ws_url = format!("{}/view/{viewer}", self.viewer_ws_base_url);
         Ok(AnonymousProvision {
             exposure,
-            hook_url: hook_url.clone(),
-            view_url,
-            view_ws_url: view_ws_url.clone(),
+            hook_url: format!("{}/hook/{ingress}", self.public_base_url),
+            view_url: format!("{}/view/{viewer}", self.public_base_url),
+            view_websocket_url: format!("{}/view/{viewer}", self.viewer_ws_base_url),
             claim_url: format!("{}/claim/{claim}", self.public_base_url),
-            ingress_url: hook_url,
-            viewer_url: view_ws_url,
             anonymous_principal: principal,
         })
     }
@@ -987,14 +979,6 @@ pub fn anonymous_app(
         .route("/claim/{claim_token}", post(claim_anonymous))
         .route("/hook/{ingress_token}", any(anonymous_ingress_root))
         .route("/hook/{ingress_token}/{*path}", any(anonymous_ingress_path))
-        // Compatibility aliases preserve already-issued anonymous capability URLs.
-        .route("/_ortyo/anonymous/view/{viewer_token}", get(view_anonymous))
-        .route(
-            "/_ortyo/anonymous/claim/{claim_token}",
-            post(claim_anonymous),
-        )
-        .route("/h/{ingress_token}", any(anonymous_ingress_root))
-        .route("/h/{ingress_token}/{*path}", any(anonymous_ingress_path))
         .layer(DefaultBodyLimit::max(ANONYMOUS_MAX_BODY_BYTES))
         .with_state(state)
 }
