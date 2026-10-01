@@ -8,7 +8,7 @@
   },
   "scripts": {
     "check": "npm run typecheck && npm test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p test/tsconfig.json --noEmit",
     "test": "vitest run",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
