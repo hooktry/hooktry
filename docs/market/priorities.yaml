@@ -1,0 +1,66 @@
+checked_at: 2026-10-01
+evidence_scope: "Public market evidence plus current Ortyo implementation; no first-party customer cohort yet."
+
+priorities:
+  - id: primary-inspector
+    horizon: now
+    decision: must
+    confidence: high
+    capabilities: [request-inspection, request-history, search-filter]
+    rationale: "Primary-cohort table stakes plus direct demand for inspectable retained webhook evidence. Current Cloudflare viewer proves live flow but remains intentionally minimal."
+
+  - id: capture-replay-loop
+    horizon: now
+    decision: must
+    confidence: high
+    capabilities: [replay, portable-recording, local-forwarding]
+    rationale: "Repeated direct community evidence supports capture-once/replay-locally workflows and avoiding repeated real provider triggers."
+
+  - id: configurable-sender-response
+    horizon: now
+    decision: must
+    confidence: medium
+    capabilities: [custom-response, failure-simulation]
+    rationale: "Strong market prevalence and testing-job fit; direct public demand is weaker than for replay, so keep the first slice narrow."
+
+  - id: provider-aware-testing
+    horizon: next
+    decision: should
+    confidence: medium
+    capabilities: [provider-templates, signature-verification, outbound-signing]
+    rationale: "Signature fidelity causes real integration failures, but provider-native CLIs are substitutes. Build cross-provider adapters rather than a Stripe-specific clone."
+
+  - id: deterministic-ci-proof
+    horizon: next
+    decision: differentiation
+    confidence: medium
+    capabilities: [wait-for-event, deterministic-ci, contracts, observation-window]
+    rationale: "Automated webhook testing, bounded waits, and outcome-oriented CI have credible demand proxies. The exact Ortyo DSL remains a hypothesis."
+
+  - id: cardinality-ordering
+    horizon: validate
+    decision: differentiation
+    confidence: low
+    capabilities: [cardinality, ordering, correlation-context]
+    rationale: "Duplicates, out-of-order events, and idempotency are real problems; direct demand for these exact assertion primitives is not yet established."
+
+  - id: reliable-delivery
+    horizon: watch
+    decision: watch
+    confidence: medium
+    capabilities: [durable-retries, dlq, fanout, filtering-routing, transformation]
+    rationale: "Clearly validated market depth, but not yet validated as the next job for Ortyo users. Activate when development Hooks become long-lived pilots."
+
+  - id: agent-control
+    horizon: option
+    decision: watch
+    confidence: low
+    capabilities: [approval-gate]
+    rationale: "Agent operation is accelerating across competitors, but direct demand for approval-controlled actions inside the webhook development product is still missing."
+
+  - id: managed-compute
+    horizon: substrate
+    decision: out_of_scope
+    confidence: high
+    capabilities: [multi-protocol]
+    rationale: "Managed compute should remain replaceable substrate unless it directly improves the webhook verification lifecycle."

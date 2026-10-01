@@ -184,3 +184,9 @@ capabilities:
     description: "Apply the evidence lifecycle beyond HTTP/webhooks."
     disposition: watch
     ortyo_status: planned
+
+  - id: managed-compute
+    name: Managed execution compute
+    description: "Provision or use managed sandbox/container/VM compute to execute integration workloads under Ortyo control."
+    disposition: out_of_scope
+    ortyo_status: planned
