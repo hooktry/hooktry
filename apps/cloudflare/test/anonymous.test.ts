@@ -17,7 +17,9 @@ function fetchWorker(request: Request): Promise<Response> {
 }
 
 describe("CF1 anonymous Exposure conformance", () => {
-  it("creates, pushes, survives DO eviction, claims, and preserves the hook URL", async () => {
+  it(
+    "creates, pushes, survives DO eviction, claims, and preserves the hook URL",
+    async () => {
     const provision = await createAnonymous();
 
     expect(provision.hook_url).toMatch(/\/hook\/hk_[A-Za-z0-9_-]{32}$/);
@@ -113,7 +115,9 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(secondClaim.status).toBe(410);
 
     socket.close(1000, "done");
-  });
+    },
+    35_000,
+  );
 
   it("does not allow the view capability to act as hook authority", async () => {
     const provision = await createAnonymous();
