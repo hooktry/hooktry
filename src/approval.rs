@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     path::Path,
     sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
@@ -152,6 +153,20 @@ pub enum ApprovalError {
     Consumed,
     RequestMismatch,
     Storage(String),
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ApprovalKeyDependencyCount {
+    pub key_version: i32,
+    pub pending: u64,
+    pub approved: u64,
+    pub total: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ApprovalKeyDependencyReport {
+    pub dependencies: Vec<ApprovalKeyDependencyCount>,
+    pub malformed_keyed: u64,
 }
 
 #[derive(Clone)]
@@ -376,6 +391,75 @@ impl ApprovalStore {
         tokio::task::spawn_blocking(move || store.list_pending(workspace_id))
             .await
             .map_err(|error| ApprovalError::Storage(error.to_string()))?
+    }
+
+    pub fn actionable_key_dependencies(
+        &self,
+    ) -> Result<ApprovalKeyDependencyReport, ApprovalError> {
+        let rows: Vec<(String, String)> = match &self.backend {
+            ApprovalBackend::Sqlite(connection) => {
+                let connection = connection.lock().expect("approval store poisoned");
+                let mut statement = connection
+                    .prepare(
+                        "SELECT request_digest, state
+                         FROM hosted_approvals
+                         WHERE state IN ('pending', 'approved')
+                         ORDER BY requested_at, approval_id",
+                    )
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                let rows = statement
+                    .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?;
+                rows.collect::<Result<Vec<_>, _>>()
+                    .map_err(|error| ApprovalError::Storage(error.to_string()))?
+            }
+            ApprovalBackend::Postgres(client) => client
+                .lock()
+                .expect("approval store poisoned")
+                .query(
+                    "SELECT request_digest, state
+                     FROM hosted_approvals
+                     WHERE state IN ('pending', 'approved')
+                     ORDER BY requested_at, approval_id",
+                    &[],
+                )
+                .map_err(|error| ApprovalError::Storage(error.to_string()))?
+                .into_iter()
+                .map(|row| (row.get(0), row.get(1)))
+                .collect(),
+        };
+
+        let mut counts = BTreeMap::<i32, (u64, u64)>::new();
+        let mut malformed_keyed = 0_u64;
+        for (request_digest, state) in rows {
+            match request_digest_key_dependency(&request_digest) {
+                Ok(Some(key_version)) => {
+                    let entry = counts.entry(key_version).or_default();
+                    match state.as_str() {
+                        "pending" => entry.0 += 1,
+                        "approved" => entry.1 += 1,
+                        _ => {}
+                    }
+                }
+                Ok(None) => {}
+                Err(()) => malformed_keyed += 1,
+            }
+        }
+
+        Ok(ApprovalKeyDependencyReport {
+            dependencies: counts
+                .into_iter()
+                .map(
+                    |(key_version, (pending, approved))| ApprovalKeyDependencyCount {
+                        key_version,
+                        pending,
+                        approved,
+                        total: pending + approved,
+                    },
+                )
+                .collect(),
+            malformed_keyed,
+        })
     }
 
     pub async fn get_notification_async(
@@ -1805,6 +1889,29 @@ fn verify_consumable(
         return Err(ApprovalError::RequestMismatch);
     }
     Ok(())
+}
+
+fn request_digest_key_dependency(stored_digest: &str) -> Result<Option<i32>, ()> {
+    let Some(suffix) = stored_digest.strip_prefix(KEYED_FINGERPRINT_PREFIX) else {
+        return Ok(None);
+    };
+
+    if let Some(versioned) = suffix.strip_prefix('k') {
+        let (version, digest) = versioned.split_once(':').ok_or(())?;
+        if digest.is_empty() {
+            return Err(());
+        }
+        let version: i32 = version.parse().map_err(|_| ())?;
+        if version <= 0 {
+            return Err(());
+        }
+        return Ok(Some(version));
+    }
+
+    if suffix.is_empty() {
+        return Err(());
+    }
+    Ok(Some(1))
 }
 
 fn expected_request_digest(

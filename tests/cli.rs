@@ -282,3 +282,70 @@ fn scenario_run_requires_a_child_command_after_separator() {
 
     assert_eq!(error, ortyo::cli::usage());
 }
+
+#[test]
+fn parses_key_maintenance_commands() {
+    let status = Cli::parse(["ortyo".to_owned(), "key".to_owned(), "status".to_owned()]).unwrap();
+    assert_eq!(status.command, Command::KeyStatus);
+
+    let dry_run = Cli::parse([
+        "ortyo".to_owned(),
+        "key".to_owned(),
+        "rewrap".to_owned(),
+        "1".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(
+        dry_run.command,
+        Command::KeyRewrap {
+            version: 1,
+            apply: false
+        }
+    );
+
+    let apply = Cli::parse([
+        "ortyo".to_owned(),
+        "key".to_owned(),
+        "rewrap".to_owned(),
+        "1".to_owned(),
+        "--apply".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(
+        apply.command,
+        Command::KeyRewrap {
+            version: 1,
+            apply: true
+        }
+    );
+
+    let retire = Cli::parse([
+        "ortyo".to_owned(),
+        "key".to_owned(),
+        "retire-check".to_owned(),
+        "1".to_owned(),
+    ])
+    .unwrap();
+    assert_eq!(retire.command, Command::KeyRetireCheck { version: 1 });
+}
+
+#[test]
+fn key_maintenance_requires_positive_versions() {
+    let rewrap = Cli::parse([
+        "ortyo".to_owned(),
+        "key".to_owned(),
+        "rewrap".to_owned(),
+        "0".to_owned(),
+    ])
+    .unwrap_err();
+    assert_eq!(rewrap, "key rewrap requires a positive key version");
+
+    let retire = Cli::parse([
+        "ortyo".to_owned(),
+        "key".to_owned(),
+        "retire-check".to_owned(),
+        "-1".to_owned(),
+    ])
+    .unwrap_err();
+    assert_eq!(retire, "key retire-check requires a positive key version");
+}

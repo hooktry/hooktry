@@ -38,6 +38,14 @@ pub enum Command {
     ExecutionGet {
         id: Uuid,
     },
+    KeyStatus,
+    KeyRewrap {
+        version: i32,
+        apply: bool,
+    },
+    KeyRetireCheck {
+        version: i32,
+    },
     Mcp,
     ScenarioCreate {
         path: String,
@@ -139,6 +147,26 @@ impl Cli {
                         id: parse_uuid(id, "execution get")?,
                     }
                 }
+                [group, command] if group == "key" && command == "status" => Command::KeyStatus,
+                [group, command, version] if group == "key" && command == "rewrap" => {
+                    Command::KeyRewrap {
+                        version: parse_key_version(version, "key rewrap")?,
+                        apply: false,
+                    }
+                }
+                [group, command, version, flag]
+                    if group == "key" && command == "rewrap" && flag == "--apply" =>
+                {
+                    Command::KeyRewrap {
+                        version: parse_key_version(version, "key rewrap")?,
+                        apply: true,
+                    }
+                }
+                [group, command, version] if group == "key" && command == "retire-check" => {
+                    Command::KeyRetireCheck {
+                        version: parse_key_version(version, "key retire-check")?,
+                    }
+                }
                 [command] if command == "mcp" => Command::Mcp,
                 [group, command, path] if group == "scenario" && command == "create" => {
                     Command::ScenarioCreate { path: path.clone() }
@@ -229,6 +257,14 @@ fn parse_uuid(value: &str, command: &str) -> Result<Uuid, String> {
         .map_err(|_| format!("{command} requires a valid UUID"))
 }
 
+fn parse_key_version(value: &str, command: &str) -> Result<i32, String> {
+    value
+        .parse::<i32>()
+        .ok()
+        .filter(|version| *version > 0)
+        .ok_or_else(|| format!("{command} requires a positive key version"))
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -238,6 +274,6 @@ fn parse_port(value: &str) -> Result<u16, String> {
 }
 
 pub fn usage() -> String {
-    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|approval inbox|approval create FILE|approval get ID|approval approve ID|approval deny ID|approval execute ID FILE|execution get ID|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
+    "usage: ortyo [--base-url URL] <serve|hosted|mcp|interactions|expose PORT [NAME] [--public] [--no-verify]|exposures|exposure-get ID|exposure-revoke ID|approval inbox|approval create FILE|approval get ID|approval approve ID|approval deny ID|approval execute ID FILE|execution get ID|key status|key rewrap VERSION [--apply]|key retire-check VERSION|scenario create FILE|scenario run FILE -- COMMAND [ARGS...]|scenario get ID|scenario start ID|scenario complete RUN_ID|scenario outcome RUN_ID|assert CONTRACT_ID INTERACTION_ID>"
         .to_owned()
 }
