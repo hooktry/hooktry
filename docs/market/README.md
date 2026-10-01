@@ -91,19 +91,20 @@ Material competitors now combine subsets of:
 
 The agent surface itself is therefore not a durable differentiator. Hookdeck, Webhook Relay, webhooks.cc, Hook0, Svix and others already expose agent-oriented workflows.
 
-Ortyo's stronger potential differentiation is the combination of:
+Assertions, replay suites, MCP, and CI testing are no longer sufficient differentiation by themselves: current competitors already expose meaningful parts of that surface.
+
+Ortyo's stronger potential differentiation is therefore the **depth of temporal and causal evidence semantics**:
 
 - canonical evidence rather than log-only inspection
 - portable Recording/Replay
-- Contracts
-- Scenario outcomes
-- cardinality and ordering semantics
-- explicit observation windows
-- deterministic CI exit semantics
-- correlation/idempotency context
-- one model shared by HTTP, CLI, and MCP
+- exact and ranged cardinality
+- durable observed ordering
+- explicit observation/settle windows
+- correlation, causation, and idempotency context
+- persisted assertion evidence and explainable outcomes
+- one model shared by HTTP, CLI, MCP, local runtime, and hosted runtime
 
-That hypothesis still requires external demand evidence; competitor absence alone does not prove demand.
+That hypothesis still requires first-party demand evidence; competitor absence or architectural elegance alone does not prove demand.
 
 ## Files
 
