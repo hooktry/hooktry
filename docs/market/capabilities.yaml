@@ -63,37 +63,37 @@ capabilities:
     name: Multi-destination fan-out
     description: "Deliver one received event to multiple destinations."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: filtering-routing
     name: Event filtering and routing
     description: "Route or drop events based on request metadata or payload content."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: transformation
     name: Request transformation
     description: "Modify payloads, headers, method or path before delivery."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: durable-retries
     name: Durable retry delivery
     description: "Persist failed deliveries and retry them according to a policy."
     disposition: watch
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: dlq
     name: Dead-letter handling
     description: "Retain exhausted deliveries and allow later replay/recovery."
     disposition: watch
-    ortyo_status: partial
+    ortyo_status: absent
   - id: signature-verification
     name: Provider signature verification
     description: "Verify webhook signatures against provider-specific schemes or supplied secrets."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: outbound-signing
     name: Sign forwarded/test webhooks
     description: "Generate valid signatures for deliveries or provider-shaped test events."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: provider-templates
     name: Provider test templates
     description: "Generate realistic provider-specific webhook payloads and metadata."
@@ -158,7 +158,7 @@ capabilities:
     name: Structured interaction comparison
     description: "Compare captured attempts or baseline/candidate behavior structurally."
     disposition: should
-    ortyo_status: partial
+    ortyo_status: unknown
   - id: api-mocking
     name: API mocking and dynamic responses
     description: "Match requests and emulate dependency responses for development/service virtualization."
