@@ -70,10 +70,14 @@ jobs:
           --config wrangler.production.jsonc
 
       - name: Deploy Worker and Durable Object
-        run: npx wrangler deploy --config wrangler.production.jsonc
+        run: >
+          npx wrangler deploy
+          --config wrangler.production.jsonc
+          --var "ORTYO_RELEASE_SHA:${GITHUB_SHA}"
 
       - name: Production acceptance
         env:
           ORTYO_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
           ORTYO_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
+          ORTYO_EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: node scripts/smoke-production.mjs
