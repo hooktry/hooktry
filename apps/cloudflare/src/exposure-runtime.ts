@@ -43,7 +43,7 @@ export class ExposureRuntime {
       }
 
       if (url.pathname.startsWith("/hook/")) {
-        return this.ctx.blockConcurrencyWhile(() => this.capture(request));
+        return await this.ctx.blockConcurrencyWhile(() => this.capture(request));
       }
 
       return json({ error: { code: "not_found" } }, 404);
