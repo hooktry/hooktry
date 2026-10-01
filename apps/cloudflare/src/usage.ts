@@ -3,7 +3,6 @@ import type { Env, ScenarioUsageEvent, ScenarioUsageFeatures } from "./types";
 
 const MAX_USAGE_EVENT_BYTES = 4096;
 const MAX_COUNT = 1000;
-const MAX_OBSERVATION_MS = 24 * 60 * 60 * 1000;
 
 export async function ingestUsageEvent(
   request: Request,
@@ -42,10 +41,10 @@ export async function ingestUsageEvent(
   const result = await env.DB.prepare(
     `INSERT OR IGNORE INTO usage_events (
        event_id, received_at, occurred_at_ms, event_type,
-       passed, command_success, outcome_passed, check_count, observation_elapsed_ms,
+       passed, command_success, outcome_passed, check_count,
        contract_count, exact_cardinality, ranged_cardinality, ordering_enabled,
        observation_horizon, settle_window, context_match, idempotency_context, duplicate_guard
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       event.event_id,
@@ -56,7 +55,6 @@ export async function ingestUsageEvent(
       bool(event.command_success),
       bool(event.outcome_passed),
       event.check_count,
-      event.observation_elapsed_ms,
       event.features.contract_count,
       bool(event.features.exact_cardinality),
       bool(event.features.ranged_cardinality),
@@ -89,7 +87,6 @@ function validateUsageEvent(value: unknown): ScenarioUsageEvent {
     "command_success",
     "outcome_passed",
     "check_count",
-    "observation_elapsed_ms",
     "features",
   ]);
 
@@ -106,12 +103,6 @@ function validateUsageEvent(value: unknown): ScenarioUsageEvent {
 
   const occurredAt = integer(event.occurred_at_unix_ms, 0, Number.MAX_SAFE_INTEGER);
   const checkCount = integer(event.check_count, 0, MAX_COUNT);
-  const observationElapsed = integer(
-    event.observation_elapsed_ms,
-    0,
-    MAX_OBSERVATION_MS,
-  );
-
   const features = validateFeatures(event.features);
 
   return {
@@ -123,7 +114,6 @@ function validateUsageEvent(value: unknown): ScenarioUsageEvent {
     command_success: boolean(event.command_success),
     outcome_passed: boolean(event.outcome_passed),
     check_count: checkCount,
-    observation_elapsed_ms: observationElapsed,
     features,
   };
 }
