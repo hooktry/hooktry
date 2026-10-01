@@ -26,6 +26,10 @@ products:
     sources:
       - https://beeceptor.com/docs/
       - https://beeceptor.com/docs/webhook-testing/
+  vercel-emulate:
+    positioning: "Open-source local API emulation for CI and no-network sandboxes with stateful built-in/custom emulators, persistence, seeds/resets, and request/state inspection."
+    sources:
+      - https://github.com/vercel-labs/emulate
   webhooks-cc:
     positioning: "Webhook testing platform with capture, replay, mocks, signatures, local testing, CI patterns, SDK/CLI and MCP."
     sources:

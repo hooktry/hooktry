@@ -218,3 +218,26 @@ observations:
     confidence: medium
     freshness: normal
     applicability: current
+
+
+  - id: beeceptor-history-2026-10-01
+    product: beeceptor
+    capability: request-history
+    assertion: "Beeceptor exposes searchable request history containing request/response details, matched-rule processing metadata, and upstream callout details when proxying."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/api/get-request-history/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: vercel-emulate-stateful-2026-10-01
+    product: vercel-emulate
+    capability: api-mocking
+    assertion: "Vercel Labs emulate provides stateful built-in and custom third-party API emulators with seeds, resets, persistence adapters, and request/state inspection for local development, CI, and no-network sandboxes."
+    state: present
+    source: {type: repository, url: "https://github.com/vercel-labs/emulate"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
