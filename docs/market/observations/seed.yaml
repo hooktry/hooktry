@@ -1,0 +1,220 @@
+observations:
+  - id: webhook-site-inspect-2026-10-01
+    product: webhook-site
+    capability: request-inspection
+    assertion: "Webhook.site issues a unique URL and retains received request data for inspection; free URL/data are removed after seven days."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-site-transform-forward-2026-10-01
+    product: webhook-site
+    capability: transformation
+    assertion: "Custom Actions can conditionally transform/chain actions and forward received requests with an HTTP Request action."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/custom-actions.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-local-2026-10-01
+    product: hookdeck
+    capability: local-forwarding
+    assertion: "Hookdeck documents localhost webhook development with its CLI."
+    state: present
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-gateway-2026-10-01
+    product: hookdeck
+    capability: durable-retries
+    assertion: "Hookdeck's Event Gateway documents retries together with routing, transformations, deduplication and delivery controls."
+    state: present
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-local-2026-10-01
+    product: webhook-relay
+    capability: local-forwarding
+    assertion: "The relay CLI forwards a stable public bucket URL to localhost and logs requests/responses."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/internal/localhost/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-retries-2026-10-01
+    product: webhook-relay
+    capability: durable-retries
+    assertion: "Webhook Relay persists events and offers durable retry schedules up to approximately 30 days."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/durable-webhooks/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-relay-mcp-2026-10-01
+    product: webhook-relay
+    capability: mcp-agent
+    assertion: "Webhook Relay's MCP exposes bucket management, logs, retry, send_webhook and wait_for_webhook_log agentic testing tools."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: svix-play-api-2026-10-01
+    product: svix
+    capability: wait-for-event
+    assertion: "Svix Play API supports persistent test URLs that test code can poll for new webhook messages and can configure response/error behavior."
+    state: present
+    source: {type: vendor_docs, url: "https://www.svix.com/blog/svix-play-an-api-for-testing-webhooks/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+
+  - id: svix-delivery-2026-10-01
+    product: svix
+    capability: durable-retries
+    assertion: "Svix positions its primary service as reliable webhook sending infrastructure."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.svix.com/introduction"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-inspection-2026-10-01
+    product: beeceptor
+    capability: request-inspection
+    assertion: "Beeceptor provides HTTPS endpoints for real-time request payload/header inspection."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-mocking-2026-10-01
+    product: beeceptor
+    capability: api-mocking
+    assertion: "Beeceptor documents mock rules, dynamic responses, multiple protocols, latency/failure testing and service virtualization."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-mcp-2026-10-01
+    product: webhooks-cc
+    capability: mcp-agent
+    assertion: "webhooks.cc MCP can create endpoints, wait for requests, replay, compare, verify signatures and run a full test_webhook_flow."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/mcp"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-ci-2026-10-01
+    product: webhooks-cc
+    capability: deterministic-ci
+    assertion: "webhooks.cc documents CI/CD webhook verification with signed payloads, asynchronous waiting and deterministic cleanup."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-forward-2026-10-01
+    product: hooklistener
+    capability: replay
+    assertion: "Hooklistener can forward/replay a captured webhook to a target URL while preserving the original method, headers and body."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/webhook-inspector/request-forwarding/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-tunnel-2026-10-01
+    product: hooklistener
+    capability: public-tunnel
+    assertion: "Hooklistener CLI can expose a local port directly with a public tunnel URL."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/quickstart/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooker-retry-dlq-2026-10-01
+    product: webhooker
+    capability: dlq
+    assertion: "Webhooker documents retries, circuit breaking, dead letters and event replay after delivery exhaustion."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/deliver/retries-and-replay/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooker-local-2026-10-01
+    product: webhooker
+    capability: local-forwarding
+    assertion: "Webhooker's CLI can stream captured events and replay each webhook to a local URL."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/tutorials/local-development/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hook0-reliable-2026-10-01
+    product: hook0
+    capability: durable-retries
+    assertion: "Hook0 receives events and delivers them to configured endpoints with retries, signatures and monitoring."
+    state: present
+    source: {type: vendor_docs, url: "https://documentation.hook0.com/explanation/what-is-hook0/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hook0-mcp-2026-10-01
+    product: hook0
+    capability: mcp-agent
+    assertion: "Hook0 documents an MCP server for controlling the webhook platform with AI assistants."
+    state: present
+    source: {type: vendor_docs, url: "https://documentation.hook0.com/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: requestbin-inspect-2026-10-01
+    product: requestbin-net
+    capability: request-inspection
+    assertion: "RequestBin.net presents itself as an HTTP/DNS testing platform with real-time request monitoring for webhook testing and API development."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/"}
+    observed_at: 2026-10-01
+    confidence: medium
+    freshness: normal
+    applicability: current
