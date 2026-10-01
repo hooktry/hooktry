@@ -44,8 +44,8 @@ fn main() {
 }
 
 fn collect_files(root: &Path, current: &Path, output: &mut Vec<(String, PathBuf)>) {
-    for entry in fs::read_dir(current)
-        .unwrap_or_else(|error| panic!("read {}: {error}", current.display()))
+    for entry in
+        fs::read_dir(current).unwrap_or_else(|error| panic!("read {}: {error}", current.display()))
     {
         let entry = entry.expect("read web asset directory entry");
         let path = entry.path();
