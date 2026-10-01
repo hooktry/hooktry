@@ -1,7 +1,9 @@
-import type { Env } from "../src/types";
-
 declare module "cloudflare:workers" {
-  interface ProvidedEnv extends Env {
+  interface ProvidedEnv {
+    DB: D1Database;
+    PAYLOADS: R2Bucket;
+    EXPOSURES: DurableObjectNamespace;
+    CLAIM_INTERNAL_TOKEN?: string;
     TEST_MIGRATIONS: D1Migration[];
   }
 }
