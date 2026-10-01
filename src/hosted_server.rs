@@ -13,7 +13,7 @@ use crate::{
     anonymous::AnonymousExposureStore,
     approval::{
         ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore,
-        KEYED_FINGERPRINT_PREFIX, derive_digest_key,
+        KEYED_FINGERPRINT_PREFIX, derive_digest_keyring,
     },
     approval_webhook::{
         ensure_webhook_secret, run_worker, validate_webhook_url, webhook_headers, webhook_payload,
@@ -27,6 +27,7 @@ use crate::{
     hosted_identity::{HostedIdentityStore, IdentityError},
     hosted_state::{HostedExposureRecord, HostedExposureStore},
     http::AppState,
+    keyring::{VersionedKeyring, VersionedKeyringError},
     relay::RelayBroker,
     relay_auth::CapabilityStore,
     secret::{SecretStore, decode_master_key},
@@ -39,7 +40,7 @@ pub struct HostedServerConfig {
     pub control_token: String,
     pub database_url: Option<String>,
     pub db_path: String,
-    pub secrets_key: [u8; 32],
+    pub secrets_keyring: VersionedKeyring,
     pub bootstrap_workspace: Option<String>,
     pub approval_webhook_url: Option<String>,
 }
@@ -55,7 +56,7 @@ impl std::fmt::Debug for HostedServerConfig {
                 &self.database_url.as_ref().map(|_| "[REDACTED]"),
             )
             .field("db_path", &self.db_path)
-            .field("secrets_key", &"[REDACTED]")
+            .field("secrets_keyring", &"[REDACTED]")
             .field("bootstrap_workspace", &self.bootstrap_workspace)
             .field(
                 "approval_webhook_url",
@@ -103,6 +104,19 @@ impl HostedServerConfig {
                     "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
                 })
             })?;
+        let secrets_key_version = lookup("ORTYO_SECRETS_KEY_VERSION")
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| parse_positive_key_version("ORTYO_SECRETS_KEY_VERSION", &value))
+            .transpose()?
+            .unwrap_or(1);
+        let previous_secrets_keys = lookup("ORTYO_SECRETS_PREVIOUS_KEYS")
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| parse_previous_secret_keys(&value))
+            .transpose()?
+            .unwrap_or_default();
+        let secrets_keyring =
+            VersionedKeyring::new(secrets_key_version, secrets_key, previous_secrets_keys)
+                .map_err(keyring_config_error)?;
         let bootstrap_workspace =
             lookup("ORTYO_BOOTSTRAP_WORKSPACE").filter(|value| !value.trim().is_empty());
         let approval_webhook_url =
@@ -120,7 +134,7 @@ impl HostedServerConfig {
             control_token,
             database_url,
             db_path,
-            secrets_key,
+            secrets_keyring,
             bootstrap_workspace,
             approval_webhook_url,
         })
@@ -140,6 +154,7 @@ struct HostedStartup {
     public_base_url: String,
     runtime_transport: &'static str,
     storage: &'static str,
+    master_key_version: i32,
     dogfood_exposure: bool,
     approval_webhook: bool,
 }
@@ -307,6 +322,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         public_base_url: config.public_base_url,
         runtime_transport: "websocket",
         storage,
+        master_key_version: config.secrets_keyring.active_version(),
         dogfood_exposure: dogfood.is_some(),
         approval_webhook,
     };
@@ -337,7 +353,7 @@ async fn open_hosted_stores(
 > {
     if let Some(database_url) = &config.database_url {
         let database_url = database_url.clone();
-        let secrets_key = config.secrets_key;
+        let secrets_keyring = config.secrets_keyring.clone();
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
@@ -347,11 +363,14 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres anonymous exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
-            let secrets = SecretStore::open_postgres(&database_url, secrets_key)
-                .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
-            let approvals =
-                ApprovalStore::open_postgres(&database_url, derive_digest_key(&secrets_key))
-                    .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
+            let secrets =
+                SecretStore::open_postgres_with_keyring(&database_url, secrets_keyring.clone())
+                    .map_err(|error| format!("open Postgres secret store: {error:?}"))?;
+            let approvals = ApprovalStore::open_postgres_with_digest_keyring(
+                &database_url,
+                derive_digest_keyring(&secrets_keyring),
+            )
+            .map_err(|error| format!("open Postgres approval store: {error:?}"))?;
             let executions = ExecutionStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres execution store: {error:?}"))?;
             Ok((
@@ -369,7 +388,7 @@ async fn open_hosted_stores(
         .map_err(|error| format!("join Postgres store initialization: {error}"))?
     } else {
         let db_path = config.db_path.clone();
-        let secrets_key = config.secrets_key;
+        let secrets_keyring = config.secrets_keyring.clone();
         tokio::task::spawn_blocking(move || {
             let capabilities = CapabilityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
@@ -379,10 +398,13 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite anonymous exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
-            let secrets = SecretStore::open(&db_path, secrets_key)
+            let secrets = SecretStore::open_with_keyring(&db_path, secrets_keyring.clone())
                 .map_err(|error| format!("open SQLite secret store: {error:?}"))?;
-            let approvals = ApprovalStore::open(&db_path, derive_digest_key(&secrets_key))
-                .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
+            let approvals = ApprovalStore::open_with_digest_keyring(
+                &db_path,
+                derive_digest_keyring(&secrets_keyring),
+            )
+            .map_err(|error| format!("open SQLite approval store: {error:?}"))?;
             let executions = ExecutionStore::open(&db_path)
                 .map_err(|error| format!("open SQLite execution store: {error:?}"))?;
             Ok((
@@ -1286,6 +1308,47 @@ fn log_dogfood_exposure(exposure: &HostedExposureRecord, created: bool, event: &
     );
 }
 
+fn parse_positive_key_version(name: &str, value: &str) -> Result<i32, String> {
+    let version: i32 = value
+        .parse()
+        .map_err(|_| format!("{name} must be a positive integer"))?;
+    if version <= 0 {
+        return Err(format!("{name} must be a positive integer"));
+    }
+    Ok(version)
+}
+
+fn parse_previous_secret_keys(value: &str) -> Result<Vec<(i32, [u8; 32])>, String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(|entry| {
+            let (version, key) = entry.split_once(':').ok_or_else(|| {
+                "ORTYO_SECRETS_PREVIOUS_KEYS must contain version:64hex entries".to_owned()
+            })?;
+            let version =
+                parse_positive_key_version("ORTYO_SECRETS_PREVIOUS_KEYS version", version)?;
+            let key = decode_master_key(key).map_err(|_| {
+                "ORTYO_SECRETS_PREVIOUS_KEYS keys must be exactly 64 hexadecimal characters"
+                    .to_owned()
+            })?;
+            Ok((version, key))
+        })
+        .collect()
+}
+
+fn keyring_config_error(error: VersionedKeyringError) -> String {
+    match error {
+        VersionedKeyringError::InvalidVersion(_) => {
+            "secret key versions must be positive integers".to_owned()
+        }
+        VersionedKeyringError::DuplicateVersion(version) => {
+            format!("duplicate secret key version: {version}")
+        }
+    }
+}
+
 fn parse_port(value: &str) -> Result<u16, String> {
     value
         .parse::<u16>()
@@ -1322,6 +1385,81 @@ mod tests {
         secret::SecretStore,
     };
     use uuid::Uuid;
+
+    #[test]
+    fn hosted_config_defaults_master_key_version_to_one() {
+        let key = "11".repeat(32);
+        let config = HostedServerConfig::from_lookup(|name| match name {
+            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
+            "ORTYO_SECRETS_KEY" => Some(key.clone()),
+            _ => None,
+        })
+        .unwrap();
+
+        assert_eq!(config.secrets_keyring.active_version(), 1);
+        assert_eq!(config.secrets_keyring.active_key(), &[0x11; 32]);
+        assert_eq!(config.secrets_keyring.versions().collect::<Vec<_>>(), vec![1]);
+    }
+
+    #[test]
+    fn hosted_config_parses_active_and_previous_master_keys() {
+        let active = "22".repeat(32);
+        let previous = format!("1:{}", "11".repeat(32));
+        let config = HostedServerConfig::from_lookup(|name| match name {
+            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
+            "ORTYO_SECRETS_KEY" => Some(active.clone()),
+            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "ORTYO_SECRETS_PREVIOUS_KEYS" => Some(previous.clone()),
+            _ => None,
+        })
+        .unwrap();
+
+        assert_eq!(config.secrets_keyring.active_version(), 2);
+        assert_eq!(config.secrets_keyring.active_key(), &[0x22; 32]);
+        assert_eq!(config.secrets_keyring.key(1), Some(&[0x11; 32]));
+        assert_eq!(
+            config.secrets_keyring.versions().collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+    }
+
+    #[test]
+    fn hosted_config_rejects_invalid_or_duplicate_master_key_versions() {
+        let key = "33".repeat(32);
+        let invalid = HostedServerConfig::from_lookup(|name| match name {
+            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
+            "ORTYO_SECRETS_KEY" => Some(key.clone()),
+            "ORTYO_SECRETS_KEY_VERSION" => Some("0".to_owned()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(
+            invalid,
+            "ORTYO_SECRETS_KEY_VERSION must be a positive integer"
+        );
+
+        let duplicate = HostedServerConfig::from_lookup(|name| match name {
+            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
+            "ORTYO_SECRETS_KEY" => Some(key.clone()),
+            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "ORTYO_SECRETS_PREVIOUS_KEYS" => {
+                Some(format!("1:{},1:{}", "11".repeat(32), "12".repeat(32)))
+            }
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(duplicate, "duplicate secret key version: 1");
+
+        let active_duplicate = HostedServerConfig::from_lookup(|name| match name {
+            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
+            "ORTYO_SECRETS_KEY" => Some(key.clone()),
+            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "ORTYO_SECRETS_PREVIOUS_KEYS" => Some(format!("2:{}", "11".repeat(32))),
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(active_duplicate, "duplicate secret key version: 2");
+    }
 
     #[test]
     fn dogfood_health_requires_render_revision_when_present() {
@@ -1510,7 +1648,7 @@ mod tests {
             control_token: "test-control-token".to_owned(),
             database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
             db_path: "unused.db".to_owned(),
-            secrets_key: [7; 32],
+            secrets_keyring: VersionedKeyring::single([7; 32]),
             bootstrap_workspace: None,
             approval_webhook_url: None,
         };
