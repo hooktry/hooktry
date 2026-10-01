@@ -1379,8 +1379,8 @@ mod tests {
     use crate::{
         hosted::HostedRelayState,
         hosted_identity::{ApiScope, HostedIdentityStore},
-        keyring::VersionedKeyring,
         hosted_state::{HostedExposureRecord, HostedExposureStore},
+        keyring::VersionedKeyring,
         relay::RelayBroker,
         relay_auth::{CapabilityError, CapabilityStore},
         secret::SecretStore,
