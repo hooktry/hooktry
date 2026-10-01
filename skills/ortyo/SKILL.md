@@ -54,12 +54,12 @@ Keep source and replayed interactions distinct. Replayed interactions preserve `
 
 Use `observed_sequence`, not UUID order or wall-clock timestamps, when reasoning about committed interaction ordering.
 
-## Anonymous Exposure workflow
+## Anonymous Hook workflow
 
-When the task only needs an inbound webhook/test endpoint, an agent may create an anonymous Exposure before authentication:
+When the task only needs an inbound webhook/test endpoint, an agent may create an ephemeral Hook before authentication. The Hook is backed by an Exposure internally:
 
 ```text
-POST /api/v1/exposures
+POST /api/v1/hooks
   -> hook_url: https://ortyo.com/hook/hk_<token>
   -> view_url: https://ortyo.com/view/vw_<token>
   -> view_websocket_url: wss://ortyo.com/view/vw_<token>
