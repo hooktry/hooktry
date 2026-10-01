@@ -38,7 +38,6 @@ pub struct ScenarioUsageEvent {
     pub command_success: bool,
     pub outcome_passed: bool,
     pub check_count: usize,
-    pub observation_elapsed_ms: u64,
     pub features: ScenarioUsageFeatures,
 }
 
@@ -98,7 +97,6 @@ impl ScenarioUsageEvent {
             command_success: report.command.success,
             outcome_passed: report.outcome.passed,
             check_count: report.outcome.checks.len(),
-            observation_elapsed_ms: report.outcome.observation_elapsed_ms,
             features,
         }
     }
