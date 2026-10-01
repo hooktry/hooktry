@@ -808,6 +808,50 @@ impl AnonymousExposureStore {
     }
 }
 
+impl AnonymousExposureRepository for AnonymousExposureStore {
+    fn purge_expired(&self) -> ports::PortFuture<'_, Result<(), AnonymousError>> {
+        Box::pin(self.purge_expired_async())
+    }
+
+    fn create(
+        &self,
+        input: CreateAnonymousExposure,
+    ) -> ports::PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>> {
+        Box::pin(self.create_async(input))
+    }
+
+    fn capture(
+        &self,
+        input: CaptureAnonymousInteraction,
+    ) -> ports::PortFuture<'_, Result<StoredInteraction, AnonymousError>> {
+        Box::pin(self.capture_async(input))
+    }
+
+    fn viewer(
+        &self,
+        viewer_digest: [u8; 32],
+        now: u64,
+    ) -> ports::PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>> {
+        Box::pin(self.viewer_async(viewer_digest, now))
+    }
+
+    fn interactions(
+        &self,
+        exposure_id: Uuid,
+    ) -> ports::PortFuture<'_, Result<Vec<StoredInteraction>, AnonymousError>> {
+        Box::pin(self.interactions_async(exposure_id))
+    }
+
+    fn claim(
+        &self,
+        claim_digest: [u8; 32],
+        workspace_id: Uuid,
+        now: u64,
+    ) -> ports::PortFuture<'_, Result<AnonymousExposureSummary, AnonymousError>> {
+        Box::pin(self.claim_async(claim_digest, workspace_id, now))
+    }
+}
+
 #[derive(Clone)]
 pub struct AnonymousExposureService {
     store: Arc<dyn AnonymousExposureRepository>,
