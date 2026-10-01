@@ -10,6 +10,7 @@ use tokio::{net::TcpListener, time::sleep};
 use uuid::Uuid;
 
 use crate::{
+    anonymous::AnonymousExposureStore,
     approval::{ApprovalNotificationEvent, ApprovalRecord, ApprovalState, ApprovalStore},
     approval_webhook::{
         ensure_webhook_secret, run_worker, validate_webhook_url, webhook_headers, webhook_payload,
@@ -175,8 +176,16 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .port();
     let local_runtime_base_url = format!("ws://127.0.0.1:{local_port}");
 
-    let (capabilities, exposures, identities, secrets, approvals, executions, storage) =
-        open_hosted_stores(&config).await?;
+    let (
+        capabilities,
+        exposures,
+        anonymous,
+        identities,
+        secrets,
+        approvals,
+        executions,
+        storage,
+    ) = open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
             ensure_operator_bootstrap_async(&identities, &secrets, slug, &config.public_base_url)
@@ -212,6 +221,7 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         config.public_base_url.clone(),
         &config.control_token,
     )
+    .with_anonymous_store(anonymous)
     .with_approval_store(approvals)
     .with_execution_store(executions);
 
@@ -304,6 +314,7 @@ async fn open_hosted_stores(
     (
         CapabilityStore,
         HostedExposureStore,
+        AnonymousExposureStore,
         HostedIdentityStore,
         SecretStore,
         ApprovalStore,
@@ -320,6 +331,8 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open Postgres capability store: {error:?}"))?;
             let exposures = HostedExposureStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres exposure store: {error:?}"))?;
+            let anonymous = AnonymousExposureStore::open_postgres(&database_url)
+                .map_err(|error| format!("open Postgres anonymous exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open_postgres(&database_url)
                 .map_err(|error| format!("open Postgres identity store: {error:?}"))?;
             let secrets = SecretStore::open_postgres(&database_url, secrets_key)
@@ -331,6 +344,7 @@ async fn open_hosted_stores(
             Ok((
                 capabilities,
                 exposures,
+                anonymous,
                 identities,
                 secrets,
                 approvals,
@@ -348,6 +362,8 @@ async fn open_hosted_stores(
                 .map_err(|error| format!("open SQLite capability store: {error:?}"))?;
             let exposures = HostedExposureStore::open(&db_path)
                 .map_err(|error| format!("open SQLite exposure store: {error:?}"))?;
+            let anonymous = AnonymousExposureStore::open(&db_path)
+                .map_err(|error| format!("open SQLite anonymous exposure store: {error:?}"))?;
             let identities = HostedIdentityStore::open(&db_path)
                 .map_err(|error| format!("open SQLite identity store: {error:?}"))?;
             let secrets = SecretStore::open(&db_path, secrets_key)
