@@ -1,0 +1,110 @@
+reviewed_at: 2026-10-01
+market:
+  name: "Webhook product development, testing, and pilot"
+  primary_job: "Create a reachable webhook endpoint, observe real events, iterate on a receiver, replay or reproduce behavior, and prove the integration works."
+  primary_stage: development_testing_pilot
+  vector_invariant: "Every expansion must strengthen receive/capture -> inspect -> relay/replay -> verify for webhook/integration development while preserving canonical Interaction/evidence semantics; otherwise it remains an integration, substrate, or separate product."
+  stopping_rule: "Research all material products that can substitute for Ortyo in the primary job; continue discovery until new primary products no longer add material capabilities, then sample depth/adjacent/substrate cohorts only enough to model expansion vectors."
+
+cohorts:
+  - id: primary
+    type: primary
+    definition: "Products a developer could reasonably choose instead of Ortyo for webhook development, testing, or an early pilot."
+  - id: deterministic-verification
+    type: depth
+    definition: "Same development/testing job taken deeper into contracts, scenarios, deterministic CI, structured evidence, and repeatability."
+  - id: reliable-delivery
+    type: depth
+    definition: "Continue webhook workflows from pilot into durable delivery, retries, DLQ, observability, tenant routing, and production reliability."
+  - id: api-virtualization
+    type: adjacent
+    definition: "Mock, emulate, or virtualize HTTP/API dependencies around the same integration-development workflow."
+  - id: reachability
+    type: adjacent
+    definition: "Expose local/private services or relay traffic so external systems can reach development endpoints."
+  - id: multi-protocol
+    type: adjacent
+    definition: "Apply the same integration evidence lifecycle to protocols beyond HTTP webhooks."
+  - id: agent-control
+    type: option
+    definition: "Approval-controlled actions and execution for agents working on integrations."
+  - id: managed-compute
+    type: substrate
+    definition: "Sandbox, VM, container, or workspace infrastructure used underneath Ortyo rather than competing for the primary job."
+
+products:
+  - id: ortyo
+    name: Ortyo
+    roles: [self]
+    cohorts: [primary, deterministic-verification, reachability, agent-control]
+    inclusion_reason: "Product being evaluated."
+  - id: webhook-site
+    name: Webhook.site
+    roles: [direct]
+    cohorts: [primary]
+    inclusion_reason: "Canonical zero-friction webhook catcher/inspector with configurable responses, API/CLI, forwarding, and workflow actions."
+  - id: hookdeck
+    name: Hookdeck
+    roles: [direct]
+    cohorts: [primary, reliable-delivery, reachability]
+    inclusion_reason: "Webhook development console/localhost tooling that extends into a production event gateway."
+  - id: webhook-relay
+    name: Webhook Relay
+    roles: [direct]
+    cohorts: [primary, reliable-delivery, reachability]
+    inclusion_reason: "Webhook forwarding/testing platform with persistent URLs, local relay, transforms, retries, and tunnels."
+  - id: svix
+    name: Svix / Svix Play
+    roles: [direct]
+    cohorts: [primary, reliable-delivery]
+    inclusion_reason: "Svix Play directly targets webhook testing while the main platform extends into production webhook delivery."
+  - id: beeceptor
+    name: Beeceptor
+    roles: [direct]
+    cohorts: [primary, api-virtualization]
+    inclusion_reason: "Request inspection plus mock API/service virtualization for development and testing."
+  - id: webhooks-cc
+    name: webhooks.cc
+    roles: [direct]
+    cohorts: [primary, deterministic-verification, reachability]
+    inclusion_reason: "Developer webhook testing with replay, signature verification, CI patterns, tunneling, and MCP."
+  - id: hooklistener
+    name: Hooklistener
+    roles: [direct]
+    cohorts: [primary, reachability, multi-protocol]
+    inclusion_reason: "Webhook inspector/replay plus local forwarding, tunnels, email and socket debugging."
+  - id: webhooker
+    name: Webhooker
+    roles: [direct]
+    cohorts: [primary, reliable-delivery]
+    inclusion_reason: "Webhook ingest/testing plus gateways, retries, DLQ, replay, filters and local development CLI."
+  - id: hook0
+    name: Hook0 / Hook0 Play
+    roles: [direct]
+    cohorts: [primary, reliable-delivery]
+    inclusion_reason: "Instant webhook testing entry point attached to an open-source reliable delivery platform."
+  - id: requestbin-net
+    name: RequestBin.net
+    roles: [direct]
+    cohorts: [primary]
+    inclusion_reason: "Request-bin baseline for real-time webhook inspection and development."
+  - id: ngrok
+    name: ngrok
+    roles: [capability_substitute]
+    cohorts: [reachability]
+    inclusion_reason: "Substitutes for public reachability/local exposure, not for Ortyo's full primary job."
+  - id: tailscale-funnel
+    name: Tailscale Funnel
+    roles: [capability_substitute]
+    cohorts: [reachability]
+    inclusion_reason: "Reachability substitute only; not a primary webhook testing competitor."
+  - id: cloudflare-computer
+    name: Cloudflare Computer
+    roles: [substrate]
+    cohorts: [managed-compute]
+    inclusion_reason: "Potential execution substrate; does not compete for the primary webhook development job."
+  - id: namespace
+    name: Namespace
+    roles: [substrate]
+    cohorts: [managed-compute]
+    inclusion_reason: "Potential managed execution/compute substrate rather than direct webhook product competition."

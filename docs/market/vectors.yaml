@@ -1,0 +1,54 @@
+vectors:
+  - id: deterministic-verification
+    type: depth
+    from_cohort: primary
+    target_cohorts: [deterministic-verification]
+    thesis: "Turn webhook inspection/replay into reproducible integration proof with Contracts, Scenarios, structured evidence, and deterministic CI."
+    deepen_if: "Users repeatedly replay captured events, automate integration checks, use Ortyo in CI, or ask to prove ordering/cardinality/idempotency rather than only inspect payloads."
+    expand_if: null
+    stop_if: "Users overwhelmingly use Ortyo as a disposable inspector and do not retain, replay, automate, or assert interactions."
+
+  - id: reliable-delivery
+    type: depth
+    from_cohort: primary
+    target_cohorts: [reliable-delivery]
+    thesis: "Let successful pilots graduate into durable webhook receiving/delivery infrastructure without leaving the evidence model."
+    deepen_if: "Pilots become long-lived, users ask for stable endpoints, retention, retries, DLQ, fan-out, routing, or production continuity."
+    expand_if: null
+    stop_if: "Users prefer Ortyo only for pre-production testing and consistently hand production delivery to dedicated providers."
+
+  - id: api-virtualization
+    type: adjacent
+    from_cohort: primary
+    target_cohorts: [api-virtualization]
+    thesis: "Use the same boundary/evidence primitives to simulate upstream and downstream HTTP dependencies around webhook flows."
+    deepen_if: null
+    expand_if: "Webhook users repeatedly need configurable responses, dependency simulation, failure injection, or contract-backed mocks."
+    stop_if: "Mocking requirements are well served by integrations with specialist tools and do not benefit from Ortyo evidence."
+
+  - id: multi-protocol
+    type: adjacent
+    from_cohort: primary
+    target_cohorts: [multi-protocol]
+    thesis: "Apply Observe -> Control -> Replay -> Assert to other integration protocols after the webhook model is proven."
+    deepen_if: null
+    expand_if: "The same users ask for SMTP, queues, gRPC, sockets, object storage, or other boundaries and the canonical evidence model transfers cleanly."
+    stop_if: "Protocol-specific semantics require unrelated product models or distract from webhook product-market fit."
+
+  - id: agent-control
+    type: option
+    from_cohort: primary
+    target_cohorts: [agent-control]
+    thesis: "Allow coding agents to act on external integrations through approval-bound, evidence-producing actions."
+    deepen_if: null
+    expand_if: "Agent usage becomes a material acquisition/usage channel and users need safe side-effecting actions rather than read-only testing."
+    stop_if: "Approval/execution is not demanded by webhook users or becomes a generic agent platform unrelated to integration development."
+
+  - id: managed-compute
+    type: option
+    from_cohort: primary
+    target_cohorts: [managed-compute]
+    thesis: "Use replaceable managed compute to run integration code when that improves the Ortyo development lifecycle."
+    deepen_if: null
+    expand_if: "Users need Ortyo-managed execution to reproduce or verify integrations and the provider can stay behind a neutral abstraction."
+    stop_if: "The value is primarily remote shell/devbox functionality rather than webhook/integration evidence."

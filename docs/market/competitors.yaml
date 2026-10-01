@@ -1,0 +1,53 @@
+checked_at: 2026-10-01
+products:
+  webhook-site:
+    positioning: "Zero-friction request/webhook inspection with configurable responses, API/CLI, forwarding and custom actions."
+    sources:
+      - https://docs.webhook.site/
+      - https://docs.webhook.site/custom-actions.html
+  hookdeck:
+    positioning: "Webhook development plus event gateway: console, localhost CLI, inspection, replay, routing, transformations, retries and delivery operations."
+    sources:
+      - https://hookdeck.com/docs
+  webhook-relay:
+    positioning: "Webhook forwarding/testing with local/private delivery, stable URLs, transforms/functions, durable retries, tunnels and MCP."
+    sources:
+      - https://webhookrelay.com/docs/
+      - https://webhookrelay.com/docs/webhooks/internal/localhost/
+      - https://webhookrelay.com/docs/mcp/
+  svix:
+    positioning: "Webhook sending infrastructure with Svix Play/CLI for webhook inspection, local development and automated testing."
+    sources:
+      - https://docs.svix.com/introduction
+      - https://www.svix.com/blog/svix-play-an-api-for-testing-webhooks/
+      - https://www.svix.com/blog/webhooks-suck/
+  beeceptor:
+    positioning: "Developer API simulation platform combining request inspection, webhook testing, mock rules, proxying, service virtualization and CI tooling."
+    sources:
+      - https://beeceptor.com/docs/
+      - https://beeceptor.com/docs/webhook-testing/
+  webhooks-cc:
+    positioning: "Webhook testing platform with capture, replay, mocks, signatures, local testing, CI patterns, SDK/CLI and MCP."
+    sources:
+      - https://webhooks.cc/docs
+      - https://webhooks.cc/docs/mcp
+      - https://webhooks.cc/docs/guides/webhook-testing-ci-cd
+  hooklistener:
+    positioning: "Webhook inspection and replay with CLI forwarding, direct tunnels, MCP, email testing and socket debugging."
+    sources:
+      - https://docs.hooklistener.com/quickstart/
+      - https://docs.hooklistener.com/webhook-inspector/request-forwarding/
+  webhooker:
+    positioning: "Webhook ingest and gateway with event history, local CLI, filters/transforms, retries, circuit breaking, DLQ and replay."
+    sources:
+      - https://docs.webhooker.eu/
+      - https://docs.webhooker.eu/deliver/retries-and-replay/
+  hook0:
+    positioning: "Open-source webhook delivery platform with Hook0 Play for instant testing and production-grade retries, signing, monitoring and MCP."
+    sources:
+      - https://documentation.hook0.com/
+      - https://documentation.hook0.com/explanation/what-is-hook0/
+  requestbin-net:
+    positioning: "Request-bin style real-time HTTP/webhook testing and inspection."
+    sources:
+      - https://requestbin.net/
