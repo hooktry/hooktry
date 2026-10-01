@@ -21,11 +21,15 @@ open app
   -> open view WebSocket
   -> receive ready + durable backlog + live Interactions
   -> inspect body / headers / metadata
+  -> sign in with GitHub when the Hook is worth keeping
+  -> claim the same Hook into a personal workspace
 ~~~
 
 The browser does not receive or embed the Cloudflare internal claim token.
 
-Until AUTH1 exists, the owner UI shows claim as requiring sign-in. The claim capability remains stored only in the owner browser session and is not derivable from a shared view URL.
+On managed cloud, AUTH1 uses the owner's existing claim capability together with an HttpOnly Ortyo session established through GitHub OAuth + PKCE. The GitHub access token is never stored. The claim capability remains in the owner browser session and is not derivable from a shared view URL.
+
+LOCAL1 remains account-free; cloud GitHub authentication is not a requirement for running the local binary.
 
 ## Capability handling
 
