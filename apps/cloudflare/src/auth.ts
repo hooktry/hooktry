@@ -19,6 +19,7 @@ import type {
 } from "./types";
 
 const OAUTH_STATE_COOKIE = "ortyo_oauth_state";
+const OAUTH_PKCE_COOKIE = "ortyo_oauth_pkce";
 const SESSION_COOKIE = "ortyo_session";
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -36,6 +37,8 @@ export async function startGitHubOAuth(
     requestUrl.searchParams.get("return_to") ?? "/",
   );
   const state = randomOpaque("oauth_");
+  const codeVerifier = randomBase64Url(32);
+  const codeChallenge = await pkceChallenge(codeVerifier);
   const now = Math.floor(Date.now() / 1000);
 
   await createOAuthState(
@@ -52,6 +55,8 @@ export async function startGitHubOAuth(
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("scope", "read:user");
   authorize.searchParams.set("state", state);
+  authorize.searchParams.set("code_challenge", codeChallenge);
+  authorize.searchParams.set("code_challenge_method", "S256");
 
   const response = new Response(null, {
     status: 302,
@@ -62,6 +67,16 @@ export async function startGitHubOAuth(
     cookie(
       OAUTH_STATE_COOKIE,
       state,
+      OAUTH_STATE_TTL_SECONDS,
+      requestUrl,
+      "/api/v1/auth/github",
+    ),
+  );
+  response.headers.append(
+    "set-cookie",
+    cookie(
+      OAUTH_PKCE_COOKIE,
+      codeVerifier,
       OAUTH_STATE_TTL_SECONDS,
       requestUrl,
       "/api/v1/auth/github",
@@ -88,7 +103,8 @@ export async function finishGitHubOAuth(
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const cookieState = cookieValue(request, OAUTH_STATE_COOKIE);
-  if (!code || !state || !cookieState || state !== cookieState) {
+  const codeVerifier = cookieValue(request, OAUTH_PKCE_COOKIE);
+  if (!code || !state || !cookieState || !codeVerifier || state !== cookieState) {
     throw new AdapterError(400, "oauth_state_invalid");
   }
 
@@ -103,6 +119,7 @@ export async function finishGitHubOAuth(
     code,
     githubCallbackUrl(url),
     env,
+    codeVerifier,
     githubFetch,
   );
   const { user, workspace } = await upsertGitHubIdentity(
@@ -133,6 +150,10 @@ export async function finishGitHubOAuth(
   response.headers.append(
     "set-cookie",
     clearCookie(OAUTH_STATE_COOKIE, url, "/api/v1/auth/github"),
+  );
+  response.headers.append(
+    "set-cookie",
+    clearCookie(OAUTH_PKCE_COOKIE, url, "/api/v1/auth/github"),
   );
   response.headers.set("cache-control", "no-store");
   return response;
@@ -188,6 +209,7 @@ export async function githubIdentity(
   code: string,
   redirectUri: string,
   env: Env,
+  codeVerifier: string,
   githubFetch: typeof fetch = fetch,
 ): Promise<GitHubIdentity> {
   if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
@@ -207,6 +229,7 @@ export async function githubIdentity(
         client_secret: env.GITHUB_CLIENT_SECRET,
         code,
         redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
       }).toString(),
     },
   );
@@ -332,14 +355,32 @@ function clearCookie(
 }
 
 function randomOpaque(prefix: string): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return prefix + randomBase64Url(32);
+}
+
+function randomBase64Url(byteLength: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(byteLength));
   let binary = "";
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  const encoded = btoa(binary)
+  return btoa(binary)
     .replaceAll("+", "-")
     .replaceAll("/", "_")
     .replace(/=+$/, "");
-  return prefix + encoded;
+}
+
+async function pkceChallenge(verifier: string): Promise<string> {
+  const bytes = new TextEncoder().encode(verifier);
+  const digest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", bytes),
+  );
+  let binary = "";
+  for (const byte of digest) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
 }
