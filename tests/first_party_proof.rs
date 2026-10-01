@@ -5,9 +5,10 @@ use ortyo::{
 
 #[test]
 fn duplicate_recipe_exercises_idempotency_cardinality_and_settle_proof() {
-    let manifest: ScenarioManifest =
-        serde_json::from_str(include_str!("../examples/scenarios/duplicate-idempotency.json"))
-            .unwrap();
+    let manifest: ScenarioManifest = serde_json::from_str(include_str!(
+        "../examples/scenarios/duplicate-idempotency.json"
+    ))
+    .unwrap();
     let request: CreateScenario = manifest.into();
     let features = ScenarioUsageFeatures::from_request(&request);
 
