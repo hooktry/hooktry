@@ -541,7 +541,9 @@ async fn run_dogfood_approval_webhook(
         || approval.summary.body_sha256.is_none()
         || !approval.summary.capture_names.is_empty()
     {
-        return Err("dogfood webhook approval summary was not the expected redacted action".to_owned());
+        return Err(
+            "dogfood webhook approval summary was not the expected redacted action".to_owned(),
+        );
     }
 
     let approval_json = serde_json::to_string(&approval)
@@ -577,8 +579,7 @@ async fn run_dogfood_approval_webhook(
 
     let headers = webhook_headers(notification.notification_id);
     let expected_idempotency_key = notification.notification_id.to_string();
-    if headers.get("idempotency-key").map(String::as_str)
-        != Some(expected_idempotency_key.as_str())
+    if headers.get("idempotency-key").map(String::as_str) != Some(expected_idempotency_key.as_str())
         || headers.get("x-ortyo-event").map(String::as_str) != Some("approval_requested")
     {
         return Err("dogfood webhook delivery headers were not deterministic".to_owned());
