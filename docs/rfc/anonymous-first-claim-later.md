@@ -243,7 +243,7 @@ The current hosted server implements:
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
 - `/hook/hk_<token>/*path` for capture
 - `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream
-- `POST /claim/cl_<token>` with workspace `exposures:create` authority
+- `POST /claim/cl_<token>` with either an authenticated managed-cloud browser session or workspace `exposures:create` authority in the native hosted profile
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
 - SHA-256 digests only for hook/view/claim capabilities at rest
 - atomic request-count and retained-byte quota enforcement
@@ -254,3 +254,12 @@ The existing hook URL remains valid across claim. The current slice intentionall
 ## Response policy
 
 Anonymous ingress returns a fixed success response after durable capture. It does not support arbitrary forwarding, arbitrary server-side replay, custom response code, transforms, secrets, or custom domains. Those omissions reduce SSRF/proxy/amplification abuse while preserving the core capture/inspect/claim loop.
+
+
+## AUTH1 managed-cloud claim
+
+The managed Cloudflare profile now has the first human claim authority.
+
+GitHub OAuth establishes an Ortyo session and idempotent personal workspace; the owner browser then spends the existing one-shot `cl_` capability against that authenticated workspace. GitHub access tokens are not retained. OAuth state and Ortyo sessions are persisted only as SHA-256 digests, and the authorization-code exchange is bound with PKCE.
+
+This does not alter the portable claim invariant or the native hosted workspace-token flow. See [AUTH1](github-auth-claim.md).
