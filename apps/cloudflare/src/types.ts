@@ -4,6 +4,7 @@ export interface Env {
   PAYLOADS: R2Bucket;
   EXPOSURES: DurableObjectNamespace;
   CLAIM_INTERNAL_TOKEN?: string;
+  ORTYO_RELEASE_SHA?: string;
 }
 
 export interface AnonymousExposureRow {
