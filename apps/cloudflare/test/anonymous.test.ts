@@ -20,18 +20,18 @@ describe("CF1 anonymous Exposure conformance", () => {
   it(
     "creates, pushes, survives DO eviction, claims, and preserves the hook URL",
     async () => {
-    const provision = await createAnonymous();
+    const provision = await withStage("create", createAnonymous());
 
     expect(provision.hook_url).toMatch(/\/hook\/hk_[A-Za-z0-9_-]{32}$/);
     expect(provision.view_url).toMatch(/\/view\/vw_[A-Za-z0-9_-]{32}$/);
     expect(provision.claim_url).toMatch(/\/claim\/cl_[A-Za-z0-9_-]{32}$/);
     expect(provision.expires_at_unix_seconds).toBeTypeOf("number");
 
-    const viewerResponse = await fetchWorker(
+    const viewerResponse = await withStage("viewer-upgrade", fetchWorker(
       new Request(provision.view_url, {
         headers: { Upgrade: "websocket" },
       }),
-    );
+    ));
     expect(viewerResponse.status).toBe(101);
     const socket = viewerResponse.webSocket;
     if (!socket) {
@@ -40,11 +40,11 @@ describe("CF1 anonymous Exposure conformance", () => {
     const inbox = jsonInbox(socket);
     socket.accept();
 
-    const ready = await inbox.next();
+    const ready = await withStage("viewer-ready", inbox.next());
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
 
-    const first = await fetchWorker(
+    const first = await withStage("first-capture", fetchWorker(
       new Request(`${provision.hook_url}/stripe?delivery=42`, {
         method: "POST",
         headers: {
@@ -53,10 +53,10 @@ describe("CF1 anonymous Exposure conformance", () => {
         },
         body: JSON.stringify({ type: "checkout.session.completed" }),
       }),
-    );
+    ));
     expect(first.status).toBe(200);
 
-    const pushed = await inbox.next();
+    const pushed = await withStage("first-push", inbox.next());
     expect(pushed.type).toBe("interaction");
     expect(pushed.interaction.sequence).toBe(1);
     expect(pushed.interaction.path).toBe("/stripe");
@@ -64,20 +64,20 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(pushed.interaction.body_encoding).toBe("utf8");
 
     const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
-    await evictDurableObject(stub);
+    await withStage("evict", evictDurableObject(stub), 8_000);
 
-    const afterEviction = await fetchWorker(
+    const afterEviction = await withStage("capture-after-eviction", fetchWorker(
       new Request(provision.hook_url, {
         method: "POST",
         body: "after-eviction",
       }),
-    );
+    ));
     expect(afterEviction.status).toBe(200);
-    const pushedAfterEviction = await inbox.next();
+    const pushedAfterEviction = await withStage("push-after-eviction", inbox.next());
     expect(pushedAfterEviction.interaction.sequence).toBe(2);
     expect(pushedAfterEviction.interaction.body).toBe("after-eviction");
 
-    const claimed = await fetchWorker(
+    const claimed = await withStage("claim", fetchWorker(
       new Request(provision.claim_url, {
         method: "POST",
         headers: {
@@ -85,25 +85,25 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
-    );
+    ));
     expect(claimed.status).toBe(200);
     const claimedBody = (await claimed.json()) as Record<string, unknown>;
     expect(claimedBody.claimed).toBe(true);
     expect(claimedBody.workspace_id).toBe(WORKSPACE_ID);
     expect(claimedBody.expires_at_unix_seconds).toBeUndefined();
 
-    const afterClaim = await fetchWorker(
+    const afterClaim = await withStage("capture-after-claim", fetchWorker(
       new Request(provision.hook_url, {
         method: "POST",
         body: "after-claim",
       }),
-    );
+    ));
     expect(afterClaim.status).toBe(200);
-    const pushedAfterClaim = await inbox.next();
+    const pushedAfterClaim = await withStage("push-after-claim", inbox.next());
     expect(pushedAfterClaim.interaction.sequence).toBe(3);
     expect(pushedAfterClaim.interaction.body).toBe("after-claim");
 
-    const secondClaim = await fetchWorker(
+    const secondClaim = await withStage("second-claim", fetchWorker(
       new Request(provision.claim_url, {
         method: "POST",
         headers: {
@@ -111,7 +111,7 @@ describe("CF1 anonymous Exposure conformance", () => {
           "x-ortyo-workspace-id": WORKSPACE_ID,
         },
       }),
-    );
+    ));
     expect(secondClaim.status).toBe(410);
 
     socket.close(1000, "done");
@@ -249,4 +249,20 @@ function jsonInbox(socket: WebSocket): { next: () => Promise<any> } {
       });
     },
   };
+}
+
+function withStage<T>(
+  name: string,
+  promise: Promise<T>,
+  timeoutMs = 2_000,
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_resolve, reject) => {
+      setTimeout(
+        () => reject(new Error(`stage timed out: ${name}`)),
+        timeoutMs,
+      );
+    }),
+  ]);
 }
