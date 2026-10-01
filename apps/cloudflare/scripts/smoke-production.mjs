@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 const baseUrl = required("ORTYO_BASE_URL").replace(/\/$/, "");
 const claimToken = required("ORTYO_CLAIM_INTERNAL_TOKEN");
 const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
@@ -8,10 +10,14 @@ const expectedReleaseSha = process.env.ORTYO_EXPECTED_RELEASE_SHA?.trim() || nul
 const expectGitHubAuth = process.env.ORTYO_EXPECT_GITHUB_AUTH === "1";
 
 let provision;
+let oauthStateDigest = null;
 const interactions = [];
 
 try {
   await waitForHealth();
+  if (expectGitHubAuth) {
+    oauthStateDigest = await verifyGitHubAuthStart();
+  }
 
   const app = await fetch(`${baseUrl}/`, {
     headers: { accept: "text/html" },
@@ -95,12 +101,60 @@ try {
   inbox.close();
   console.log("WEB1 acceptance passed: app -> create -> React view -> live hook -> claim -> same hook");
 } finally {
+  if (oauthStateDigest) {
+    await d1(
+      "DELETE FROM auth_oauth_states WHERE state_digest = ?",
+      [oauthStateDigest],
+    ).catch((error) => {
+      console.error("OAuth smoke cleanup failed:", error);
+      process.exitCode = 1;
+    });
+  }
+
   if (provision?.exposure_id) {
     await cleanup(provision.exposure_id, interactions).catch((error) => {
       console.error("Smoke cleanup failed:", error);
       process.exitCode = 1;
     });
   }
+}
+
+async function verifyGitHubAuthStart() {
+  const response = await fetch(
+    `${baseUrl}/api/v1/auth/github/start?return_to=${encodeURIComponent("/")}`,
+    { redirect: "manual" },
+  );
+  assert(response.status === 302, `GitHub auth start failed: ${response.status}`);
+
+  const location = response.headers.get("location");
+  assert(location, "GitHub auth start did not return Location");
+  const authorize = new URL(location);
+  assert(authorize.origin === "https://github.com", "GitHub auth origin mismatch");
+  assert(authorize.pathname === "/login/oauth/authorize", "GitHub auth path mismatch");
+  assert(authorize.searchParams.get("scope") === "read:user", "GitHub auth scope mismatch");
+  assert(
+    authorize.searchParams.get("code_challenge_method") === "S256",
+    "GitHub auth PKCE method mismatch",
+  );
+  assert(
+    /^[A-Za-z0-9_-]{43}$/.test(authorize.searchParams.get("code_challenge") ?? ""),
+    "GitHub auth PKCE challenge missing",
+  );
+
+  const state = authorize.searchParams.get("state");
+  assert(state, "GitHub auth state missing");
+  const digest = createHash("sha256").update(state).digest("hex");
+  const stored = await d1(
+    "SELECT COUNT(*) AS count FROM auth_oauth_states WHERE state_digest = ?",
+    [digest],
+  );
+  assert(
+    stored?.[0]?.results?.[0]?.count === 1,
+    "GitHub auth state was not durably stored",
+  );
+
+  console.log("AUTH1 acceptance passed: GitHub redirect + state + PKCE");
+  return digest;
 }
 
 async function waitForHealth() {
