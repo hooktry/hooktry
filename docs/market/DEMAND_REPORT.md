@@ -55,9 +55,9 @@ Local-first should be treated as a product property, not an accidental deploymen
 
 ## What is supported at the problem level
 
-### Async deterministic waiting - STRONG PROBLEM EVIDENCE
+### Async deterministic waiting - STRONG PROBLEM EVIDENCE, QUIET-PERIOD DEMAND UNPROVEN
 
-Webhook flows are asynchronous. Official provider docs document delayed delivery, and current engineering guidance repeatedly warns against fixed sleeps in CI.
+Webhook flows are asynchronous. GitHub documents that deliveries can take minutes to arrive and can be throttled under surge conditions.
 
 There is credible support for:
 
@@ -65,17 +65,29 @@ There is credible support for:
 - waiting for evidence or outcome
 - machine-readable failure when the expected event never arrives
 
-Ortyo's observation-window work aligns well with this need.
+What remains unproven is the stronger Ortyo-specific primitive: waiting beyond the first match for a **quiet/settle period** to prove that no later duplicate or extra event invalidates the expectation.
 
-### Duplicate / out-of-order / idempotency behavior - STRONG PROBLEM EVIDENCE
+So the hard-horizon problem is validated; quiet-period demand is still a hypothesis.
 
-GitHub explicitly documents that webhook deliveries may be out of order. Community discussions and engineering guidance repeatedly mention duplicates, retries, idempotency, and reverse-order tests.
+### Duplicate / out-of-order / idempotency behavior - STRONG DIRECT PROBLEM EVIDENCE
 
-This supports the *problem* behind Ortyo cardinality, ordering, and idempotency context.
+The evidence is now materially stronger than generic provider guidance.
 
-It does **not yet prove** that users want Ortyo's exact Contract/Scenario DSL.
+Recent public production bug reports independently show:
 
-That distinction should remain explicit.
+- one GitHub event executing a workflow twice because duplicate deliveries were not deduplicated
+- duplicate Stripe deliveries sending cancellation/payment-failed notifications twice because the processed-event check was not atomic
+- out-of-order WhatsApp status webhooks regressing a message from delivered back to sent
+- Stripe entitlement races where event ordering and stale events can persist the wrong subscription state
+- webhook contracts whose delivery identity is too weak or scoped incorrectly for safe deduplication
+
+Provider documentation independently confirms the same underlying realities: Shopify warns that duplicate deliveries can occur and provides a stable webhook ID for deduplication, while Shopify and GitHub both document that webhook order/timing is not guaranteed.
+
+This strongly supports the **failure classes** behind Ortyo cardinality, ordering, and correlation/idempotency context.
+
+It still does **not prove** demand for Ortyo's exact abstractions such as ranged cardinality syntax, durable-order predicates, quiet/settle windows, or a Contract/Scenario DSL.
+
+That distinction remains explicit.
 
 ### Deterministic CI integration proof - MODERATE SUPPORT
 

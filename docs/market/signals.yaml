@@ -148,3 +148,100 @@ signals:
     source:
       type: vendor_docs
       url: "https://documentation.hook0.com/reference/mcp"
+
+  - id: direct-duplicate-workflow-cardinality-2026-06-11
+    capability: cardinality
+    class: direct_demand
+    direction: supports
+    assertion: "A production bug report describes one GitHub trigger executing a workflow twice because duplicate webhook deliveries were processed without an idempotency check; the expected behavior is one logical execution for one provider event."
+    observed_at: 2026-06-11
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/coleam00/Archon/issues/1951"
+
+  - id: direct-duplicate-stripe-notification-2026-07-17
+    capability: cardinality
+    class: direct_demand
+    direction: supports
+    assertion: "A Stripe integration bug report shows two close-together duplicate deliveries both passing a non-atomic processed-event check and sending cancellation/payment-failed emails twice."
+    observed_at: 2026-07-17
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/adammcgrogan/launchly-self-serve/issues/197"
+
+  - id: direct-out-of-order-whatsapp-regression-2026-05-21
+    capability: ordering
+    class: direct_demand
+    direction: supports
+    assertion: "A production Chatwoot issue reports Meta webhook statuses arriving out of order, allowing a delayed sent event to overwrite a later delivered state and regress the persisted/UI status."
+    observed_at: 2026-05-21
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/chatwoot/chatwoot/issues/14529"
+
+  - id: direct-entitlement-order-race-2026-06-26
+    capability: ordering
+    class: direct_demand
+    direction: supports
+    assertion: "A production Stripe entitlement issue reports webhook ordering and eventual-consistency races where a transient subscription event and later checkout/stale events can leave or downgrade the wrong entitlement state."
+    observed_at: 2026-06-26
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/BasedHardware/omi/issues/8417"
+
+  - id: direct-undedupeable-delivery-identity-2026-07-11
+    capability: correlation-context
+    class: direct_demand
+    direction: supports
+    assertion: "A webhook contract issue reports duplicate logical events being emitted with fresh event IDs, making downstream billing/CRM/notification consumers unable to deduplicate even when they attempt to handle retries correctly."
+    observed_at: 2026-07-11
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/Vexa-ai/vexa/issues/519"
+
+  - id: direct-route-scoped-idempotency-2026-04-10
+    capability: correlation-context
+    class: direct_demand
+    direction: supports
+    assertion: "A real multi-route webhook failure shows that deduplicating only by provider delivery ID suppresses a legitimate second configured consumer; the identity needs route/context scope as well as delivery identity."
+    observed_at: 2026-04-10
+    confidence: high
+    source:
+      type: community_issue
+      url: "https://github.com/NousResearch/hermes-agent/issues/7448"
+
+  - id: proxy-shopify-duplicate-delivery-identity-2026-10-01
+    capability: correlation-context
+    class: demand_proxy
+    assertion: "Shopify documents that duplicate webhook deliveries can occur after network timeout or retry and recommends persistent deduplication keyed by X-Shopify-Webhook-Id."
+    observed_at: 2026-10-01
+    confidence: high
+    source:
+      type: provider_docs
+      url: "https://shopify.dev/docs/apps/build/webhooks/verify-deliveries"
+
+  - id: proxy-shopify-ordering-not-guaranteed-2026-10-01
+    capability: ordering
+    class: demand_proxy
+    assertion: "Shopify explicitly states that webhook ordering is not guaranteed within a topic or across topics for the same resource and recommends timestamps/reconciliation-aware handling."
+    observed_at: 2026-10-01
+    confidence: high
+    source:
+      type: provider_docs
+      url: "https://shopify.dev/docs/apps/build/webhooks/customize"
+
+  - id: proxy-github-delivery-delay-window-2026-10-01
+    capability: observation-window
+    class: demand_proxy
+    assertion: "GitHub documents that webhook deliveries may take minutes to arrive and may be throttled during surges, supporting bounded observation horizons while leaving quiet/settle-window demand unproven."
+    observed_at: 2026-10-01
+    confidence: high
+    source:
+      type: provider_docs
+      url: "https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/troubleshooting-webhooks"
+

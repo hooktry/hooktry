@@ -22,6 +22,7 @@ struct Product {
 #[derive(Debug, Clone, Default)]
 struct Priority {
     horizon: String,
+    next_evidence: String,
     capabilities: Vec<String>,
 }
 
@@ -54,6 +55,7 @@ struct Candidate {
     supporting_signals: usize,
     known_external_peers: usize,
     product_cohorts: usize,
+    research_channel: String,
     reasons: Vec<String>,
 }
 
@@ -68,6 +70,7 @@ struct CapabilityDebt {
     known_external_peers: usize,
     direct_demand: usize,
     supporting_signals: usize,
+    research_channel: String,
 }
 
 fn main() -> ExitCode {
@@ -186,10 +189,16 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
 
             let product = model.products.get(product_id);
             let product_cohorts = product.map_or(0, |value| value.cohorts.len());
+            let research_channel = if priority.next_evidence.is_empty() {
+                "market_research".to_owned()
+            } else {
+                priority.next_evidence.clone()
+            };
             let mut reasons = vec![
                 format!("horizon={}", priority.horizon),
                 format!("disposition={}", capability.disposition),
                 format!("ortyo={}", capability.ortyo_status),
+                format!("next_evidence={research_channel}"),
             ];
             if signal.direct_demand > 0 {
                 reasons.push(format!("direct_demand={}", signal.direct_demand));
@@ -221,6 +230,7 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
                 supporting_signals,
                 known_external_peers,
                 product_cohorts,
+                research_channel,
                 reasons,
             });
         }
@@ -252,6 +262,7 @@ fn effective_priority(capability: &Capability, priorities: &[Priority]) -> Prior
 
     Priority {
         horizon: horizon.to_owned(),
+        next_evidence: "market_research".to_owned(),
         capabilities: vec![capability.id.clone()],
     }
 }
@@ -383,6 +394,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             known_external_peers: first.known_external_peers,
             direct_demand: first.direct_demand,
             supporting_signals: first.supporting_signals,
+            research_channel: first.research_channel.clone(),
         });
     }
 
@@ -398,6 +410,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             supporting_signals: left.supporting_signals,
             known_external_peers: left.known_external_peers,
             product_cohorts: 0,
+            research_channel: left.research_channel.clone(),
             reasons: Vec::new(),
         };
         let right_candidate = Candidate {
@@ -411,6 +424,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             supporting_signals: right.supporting_signals,
             known_external_peers: right.known_external_peers,
             product_cohorts: 0,
+            research_channel: right.research_channel.clone(),
             reasons: Vec::new(),
         };
         compare_candidates(&left_candidate, &right_candidate)
@@ -437,6 +451,9 @@ fn select_top_checks(
     for candidate in candidates {
         if selected.len() >= limit {
             break;
+        }
+        if candidate.research_channel == "first_party_usage" {
+            continue;
         }
         let count = per_capability
             .entry(candidate.capability.as_str())
@@ -466,15 +483,27 @@ fn render_text(
     output.push_str(&format!(
         "External matrix coverage: {known_cells}/{external_cells} evidenced, {unknown_cells} unknown\n"
     ));
+    let deferred_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel == "first_party_usage")
+        .count();
+    let deferred_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel == "first_party_usage")
+        .count();
+
     output.push_str(&format!(
-        "Capabilities with unresolved external cells: {}\n\n",
+        "Capabilities with unresolved external cells: {}\n",
         debt.len()
+    ));
+    output.push_str(&format!(
+        "Deferred to first-party usage: {deferred_capabilities} capabilities / {deferred_cells} cells\n\n"
     ));
 
     output.push_str("Capability queue\n");
     for item in debt.iter().take(12) {
         output.push_str(&format!(
-            "- {} {}: unknown={} known={} horizon={} disposition={} ortyo={}{}{}\n",
+            "- {} {}: unknown={} known={} horizon={} disposition={} ortyo={} channel={}{}{}\n",
             item.tier,
             item.capability,
             item.unknown_cells,
@@ -482,6 +511,7 @@ fn render_text(
             item.horizon,
             item.disposition,
             item.ortyo_status,
+            item.research_channel,
             if item.direct_demand > 0 {
                 format!(" direct_demand={}", item.direct_demand)
             } else {
@@ -523,11 +553,20 @@ fn render_json(
     let unknown_cells = candidates.len();
     let known_cells = external_cells.saturating_sub(unknown_cells);
 
+    let deferred_cells = candidates
+        .iter()
+        .filter(|candidate| candidate.research_channel == "first_party_usage")
+        .count();
+    let deferred_capabilities = debt
+        .iter()
+        .filter(|item| item.research_channel == "first_party_usage")
+        .count();
+
     let capability_json = debt
         .iter()
         .map(|item| {
             format!(
-                "{{\"tier\":\"{}\",\"capability\":\"{}\",\"unknown_cells\":{},\"known_external_peers\":{},\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{}}}",
+                "{{\"tier\":\"{}\",\"capability\":\"{}\",\"unknown_cells\":{},\"known_external_peers\":{},\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{}}}",
                 json_escape(&item.tier),
                 json_escape(&item.capability),
                 item.unknown_cells,
@@ -535,6 +574,7 @@ fn render_json(
                 json_escape(&item.horizon),
                 json_escape(&item.disposition),
                 json_escape(&item.ortyo_status),
+                json_escape(&item.research_channel),
                 item.direct_demand,
                 item.supporting_signals
             )
@@ -546,13 +586,14 @@ fn render_json(
         .iter()
         .map(|candidate| {
             format!(
-                "{{\"tier\":\"{}\",\"product\":\"{}\",\"capability\":\"{}\",\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{},\"known_external_peers\":{},\"product_cohorts\":{},\"reasons\":{}}}",
+                "{{\"tier\":\"{}\",\"product\":\"{}\",\"capability\":\"{}\",\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{},\"known_external_peers\":{},\"product_cohorts\":{},\"reasons\":{}}}",
                 json_escape(&candidate.tier),
                 json_escape(&candidate.product),
                 json_escape(&candidate.capability),
                 json_escape(&candidate.horizon),
                 json_escape(&candidate.disposition),
                 json_escape(&candidate.ortyo_status),
+                json_escape(&candidate.research_channel),
                 candidate.direct_demand,
                 candidate.supporting_signals,
                 candidate.known_external_peers,
@@ -564,7 +605,7 @@ fn render_json(
         .join(",");
 
     format!(
-        "{{\"external_cells\":{external_cells},\"known_cells\":{known_cells},\"unknown_cells\":{unknown_cells},\"capabilities_with_debt\":{},\"capability_queue\":[{capability_json}],\"top_checks\":[{checks_json}]}}",
+        "{{\"external_cells\":{external_cells},\"known_cells\":{known_cells},\"unknown_cells\":{unknown_cells},\"capabilities_with_debt\":{},\"deferred_to_first_party_capabilities\":{deferred_capabilities},\"deferred_to_first_party_cells\":{deferred_cells},\"capability_queue\":[{capability_json}],\"top_checks\":[{checks_json}]}}",
         debt.len()
     )
 }
@@ -649,6 +690,8 @@ fn parse_priorities(text: &str) -> Vec<Priority> {
             let trimmed = line.trim();
             if let Some(value) = trimmed.strip_prefix("horizon: ") {
                 item.horizon = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("next_evidence: ") {
+                item.next_evidence = scalar(value);
             } else if let Some(value) = trimmed.strip_prefix("capabilities: ") {
                 item.capabilities = inline_list(value);
             }
@@ -806,6 +849,7 @@ mod tests {
             supporting_signals: 0,
             known_external_peers: 5,
             product_cohorts: 1,
+            research_channel: "market_research".to_owned(),
             reasons: vec![],
         };
         let completed = Candidate {
@@ -843,6 +887,7 @@ mod tests {
                 supporting_signals: 0,
                 known_external_peers: 1,
                 product_cohorts: 1,
+                research_channel: "market_research".to_owned(),
                 reasons: vec![],
             },
             Candidate {
@@ -856,6 +901,7 @@ mod tests {
                 supporting_signals: 0,
                 known_external_peers: 1,
                 product_cohorts: 1,
+                research_channel: "market_research".to_owned(),
                 reasons: vec![],
             },
             Candidate {
@@ -869,6 +915,7 @@ mod tests {
                 supporting_signals: 0,
                 known_external_peers: 1,
                 product_cohorts: 1,
+                research_channel: "market_research".to_owned(),
                 reasons: vec![],
             },
         ];
@@ -877,6 +924,26 @@ mod tests {
         assert_eq!(selected.len(), 2);
         assert_eq!(selected[0].capability, "search");
         assert_eq!(selected[1].capability, "response");
+    }
+
+    #[test]
+    fn first_party_evidence_candidates_are_not_external_research_checks() {
+        let candidate = Candidate {
+            product: "hookdeck".to_owned(),
+            capability: "ordering".to_owned(),
+            tier: "P2".to_owned(),
+            horizon: "validate".to_owned(),
+            disposition: "differentiation".to_owned(),
+            ortyo_status: "implemented".to_owned(),
+            direct_demand: 2,
+            supporting_signals: 1,
+            known_external_peers: 2,
+            product_cohorts: 1,
+            research_channel: "first_party_usage".to_owned(),
+            reasons: vec![],
+        };
+
+        assert!(select_top_checks(&[candidate], 20, 3).is_empty());
     }
 
     #[test]
@@ -892,6 +959,7 @@ mod tests {
             supporting_signals: 0,
             known_external_peers: 1,
             product_cohorts: 1,
+            research_channel: "market_research".to_owned(),
             reasons: vec![],
         };
         let demanded = Candidate {
@@ -914,6 +982,7 @@ mod tests {
             supporting_signals: 0,
             known_external_peers: 1,
             product_cohorts: 1,
+            research_channel: "market_research".to_owned(),
             reasons: vec![],
         };
         let absent = Candidate {

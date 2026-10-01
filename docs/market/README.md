@@ -104,7 +104,7 @@ Temporal-depth research shows competitors already cover reusable suites, request
 - persisted assertion evidence and explainable outcomes
 - one model shared by HTTP, CLI, MCP, local runtime, and hosted runtime
 
-That hypothesis still requires first-party demand evidence; competitor absence or architectural elegance alone does not prove demand.
+Public production incidents now validate duplicate, ordering, and idempotency failure classes directly, but the exact Ortyo temporal/causal DSL still requires first-party usage evidence; problem validity does not automatically validate the abstraction.
 
 ## Files
 
@@ -127,6 +127,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `RESEARCH_SPRINT_2026-10-01.md` - first executed P0/P1 evidence sprint and decision impact
 - `RESEARCH_SPRINT_2_2026-10-01.md` - second differentiation-depth research sprint
 - `TEMPORAL_DEPTH_REPORT.md` - cardinality/order/window/correlation depth analysis
+- `DEMAND_PROOF_REPORT.md` - direct production evidence for duplicate/order/idempotency failure classes
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -150,7 +151,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
-5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.
+5. Collect first-party usage for duplicate/cardinality, ordering, and correlation/idempotency scenarios before deepening the temporal DSL.
 
 
 ## Executable validation
@@ -235,3 +236,16 @@ Use `--json` for automation.
 The queue separates current/next/validation/vector decisions from baseline-completion debt. An already implemented table stake does not become high-priority research merely because demand evidence exists.
 
 See `RESEARCH_DEBT.md`.
+
+
+## Evidence channel
+
+A product priority can choose the next evidence source explicitly.
+
+```yaml
+next_evidence: first_party_usage
+```
+
+This is used when desk research has established the problem sufficiently and the remaining uncertainty concerns Ortyo's own abstraction or workflow.
+
+`market-research-debt` keeps those unknown competitor cells visible in coverage totals but removes them from the top external-research queue.

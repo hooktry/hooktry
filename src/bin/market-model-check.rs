@@ -18,6 +18,12 @@ const DISPOSITIONS: &[&str] = &[
 const ORTYO_STATUSES: &[&str] = &["implemented", "partial", "absent", "unknown", "planned"];
 const SIGNAL_CLASSES: &[&str] = &["direct_demand", "demand_proxy", "market_motion"];
 const DIRECT_DEMAND_DIRECTIONS: &[&str] = &["supports", "contradicts", "mixed"];
+const NEXT_EVIDENCE: &[&str] = &[
+    "market_research",
+    "first_party_usage",
+    "implementation",
+    "watch",
+];
 const VECTOR_TYPES: &[&str] = &["depth", "adjacent", "option"];
 
 #[derive(Debug, Default)]
@@ -73,6 +79,7 @@ struct Signal {
 struct Priority {
     id: String,
     decision: String,
+    next_evidence: String,
     capabilities: Vec<String>,
 }
 
@@ -429,6 +436,14 @@ fn validate_priorities(
                 priority.id, priority.decision
             ));
         }
+        if !priority.next_evidence.is_empty()
+            && !NEXT_EVIDENCE.contains(&priority.next_evidence.as_str())
+        {
+            errors.push(format!(
+                "priority {} has invalid next_evidence: {}",
+                priority.id, priority.next_evidence
+            ));
+        }
         for capability in &priority.capabilities {
             if !capabilities.contains_key(capability.as_str()) {
                 errors.push(format!(
@@ -709,6 +724,8 @@ fn parse_priorities(text: &str) -> Vec<Priority> {
             let trimmed = line.trim();
             if let Some(value) = trimmed.strip_prefix("decision: ") {
                 item.decision = scalar(value);
+            } else if let Some(value) = trimmed.strip_prefix("next_evidence: ") {
+                item.next_evidence = scalar(value);
             } else if let Some(value) = trimmed.strip_prefix("capabilities: ") {
                 item.capabilities = inline_list(value);
             }
