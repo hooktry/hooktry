@@ -271,8 +271,7 @@ fn decision_tier(
         "P1"
     } else if (horizon == "next" && open_gap)
         || (horizon == "validate" && open_gap && direct_demand > 0)
-        || (disposition == "differentiation"
-            && (direct_demand > 0 || supporting_signals > 0))
+        || (disposition == "differentiation" && (direct_demand > 0 || supporting_signals > 0))
     {
         "P2"
     } else if matches!(horizon, "validate" | "watch" | "option") && open_gap {
