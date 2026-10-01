@@ -80,20 +80,23 @@ The claim prompt should appear after value exists, for example after the first c
 Agents should not need browser state.
 
 ```text
-POST /api/v1/exposures
+POST /api/v1/hooks
 ```
 
 Example response:
 
 ```json
 {
-  "exposure": {
-    "exposure_id": "...",
-    "expires_at_unix_seconds": 0,
-    "request_limit": 100,
-    "max_body_bytes": 5242880,
-    "max_retained_bytes": 52428800
-  },
+  "exposure_id": "...",
+  "workspace_id": null,
+  "created_at_unix_seconds": 0,
+  "expires_at_unix_seconds": 0,
+  "request_count": 0,
+  "retained_bytes": 0,
+  "request_limit": 100,
+  "max_body_bytes": 5242880,
+  "max_retained_bytes": 52428800,
+  "claimed": false,
   "hook_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
   "view_url": "https://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
   "view_websocket_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
@@ -102,7 +105,7 @@ Example response:
 }
 ```
 
-An unauthenticated `POST /api/v1/exposures` creates an ephemeral Exposure. Anonymous is an ownership/lifecycle state, not a URL namespace. This collection path is intentionally compatible with a future authenticated Exposure create flow instead of creating a parallel `anonymous` API.
+An unauthenticated `POST /api/v1/hooks` creates an ephemeral webhook capture endpoint. Hook is the product-facing resource for this workflow; internally it is backed by the canonical Exposure primitive so capture, Interaction evidence, claim, and later replay/assertion continue to use the same domain model. Anonymous remains an ownership/lifecycle state, not a URL namespace.
 
 The same operation should be discoverable from `llms.txt`, MCP, CLI help, and agent-oriented documentation.
 
@@ -224,7 +227,7 @@ This validates the product pattern without requiring Ortyo to copy Cloudflare's 
 
 The current hosted server implements:
 
-- `POST /api/v1/exposures` without authentication
+- `POST /api/v1/hooks` without authentication
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
 - `/hook/hk_<token>/*path` for capture
 - `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream

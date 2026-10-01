@@ -996,7 +996,7 @@ pub fn anonymous_app(
         identities,
     };
     Router::new()
-        .route("/api/v1/exposures", post(create_anonymous))
+        .route("/api/v1/hooks", post(create_hook))
         .route("/view/{viewer_token}", get(view_anonymous))
         .route("/claim/{claim_token}", post(claim_anonymous))
         .route("/hook/{ingress_token}", any(anonymous_ingress_root))
@@ -1005,7 +1005,7 @@ pub fn anonymous_app(
         .with_state(state)
 }
 
-async fn create_anonymous(
+async fn create_hook(
     State(state): State<AnonymousRouterState>,
     headers: HeaderMap,
 ) -> Result<Response, AnonymousApiError> {
