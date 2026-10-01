@@ -41,7 +41,7 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
     assert!(provision.view_url.contains("/view/vw_"));
     assert!(provision.view_ws_url.contains("/view/vw_"));
     assert!(provision.claim_url.contains("/claim/cl_"));
-    assert_eq!(provision.hook_url, provision.hook_url);
+    assert_eq!(provision.ingress_url, provision.hook_url);
     assert_eq!(provision.viewer_url, provision.view_ws_url);
 
     for (url, prefix) in [
