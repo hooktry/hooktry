@@ -93,14 +93,14 @@ The agent surface itself is therefore not a durable differentiator. Hookdeck, We
 
 Assertions, replay suites, MCP, CI wiring, bounded waits, reproducible test environments, and structured evidence are no longer sufficient differentiation by themselves: current competitors already expose meaningful parts of that surface.
 
-Ortyo's stronger potential differentiation is therefore the **depth of temporal and causal evidence semantics**:
+Temporal-depth research shows competitors already cover reusable suites, request-local contracts, expected counts, timestamp-sorted multi-event capture, and bounded waits. Ortyo's remaining potential differentiation is therefore the **deeper temporal and causal evidence semantics**:
 
 - canonical evidence rather than log-only inspection
 - portable Recording/Replay
-- exact and ranged cardinality
-- durable observed ordering
-- explicit observation/settle windows
-- correlation, causation, and idempotency context
+- ranged cardinality with proof that no later extra match violates the expectation
+- durable observed-order assertions
+- hard horizons plus explicit quiet/settle windows
+- normalized correlation, causation, request, message, trace, and idempotency context
 - persisted assertion evidence and explainable outcomes
 - one model shared by HTTP, CLI, MCP, local runtime, and hosted runtime
 
@@ -126,6 +126,7 @@ That hypothesis still requires first-party demand evidence; competitor absence o
 - `RESEARCH_DEBT.md` - decision-value research queue over unresolved matrix evidence
 - `RESEARCH_SPRINT_2026-10-01.md` - first executed P0/P1 evidence sprint and decision impact
 - `RESEARCH_SPRINT_2_2026-10-01.md` - second differentiation-depth research sprint
+- `TEMPORAL_DEPTH_REPORT.md` - cardinality/order/window/correlation depth analysis
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
