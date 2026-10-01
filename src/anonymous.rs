@@ -976,10 +976,7 @@ pub fn anonymous_app(
         .route("/view/{viewer_token}", get(view_anonymous))
         .route("/claim/{claim_token}", post(claim_anonymous))
         .route("/hook/{ingress_token}", any(anonymous_ingress_root))
-        .route(
-            "/hook/{ingress_token}/{*path}",
-            any(anonymous_ingress_path),
-        )
+        .route("/hook/{ingress_token}/{*path}", any(anonymous_ingress_path))
         // Compatibility aliases preserve already-issued anonymous capability URLs.
         .route("/_ortyo/anonymous/view/{viewer_token}", get(view_anonymous))
         .route(
@@ -1495,8 +1492,7 @@ fn random_capability(prefix: &str) -> String {
 }
 
 fn base64url_encode(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
     let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
