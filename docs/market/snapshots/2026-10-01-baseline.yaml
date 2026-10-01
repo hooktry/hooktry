@@ -7,14 +7,33 @@ source_dates:
   matrix_checked_at: 2026-10-01
   signals_checked_at: 2026-10-01
 counts:
-  products: 11
+  scope_products: 16
+  matrix_products: 11
   capabilities: 38
   matrix_rows: 23
   matrix_cells: 253
   observations: 69
   signals: 14
 
-products:
+scope_products:
+  - ortyo
+  - webhook-site
+  - hookdeck
+  - webhook-relay
+  - svix
+  - beeceptor
+  - vercel-emulate
+  - webhooks-cc
+  - hooklistener
+  - webhooker
+  - hook0
+  - requestbin-net
+  - ngrok
+  - tailscale-funnel
+  - cloudflare-computer
+  - namespace
+
+matrix_products:
   - ortyo
   - webhook-site
   - hookdeck
