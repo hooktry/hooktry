@@ -31,10 +31,7 @@ impl AnonymousInteractionStream for TokioAnonymousInteractionStream {
         let _ = self.sender(interaction.exposure_id).send(interaction);
     }
 
-    fn subscribe(
-        &self,
-        exposure_id: Uuid,
-    ) -> Box<dyn AnonymousInteractionSubscription> {
+    fn subscribe(&self, exposure_id: Uuid) -> Box<dyn AnonymousInteractionSubscription> {
         Box::new(TokioAnonymousInteractionSubscription {
             receiver: self.sender(exposure_id).subscribe(),
         })
@@ -46,9 +43,7 @@ struct TokioAnonymousInteractionSubscription {
 }
 
 impl AnonymousInteractionSubscription for TokioAnonymousInteractionSubscription {
-    fn recv(
-        &mut self,
-    ) -> PortFuture<'_, Result<StoredInteraction, InteractionStreamError>> {
+    fn recv(&mut self) -> PortFuture<'_, Result<StoredInteraction, InteractionStreamError>> {
         Box::pin(async move {
             self.receiver.recv().await.map_err(|error| match error {
                 broadcast::error::RecvError::Lagged(_) => InteractionStreamError::Lagged,
