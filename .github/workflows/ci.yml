@@ -108,6 +108,9 @@ jobs:
       - name: First-party dogfood proof
         run: cargo test --locked --test first_party_dogfood_cli -- --nocapture
 
+      - name: Live approval webhook Scenario proof
+        run: cargo test --locked --test approval_webhook_scenario_dogfood -- --nocapture
+
       - name: Tests
         run: cargo test --locked --all-targets --all-features
 
