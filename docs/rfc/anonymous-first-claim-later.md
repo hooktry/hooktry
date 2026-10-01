@@ -96,10 +96,8 @@ Example response:
   },
   "hook_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
   "view_url": "https://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "view_ws_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "view_websocket_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
   "claim_url": "https://ortyo.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
-  "ingress_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
-  "viewer_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
   "anonymous_principal": "ortyo_ap_..."
 }
 ```
@@ -121,7 +119,7 @@ https://ortyo.com/claim/cl_<32-char-base64url>
 
 There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
 
-Ingress, viewer, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
+Hook, view, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
 
 A single Durable Object class with one object instance keyed by active Exposure is acceptable and may be useful for atomic quota/claim state plus live fan-out. That is data sharding, not infrastructure-per-endpoint. Idle instances should be allowed to hibernate.
 
@@ -184,9 +182,9 @@ Required invariants:
 4. claim cannot resurrect an already-purged Exposure
 5. concurrent claims have exactly one winner
 6. owner/workspace transition and claim-token invalidation happen atomically
-7. public ingress capability remains stable unless explicitly rotated
+7. public hook capability remains stable unless explicitly rotated
 8. cookie/client id alone can never claim
-9. ingress, viewer, and claim tokens are distinct capabilities
+9. hook, view, and claim tokens are distinct capabilities
 10. viewer reconnect is backlog + live push, never database polling
 
 ## Relationship to existing Ortyo primitives
@@ -227,13 +225,12 @@ The current hosted server implements:
 - `/hook/hk_<token>/*path` for capture
 - `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream
 - `POST /claim/cl_<token>` with workspace `exposures:create` authority
-- compatibility aliases for the previously issued `/h/` and `/_ortyo/anonymous/{view,claim}/` capability URLs
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
-- SHA-256 digests only for ingress/viewer/claim capabilities at rest
+- SHA-256 digests only for hook/view/claim capabilities at rest
 - atomic request-count and retained-byte quota enforcement
 - atomic claim and one-shot claim-token invalidation
 
-The existing ingress URL remains valid across claim. The current slice intentionally preserves the anonymous request/byte quotas after claim until the authenticated Free tier is specified separately.
+The existing hook URL remains valid across claim. The current slice intentionally preserves the anonymous request/byte quotas after claim until the authenticated Free tier is specified separately.
 
 ## Response policy
 
