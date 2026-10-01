@@ -1100,7 +1100,10 @@ async fn capture_request(
 async fn view_anonymous(
     State(state): State<AnonymousRouterState>,
     Path(viewer_token): Path<String>,
-    ws: Option<WebSocketUpgrade>,
+    ws: Result<
+        WebSocketUpgrade,
+        axum::extract::ws::rejection::WebSocketUpgradeRejection,
+    >,
 ) -> Result<Response, AnonymousApiError> {
     let exposure = state
         .anonymous
@@ -1108,7 +1111,7 @@ async fn view_anonymous(
         .await
         .map_err(AnonymousApiError::from)?;
 
-    if let Some(ws) = ws {
+    if let Ok(ws) = ws {
         let service = state.anonymous.clone();
         return Ok(ws
             .on_upgrade(move |socket| async move {
