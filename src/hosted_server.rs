@@ -1398,7 +1398,10 @@ mod tests {
 
         assert_eq!(config.secrets_keyring.active_version(), 1);
         assert_eq!(config.secrets_keyring.active_key(), &[0x11; 32]);
-        assert_eq!(config.secrets_keyring.versions().collect::<Vec<_>>(), vec![1]);
+        assert_eq!(
+            config.secrets_keyring.versions().collect::<Vec<_>>(),
+            vec![1]
+        );
     }
 
     #[test]
