@@ -1,4 +1,4 @@
-import { env, exports } from "cloudflare:workers";
+import { env } from "cloudflare:workers";
 import { evictDurableObject } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
@@ -6,7 +6,10 @@ import {
   ANONYMOUS_MAX_RETAINED_BYTES,
   ANONYMOUS_REQUEST_LIMIT,
 } from "../src/core";
-import type { AnonymousProvision } from "../src/types";
+import worker from "../src/index";
+import type { AnonymousProvision, Env } from "../src/types";
+
+const testEnv = env as unknown as Env;
 
 const WORKSPACE_ID = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 
@@ -19,7 +22,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(provision.claim_url).toMatch(/\/claim\/cl_[A-Za-z0-9_-]{32}$/);
     expect(provision.expires_at_unix_seconds).toBeTypeOf("number");
 
-    const viewerResponse = await exports.default.fetch(
+    const viewerResponse = await worker.fetch(
       new Request(provision.view_websocket_url, {
         headers: { Upgrade: "websocket" },
       }),
@@ -35,7 +38,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
 
-    const first = await exports.default.fetch(
+    const first = await worker.fetch(
       new Request(`${provision.hook_url}/stripe?delivery=42`, {
         method: "POST",
         headers: {
@@ -54,10 +57,10 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(pushed.interaction.query).toBe("delivery=42");
     expect(pushed.interaction.body_encoding).toBe("utf8");
 
-    const stub = env.EXPOSURES.getByName(provision.exposure_id);
+    const stub = testEnv.EXPOSURES.getByName(provision.exposure_id);
     await evictDurableObject(stub);
 
-    const afterEviction = await exports.default.fetch(
+    const afterEviction = await worker.fetch(
       new Request(provision.hook_url, {
         method: "POST",
         body: "after-eviction",
@@ -68,7 +71,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(pushedAfterEviction.interaction.sequence).toBe(2);
     expect(pushedAfterEviction.interaction.body).toBe("after-eviction");
 
-    const claimed = await exports.default.fetch(
+    const claimed = await worker.fetch(
       new Request(provision.claim_url, {
         method: "POST",
         headers: {
@@ -83,7 +86,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(claimedBody.workspace_id).toBe(WORKSPACE_ID);
     expect(claimedBody.expires_at_unix_seconds).toBeUndefined();
 
-    const afterClaim = await exports.default.fetch(
+    const afterClaim = await worker.fetch(
       new Request(provision.hook_url, {
         method: "POST",
         body: "after-claim",
@@ -94,7 +97,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     expect(pushedAfterClaim.interaction.sequence).toBe(3);
     expect(pushedAfterClaim.interaction.body).toBe("after-claim");
 
-    const secondClaim = await exports.default.fetch(
+    const secondClaim = await worker.fetch(
       new Request(provision.claim_url, {
         method: "POST",
         headers: {
@@ -115,7 +118,7 @@ describe("CF1 anonymous Exposure conformance", () => {
       throw new Error("missing view token");
     }
 
-    const response = await exports.default.fetch(
+    const response = await worker.fetch(
       new Request(`https://ortyo.test/hook/${viewToken}`, {
         method: "POST",
         body: "must-not-route",
@@ -132,7 +135,7 @@ describe("CF1 anonymous Exposure conformance", () => {
 
     expect(
       (
-        await exports.default.fetch(
+        await worker.fetch(
           new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
             method: "POST",
             headers,
@@ -143,7 +146,7 @@ describe("CF1 anonymous Exposure conformance", () => {
 
     expect(
       (
-        await exports.default.fetch(
+        await worker.fetch(
           new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
             method: "POST",
             headers,
@@ -154,7 +157,7 @@ describe("CF1 anonymous Exposure conformance", () => {
 
     expect(
       (
-        await exports.default.fetch(
+        await worker.fetch(
           new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
             method: "POST",
             headers,
@@ -166,13 +169,13 @@ describe("CF1 anonymous Exposure conformance", () => {
 
   it("enforces request and retained-byte quotas from canonical metadata", async () => {
     const requestLimited = await createAnonymous();
-    await env.DB.prepare(
+    await testEnv.DB.prepare(
       "UPDATE anonymous_exposures SET request_count = ? WHERE exposure_id = ?",
     )
       .bind(ANONYMOUS_REQUEST_LIMIT, requestLimited.exposure_id)
       .run();
 
-    const requestLimitResponse = await exports.default.fetch(
+    const requestLimitResponse = await worker.fetch(
       new Request(requestLimited.hook_url, {
         method: "POST",
         body: "one-too-many",
@@ -184,13 +187,13 @@ describe("CF1 anonymous Exposure conformance", () => {
     });
 
     const byteLimited = await createAnonymous();
-    await env.DB.prepare(
+    await testEnv.DB.prepare(
       "UPDATE anonymous_exposures SET retained_bytes = ? WHERE exposure_id = ?",
     )
       .bind(ANONYMOUS_MAX_RETAINED_BYTES, byteLimited.exposure_id)
       .run();
 
-    const byteLimitResponse = await exports.default.fetch(
+    const byteLimitResponse = await worker.fetch(
       new Request(byteLimited.hook_url, {
         method: "POST",
         body: "one-byte-too-many",
@@ -204,7 +207,7 @@ describe("CF1 anonymous Exposure conformance", () => {
 });
 
 async function createAnonymous(): Promise<AnonymousProvision> {
-  const response = await exports.default.fetch(
+  const response = await worker.fetch(
     new Request("https://ortyo.test/_ortyo/anonymous/exposures", {
       method: "POST",
     }),
