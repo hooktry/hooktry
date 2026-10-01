@@ -44,10 +44,10 @@ pub struct ScenarioUsageEvent {
 
 impl ScenarioUsageFeatures {
     pub fn from_request(request: &CreateScenario) -> Self {
-        let exact_cardinality = request
-            .contracts
-            .iter()
-            .any(|contract| contract.count.is_some());
+        let exact_cardinality = request.contracts.iter().any(|contract| {
+            contract.count.is_some()
+                || (contract.count.is_none() && contract.min.is_none() && contract.max.is_none())
+        });
         let ranged_cardinality = request
             .contracts
             .iter()
