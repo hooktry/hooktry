@@ -5,8 +5,7 @@ use uuid::Uuid;
 
 use super::{AnonymousError, AnonymousExposureSummary};
 
-pub(crate) type PortFuture<'a, T> =
-    Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+pub(crate) type PortFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct StoredInteraction {
@@ -82,16 +81,11 @@ pub(crate) enum InteractionStreamError {
 }
 
 pub(crate) trait AnonymousInteractionSubscription: Send {
-    fn recv(
-        &mut self,
-    ) -> PortFuture<'_, Result<StoredInteraction, InteractionStreamError>>;
+    fn recv(&mut self) -> PortFuture<'_, Result<StoredInteraction, InteractionStreamError>>;
 }
 
 pub(crate) trait AnonymousInteractionStream: Send + Sync {
     fn publish(&self, interaction: StoredInteraction);
 
-    fn subscribe(
-        &self,
-        exposure_id: Uuid,
-    ) -> Box<dyn AnonymousInteractionSubscription>;
+    fn subscribe(&self, exposure_id: Uuid) -> Box<dyn AnonymousInteractionSubscription>;
 }
