@@ -283,15 +283,9 @@ fn scenario_run_requires_a_child_command_after_separator() {
     assert_eq!(error, ortyo::cli::usage());
 }
 
-
 #[test]
 fn parses_key_maintenance_commands() {
-    let status = Cli::parse([
-        "ortyo".to_owned(),
-        "key".to_owned(),
-        "status".to_owned(),
-    ])
-    .unwrap();
+    let status = Cli::parse(["ortyo".to_owned(), "key".to_owned(), "status".to_owned()]).unwrap();
     assert_eq!(status.command, Command::KeyStatus);
 
     let dry_run = Cli::parse([
@@ -332,10 +326,7 @@ fn parses_key_maintenance_commands() {
         "1".to_owned(),
     ])
     .unwrap();
-    assert_eq!(
-        retire.command,
-        Command::KeyRetireCheck { version: 1 }
-    );
+    assert_eq!(retire.command, Command::KeyRetireCheck { version: 1 });
 }
 
 #[test]
