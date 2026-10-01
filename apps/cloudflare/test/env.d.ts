@@ -7,6 +7,7 @@ declare module "cloudflare:workers" {
     CLAIM_INTERNAL_TOKEN?: string;
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;
+    USAGE_INGEST_TOKEN?: string;
     TEST_SCHEMA_STATEMENTS: string;
   }
 }

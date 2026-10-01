@@ -31,6 +31,7 @@ import {
   payloadKeysForExposure,
 } from "./repository";
 import type { AnonymousProvision, Env } from "./types";
+import { ingestUsageEvent } from "./usage";
 
 export { ExposureRuntime };
 
@@ -47,6 +48,7 @@ export default {
           github_auth_configured: Boolean(
             env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
           ),
+          usage_ingest_configured: Boolean(env.USAGE_INGEST_TOKEN),
         });
       }
 
@@ -55,6 +57,13 @@ export default {
         url.pathname === "/api/v1/hooks"
       ) {
         return await createHook(request, env);
+      }
+
+      if (
+        request.method === "POST" &&
+        url.pathname === "/api/v1/usage-events"
+      ) {
+        return await ingestUsageEvent(request, env);
       }
 
       if (

@@ -5,6 +5,7 @@ use ortyo::{
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
     scenario_run::ScenarioRunReport,
+    usage::ScenarioUsageEvent,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -64,6 +65,8 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
     )
     .unwrap();
 
+    let usage_path =
+        std::env::temp_dir().join(format!("ortyo-scenario-usage-{}.jsonl", Uuid::now_v7()));
     let helper = std::env::current_exe().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_ortyo"))
         .arg("--base-url")
@@ -77,6 +80,9 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
         .arg("scenario_run_child_helper")
         .arg("--nocapture")
         .env("ORTYO_TEST_CHILD", "1")
+        .env("ORTYO_USAGE_LOG", &usage_path)
+        .env("ORTYO_USAGE_TOKEN", "usage-secret-not-for-child")
+        .env_remove("ORTYO_USAGE_ENDPOINT")
         .output()
         .unwrap();
 
@@ -95,6 +101,33 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
     assert!(report.outcome.passed);
     assert_eq!(report.outcome.checks.len(), 1);
     assert!(report.outcome.checks[0].passed);
+
+    let usage_raw = std::fs::read_to_string(&usage_path).unwrap();
+    std::fs::remove_file(usage_path).unwrap();
+    let usage: ScenarioUsageEvent = serde_json::from_str(usage_raw.trim()).unwrap();
+
+    assert_eq!(usage.event, "scenario_run_completed");
+    assert!(usage.passed);
+    assert!(usage.command_success);
+    assert!(usage.outcome_passed);
+    assert_eq!(usage.check_count, 1);
+    assert_eq!(usage.features.contract_count, 1);
+    assert!(usage.features.exact_cardinality);
+    assert!(!usage.features.ranged_cardinality);
+    assert!(!usage.features.ordering);
+    assert!(!usage.features.observation_horizon);
+    assert!(!usage.features.settle_window);
+    assert!(!usage.features.context_match);
+    assert!(!usage.features.idempotency_context);
+    assert!(!usage.features.duplicate_guard);
+
+    assert_eq!(usage_raw.lines().count(), 1);
+    assert!(!usage_raw.contains("payment.created"));
+    assert!(!usage_raw.contains("/webhook"));
+    assert!(!usage_raw.contains(&base_url));
+    assert!(!usage_raw.contains(&report.scenario_id.to_string()));
+    assert!(!usage_raw.contains(&report.run_id.to_string()));
+    assert!(!usage_raw.contains(&report.exposure_id.to_string()));
 }
 
 #[tokio::test]
@@ -111,6 +144,13 @@ async fn scenario_run_child_helper() {
         "ORTYO_EXPOSURE_URL",
     ] {
         assert!(!std::env::var(key).unwrap().is_empty());
+    }
+    for key in [
+        "ORTYO_USAGE_LOG",
+        "ORTYO_USAGE_ENDPOINT",
+        "ORTYO_USAGE_TOKEN",
+    ] {
+        assert!(std::env::var_os(key).is_none(), "{key} leaked into child");
     }
 
     let exposure_url = std::env::var("ORTYO_EXPOSURE_URL").unwrap();

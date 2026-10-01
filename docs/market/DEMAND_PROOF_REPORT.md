@@ -136,14 +136,16 @@ The evidence justifies continuing to validate the narrow temporal/causal moat, b
 
 The next product evidence should come from **first-party usage**.
 
-Recommended thin proof:
+Recommended thin proof is now implemented:
 
-1. provide one duplicate/idempotency scenario recipe
-2. provide one out-of-order scenario recipe
-3. expose machine-readable outcome evidence
-4. instrument whether users actually run, repeat, or modify these scenarios
-5. record whether failures are found before production
-6. only then deepen cardinality/order/settle/correlation syntax
+1. `examples/scenarios/duplicate-idempotency.json`
+2. `examples/scenarios/out-of-order.json`
+3. machine-readable `ScenarioRunReport`
+4. explicit opt-in privacy-safe `ScenarioUsageEvent`
+5. local JSONL and protected internal hosted collector
+6. evidence gate before any deeper cardinality/order/settle/correlation syntax
+
+The central v1 event intentionally has no user/install identity, so it measures usage/result volume rather than unique-user retention. Qualitative evidence is still required to prove that a real failure was caught before production.
 
 The target question changes from:
 

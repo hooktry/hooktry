@@ -242,6 +242,15 @@ ORTYO_EXPOSURE_URL
 
 The command exits `0` only when both the child command and ScenarioOutcome pass, `1` when either behavior or the child command fails, and `2` when ORTYO cannot orchestrate or complete the run. If shell syntax is needed, invoke a shell explicitly after `--`.
 
+FIRST-PARTY-PROOF includes ready-made temporal recipes:
+
+```sh
+ortyo scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
+ortyo scenario run examples/scenarios/out-of-order.json -- ./your-test-command
+```
+
+Usage evidence is off by default. For explicit local dogfood, set `ORTYO_USAGE_LOG` to an append-only JSONL path. An optional HTTP sink uses `ORTYO_USAGE_ENDPOINT` plus `ORTYO_USAGE_TOKEN`. The usage event contains only verification feature/result aggregates - never Scenario/run/exposure IDs, names, commands, URLs, headers, payloads, or correlation/idempotency values. See [examples/scenarios/README.md](examples/scenarios/README.md) and [docs/rfc/first-party-usage-evidence.md](docs/rfc/first-party-usage-evidence.md).
+
 
 ## First public release
 

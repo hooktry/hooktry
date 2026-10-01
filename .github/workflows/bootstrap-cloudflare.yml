@@ -25,6 +25,7 @@ jobs:
       GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
       GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
       ORTYO_CLAIM_INTERNAL_TOKEN: ${{ secrets.ORTYO_CLAIM_INTERNAL_TOKEN }}
+      ORTYO_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
 
     steps:
       - name: Checkout
@@ -90,6 +91,12 @@ jobs:
             npx wrangler secret put CLAIM_INTERNAL_TOKEN --config wrangler.production.generated.jsonc
           printf '%s' "$GITHUB_CLIENT_SECRET" |
             npx wrangler secret put GITHUB_CLIENT_SECRET --config wrangler.production.generated.jsonc
+          if [[ -n "${ORTYO_USAGE_INGEST_TOKEN:-}" ]]; then
+            printf '%s' "$ORTYO_USAGE_INGEST_TOKEN" |
+              npx wrangler secret put USAGE_INGEST_TOKEN --config wrangler.production.generated.jsonc
+          else
+            echo "ORTYO_USAGE_INGEST_TOKEN is not configured; usage ingest remains disabled."
+          fi
 
       - name: Production acceptance
         env:
@@ -97,6 +104,7 @@ jobs:
           ORTYO_D1_DATABASE_ID: ${{ steps.bootstrap.outputs.database_id }}
           ORTYO_EXPECTED_RELEASE_SHA: ${{ github.sha }}
           ORTYO_EXPECT_GITHUB_AUTH: "1"
+          ORTYO_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
         run: node scripts/smoke-production.mjs
 
       - name: Verify checked-in production config still matches D1

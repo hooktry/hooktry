@@ -6,6 +6,7 @@ export interface Env {
   CLAIM_INTERNAL_TOKEN?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
+  USAGE_INGEST_TOKEN?: string;
   ORTYO_RELEASE_SHA?: string;
 }
 
@@ -119,4 +120,29 @@ export interface SessionView {
     slug: string;
     kind: "personal";
   };
+}
+
+
+export interface ScenarioUsageFeatures {
+  contract_count: number;
+  exact_cardinality: boolean;
+  ranged_cardinality: boolean;
+  ordering: boolean;
+  observation_horizon: boolean;
+  settle_window: boolean;
+  context_match: boolean;
+  idempotency_context: boolean;
+  duplicate_guard: boolean;
+}
+
+export interface ScenarioUsageEvent {
+  schema_version: 1;
+  event_id: string;
+  event: "scenario_run_completed";
+  occurred_at_unix_ms: number;
+  passed: boolean;
+  command_success: boolean;
+  outcome_passed: boolean;
+  check_count: number;
+  features: ScenarioUsageFeatures;
 }
