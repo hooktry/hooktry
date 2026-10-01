@@ -210,7 +210,7 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
         errors.push(format!("{label}: matrix_products must contain ortyo"));
     }
     for product in &matrix_products {
-        if !scope_products.contains(product.as_str()) {
+        if !scope_products.contains(*product) {
             errors.push(format!(
                 "{label}: matrix product {product} is outside scope_products"
             ));
