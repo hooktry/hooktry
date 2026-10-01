@@ -98,6 +98,10 @@ That hypothesis still requires external demand evidence; competitor absence alon
 - `scope.yaml` - bounded market, cohort roles, products, stopping rule
 - `vectors.yaml` - exploit/explore vectors and activation/stop triggers
 - `capabilities.yaml` - normalized capability ontology and initial Ortyo overlay
+- `depth-profiles.yaml` - observable dimensions for comparing capability depth
+- `personas.yaml` - primary users and jobs-to-be-done
+- `scenarios.yaml` - mechanism-independent end-to-end webhook outcomes
+- `DEPTH_REPORT.md` - primary-cohort depth comparison and gap analysis
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 

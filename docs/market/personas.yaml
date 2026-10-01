@@ -1,0 +1,44 @@
+personas:
+  - id: webhook-developer
+    name: Webhook integration developer
+    stage: development
+    jobs:
+      - id: inspect-real-event
+        statement: "Receive a real webhook and understand exactly what the provider sent."
+        capabilities: [instant-public-endpoint, request-inspection, request-history]
+      - id: iterate-locally
+        statement: "Route the webhook to local code, change the handler, and try the same event again."
+        capabilities: [local-forwarding, replay, cli]
+      - id: simulate-provider
+        statement: "Exercise success, error, latency, and signed-provider cases without waiting for a new real event."
+        capabilities: [custom-response, failure-simulation, provider-templates, signature-verification]
+  - id: integration-test-engineer
+    name: Integration test engineer
+    stage: testing
+    jobs:
+      - id: deterministic-integration-test
+        statement: "Run an isolated webhook scenario repeatedly and receive a deterministic pass/fail result."
+        capabilities: [contracts, scenario-runs, cardinality, ordering, observation-window, deterministic-ci]
+      - id: debug-flake
+        statement: "Explain whether a failure was missing traffic, duplicate traffic, wrong payload, wrong order, or infrastructure failure."
+        capabilities: [request-inspection, correlation-context, deterministic-ci]
+  - id: coding-agent
+    name: Coding agent
+    stage: development_testing
+    jobs:
+      - id: agent-prove-change
+        statement: "Create a test endpoint, exercise the integration, inspect structured evidence, and prove the change without scraping a UI."
+        capabilities: [api, mcp-agent, wait-for-event, contracts, scenario-runs, deterministic-ci]
+      - id: agent-act-safely
+        statement: "Perform an external integration action only when its exact side effect has appropriate authority."
+        capabilities: [approval-gate]
+  - id: pilot-owner
+    name: Pilot / early-production owner
+    stage: pilot
+    jobs:
+      - id: keep-endpoint-stable
+        statement: "Keep a stable integration endpoint and enough history to support an early customer or partner pilot."
+        capabilities: [persistent-endpoint, request-history, team-collaboration]
+      - id: survive-temporary-failure
+        statement: "Avoid losing events when the receiving application is temporarily unavailable."
+        capabilities: [durable-retries, dlq]

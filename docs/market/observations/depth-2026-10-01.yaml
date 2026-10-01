@@ -1,0 +1,161 @@
+observations:
+  - id: webhook-site-search-2026-10-01
+    product: webhook-site
+    capability: search-filter
+    assertion: "Webhook.site request APIs support pagination, date filtering, and structured query expressions over request fields."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/api/requests.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-local-forward-2026-10-01
+    product: webhook-site
+    capability: local-forwarding
+    assertion: "Webhook.site CLI forwards incoming requests to localhost/another target and can return the target response to the sender."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/cli.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-local-depth-2026-10-01
+    product: hookdeck
+    capability: local-forwarding
+    assertion: "Hookdeck CLI provides persistent event URLs, preserved history, replay, filters, fan-out, and local forwarding."
+    state: present
+    source: {type: source_repository, url: "https://github.com/hookdeck/hookdeck-cli"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-transform-2026-10-01
+    product: webhook-relay
+    capability: transformation
+    assertion: "Webhook Relay functions can rewrite body, headers, method and path, filter events, and call external APIs before forwarding."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/functions/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-routing-2026-10-01
+    product: webhook-relay
+    capability: filtering-routing
+    assertion: "Webhook Relay supports per-output filtering and multiple outputs for event routing."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/webhooks/functions/filter-webhooks/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-faults-2026-10-01
+    product: beeceptor
+    capability: failure-simulation
+    assertion: "Beeceptor supports deterministic mock rules plus failure, latency, and controlled resilience testing."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/docs/api/beeceptor-api/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-provider-templates-2026-10-01
+    product: webhooks-cc
+    capability: provider-templates
+    assertion: "webhooks.cc SDK/MCP expose provider templates and signing metadata for provider-shaped webhook tests."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/mcp"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-signatures-2026-10-01
+    product: webhooks-cc
+    capability: signature-verification
+    assertion: "webhooks.cc documents signature verification helpers for many named webhook providers."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/sdk/signatures"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-routing-2026-10-01
+    product: webhooker
+    capability: filtering-routing
+    assertion: "Webhooker connections support filter rules and request transformations between a source and destination."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/reference/api/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-fanout-2026-10-01
+    product: webhooker
+    capability: fanout
+    assertion: "Webhooker permits one source to feed several gateways and delivers matching events independently."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/guides/create-gateway/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-retry-depth-2026-10-01
+    product: hook0
+    capability: durable-retries
+    assertion: "Hook0 persists request attempts and retries failures on an escalating schedule bounded by retry count and retry window."
+    state: present
+    source: {type: vendor_docs, url: "https://documentation.hook0.com/explanation/webhook-retry-logic"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-self-host-2026-10-01
+    product: hook0
+    capability: self-host
+    assertion: "Hook0 documents a self-hostable open-source deployment alongside its cloud service."
+    state: present
+    source: {type: vendor_docs, url: "https://documentation.hook0.com/explanation/what-is-hook0/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-history-2026-10-01
+    product: requestbin-net
+    capability: request-history
+    assertion: "RequestBin.net bins retain captured request history with plan-specific limits and real-time request inspection."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs/features/bins"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-replay-2026-10-01
+    product: requestbin-net
+    capability: replay
+    assertion: "RequestBin.net can replay a captured request, optionally editing headers/body, and records replay status/result."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs/features/replay"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-provider-templates-2026-10-01
+    product: requestbin-net
+    capability: provider-templates
+    assertion: "RequestBin.net provides sample webhook templates for multiple popular providers."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs/apps/sample-webhooks"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-mcp-2026-10-01
+    product: requestbin-net
+    capability: mcp-agent
+    assertion: "RequestBin.net provides MCP tools for bin creation, interaction listing, and request replay."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs/features/mcp-server"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
