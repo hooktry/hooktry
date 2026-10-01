@@ -121,10 +121,20 @@ async function cleanup(exposureId, captured) {
   for (const interaction of captured) {
     if (!interaction?.interaction_id) continue;
     const key = `anonymous/${exposureId}/${interaction.interaction_id}`;
+    const objectPath = key.split("/").map(encodeURIComponent).join("/");
+
     await cf(
-      `/accounts/${accountId}/r2/buckets/ortyo-payloads/objects/${encodeURIComponent(key)}`,
+      `/accounts/${accountId}/r2/buckets/ortyo-payloads/objects/${objectPath}`,
       { method: "DELETE" },
       true,
+    );
+
+    const listed = await cf(
+      `/accounts/${accountId}/r2/buckets/ortyo-payloads/objects?prefix=${encodeURIComponent(key)}`,
+    );
+    assert(
+      !(listed.result ?? []).some((object) => object.key === key),
+      `R2 smoke body still exists after delete: ${key}`,
     );
   }
 
