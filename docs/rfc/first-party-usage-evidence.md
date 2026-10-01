@@ -54,7 +54,7 @@ The endpoint:
 - caps event size
 - accepts only schema version 1
 - accepts only `scenario_run_completed`
-- requires a UUIDv7 telemetry event ID
+- requires an opaque valid UUID telemetry event ID
 - rejects unknown top-level or feature keys
 - inserts idempotently by event ID
 - stores no raw request body after validation
