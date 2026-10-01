@@ -214,7 +214,7 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
                     supporting_signals,
                 )
                 .to_owned(),
-                horizon: priority.horizon,
+                horizon: priority.horizon.clone(),
                 disposition: capability.disposition.clone(),
                 ortyo_status: capability.ortyo_status.clone(),
                 direct_demand: signal.direct_demand,
@@ -705,7 +705,7 @@ fn parse_signals(text: &str) -> HashMap<String, SignalProfile> {
 
 fn parse_matrix(text: &str) -> (Vec<String>, BTreeMap<String, BTreeMap<String, String>>) {
     let mut products = Vec::new();
-    let mut matrix = BTreeMap::new();
+    let mut matrix: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
     let mut section = "";
     let mut capability = String::new();
 
