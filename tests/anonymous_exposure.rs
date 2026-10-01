@@ -38,8 +38,16 @@ async fn anonymous_exposure_pushes_interactions_and_can_be_claimed_without_rotat
 
     let provision: AnonymousProvision = create.json().await.unwrap();
     assert!(provision.ingress_url.contains("/h/ortyo_in_"));
-    assert!(provision.viewer_url.contains("/_ortyo/anonymous/view/ortyo_view_"));
-    assert!(provision.claim_url.contains("/_ortyo/anonymous/claim/ortyo_claim_"));
+    assert!(
+        provision
+            .viewer_url
+            .contains("/_ortyo/anonymous/view/ortyo_view_")
+    );
+    assert!(
+        provision
+            .claim_url
+            .contains("/_ortyo/anonymous/claim/ortyo_claim_")
+    );
     assert_ne!(provision.ingress_url, provision.viewer_url);
     assert_ne!(provision.ingress_url, provision.claim_url);
     assert_ne!(provision.viewer_url, provision.claim_url);
