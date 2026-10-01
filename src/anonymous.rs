@@ -1557,7 +1557,7 @@ mod tests {
     async fn principal_is_limited_to_three_active_exposures() {
         let service =
             AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
-        let principal = random_token("ortyo_ap_");
+        let principal = random_principal();
         for _ in 0..ANONYMOUS_ACTIVE_LIMIT {
             service
                 .provision(Some(principal.clone()))
