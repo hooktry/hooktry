@@ -1144,7 +1144,6 @@ async fn view_anonymous(
     Ok(web_assets::index_response())
 }
 
-
 async fn serve_viewer(
     socket: WebSocket,
     service: AnonymousExposureService,
