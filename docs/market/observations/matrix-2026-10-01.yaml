@@ -1,0 +1,341 @@
+observations:
+  - id: webhook-site-custom-response-2026-10-01
+    product: webhook-site
+    capability: custom-response
+    assertion: "Webhook.site Custom Actions include Modify Response for response status, headers, and body; request URLs can also select a response status."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/custom-actions/action-types.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-site-failure-simulation-2026-10-01
+    product: webhook-site
+    capability: failure-simulation
+    assertion: "Webhook.site can return chosen non-2xx status codes and supports delayed queued behavior, covering part of sender failure testing but not a full latency/fault model."
+    state: partial
+    source: {type: vendor_docs, url: "https://docs.webhook.site/api/requests.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-site-replay-2026-10-01
+    product: webhook-site
+    capability: replay
+    assertion: "Webhook.site Replay can re-run Custom Actions for selected captured requests; its CLI can also process past filtered requests."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/custom-actions.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhook-site-cli-2026-10-01
+    product: webhook-site
+    capability: cli
+    assertion: "Webhook.site provides whcli with forwarding and command execution over incoming or past captured requests."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhook.site/cli.html"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-replay-2026-10-01
+    product: hookdeck
+    capability: replay
+    assertion: "Hookdeck documents bookmarks and retry/replay of captured requests/events through the Event Gateway and Console workflows."
+    state: present
+    source: {type: vendor_docs, url: "https://hookdeck.com/docs"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hookdeck-mcp-2026-10-01
+    product: hookdeck
+    capability: mcp-agent
+    assertion: "Hookdeck CLI v3 exposes read/write MCP tools for gateway resources, event search, retries, cancellation, pausing, and issue actions."
+    state: present
+    source: {type: vendor_release, url: "https://hookdeck.com/blog/hookdeck-cli-v3"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhook-relay-wait-2026-10-01
+    product: webhook-relay
+    capability: wait-for-event
+    assertion: "Webhook Relay MCP exposes wait_for_webhook_log for agentic webhook testing after sending or triggering an event."
+    state: present
+    source: {type: vendor_docs, url: "https://webhookrelay.com/docs/mcp/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: svix-play-response-2026-10-01
+    product: svix
+    capability: custom-response
+    assertion: "Svix Play's API can configure what its test endpoint returns to a webhook sender, including error behavior."
+    state: present
+    source: {type: vendor_blog, url: "https://www.svix.com/blog/svix-play-an-api-for-testing-webhooks/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+
+  - id: svix-play-failure-2026-10-01
+    product: svix
+    capability: failure-simulation
+    assertion: "Svix Play supports configuring errors/responses for webhook tests, allowing sender retry/error paths to be exercised."
+    state: present
+    source: {type: vendor_blog, url: "https://www.svix.com/blog/svix-play-an-api-for-testing-webhooks/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+
+  - id: svix-cli-2026-10-01
+    product: svix
+    capability: cli
+    assertion: "Svix provides a CLI for webhook receiving/testing and signature verification workflows."
+    state: present
+    source: {type: vendor_docs, url: "https://www.svix.com/guides/receiving/receive-webhooks-with-svix-cli/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: svix-signature-verification-2026-10-01
+    product: svix
+    capability: signature-verification
+    assertion: "Svix CLI and libraries verify webhook signatures and timestamps, including replay-protection semantics."
+    state: present
+    source: {type: vendor_docs, url: "https://www.svix.com/guides/receiving/receive-webhooks-with-svix-cli/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-local-tunnel-2026-10-01
+    product: beeceptor
+    capability: local-forwarding
+    assertion: "Beeceptor documents local webhook tunneling as a first-class development capability."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/faq/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: beeceptor-custom-response-2026-10-01
+    product: beeceptor
+    capability: custom-response
+    assertion: "Beeceptor supports dynamic and rule-based custom responses, including status and contextual response behavior."
+    state: present
+    source: {type: vendor_docs, url: "https://beeceptor.com/faq/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-search-2026-10-01
+    product: webhooks-cc
+    capability: search-filter
+    assertion: "webhooks.cc exposes full-text request search and filtering across endpoint request history."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/mcp"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-custom-response-2026-10-01
+    product: webhooks-cc
+    capability: custom-response
+    assertion: "webhooks.cc endpoints have configurable mock responses, available through dashboard and MCP endpoint update operations."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/endpoints"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-local-forward-2026-10-01
+    product: webhooks-cc
+    capability: local-forwarding
+    assertion: "webhooks.cc supports capture/replay to localhost, direct signed sends to localhost, and real-time tunneling."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/test-webhooks-locally"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-request-diff-2026-10-01
+    product: webhooks-cc
+    capability: request-diff
+    assertion: "webhooks.cc provides structured request comparison via MCP and structured assertion diff output in its testing SDK."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/mcp"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooks-cc-deterministic-ci-depth-2026-10-01
+    product: webhooks-cc
+    capability: deterministic-ci
+    assertion: "webhooks.cc testing utilities create isolated endpoints, wait for a requested count with timeout, assert structured request fields with diffs, and clean up automatically."
+    state: present
+    source: {type: vendor_docs, url: "https://webhooks.cc/docs/guides/webhook-testing-ci-cd"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-search-2026-10-01
+    product: hooklistener
+    capability: search-filter
+    assertion: "Hooklistener supports filtering captured requests by method, path/URL, body content, and remote address."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/webhook-inspector/captured-requests/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-custom-response-2026-10-01
+    product: hooklistener
+    capability: custom-response
+    assertion: "Hooklistener's webhook inspector supports mock responses for debug endpoints."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/intro/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-api-2026-10-01
+    product: hooklistener
+    capability: api
+    assertion: "Hooklistener exposes REST APIs for endpoint management, captured requests, forwarding/replay, request cases, sharing, and related resources."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/api/overview/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-cli-2026-10-01
+    product: hooklistener
+    capability: cli
+    assertion: "Hooklistener provides a Rust CLI with request inspection, forwarding, tunneling, replay, search/filtering, and JSON output."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/cli/overview/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-mcp-2026-10-01
+    product: hooklistener
+    capability: mcp-agent
+    assertion: "Hooklistener MCP can create debug endpoints, inspect captured webhooks, save/run replay cases, and wait for reports."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/mcp/overview/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-deterministic-ci-2026-10-01
+    product: hooklistener
+    capability: deterministic-ci
+    assertion: "Hooklistener 2026 Replayable Integration Cases support saved cases, response assertions, named suites, reusable replay targets, and durable suite run reports."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/changelog/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hooklistener-request-diff-2026-10-01
+    product: hooklistener
+    capability: request-diff
+    assertion: "Hooklistener paid plans include request comparison for diffing captured requests."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.hooklistener.com/platform/plans-and-billing/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+
+  - id: webhooker-search-2026-10-01
+    product: webhooker
+    capability: search-filter
+    assertion: "Webhooker positions searchable event history as part of its webhook ingest and debugging workflow."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooker-api-2026-10-01
+    product: webhooker
+    capability: api
+    assertion: "Webhooker documents a Management API intended to expose dashboard operations over HTTP."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: webhooker-cli-2026-10-01
+    product: webhooker
+    capability: cli
+    assertion: "Webhooker documents a CLI for forwarding webhooks to localhost and managing the workspace."
+    state: present
+    source: {type: vendor_docs, url: "https://docs.webhooker.eu/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: hook0-signature-2026-10-01
+    product: hook0
+    capability: signature-verification
+    assertion: "Hook0 documents HMAC-SHA256 webhook signing and verification behavior for Hook0-delivered webhooks."
+    state: present
+    source: {type: vendor_docs, url: "https://documentation.hook0.com/tutorials/webhook-authentication/"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: requestbin-api-2026-10-01
+    product: requestbin-net
+    capability: api
+    assertion: "RequestBin provides a REST API for bins, interactions, replay jobs, and forwarding rules."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs/api/reference"}
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+
+  - id: requestbin-api-mocking-2026-10-01
+    product: requestbin-net
+    capability: api-mocking
+    assertion: "RequestBin documentation includes a Mock API developer tool alongside bins, replay, forwarding rules, and request utilities."
+    state: present
+    source: {type: vendor_docs, url: "https://requestbin.net/docs"}
+    observed_at: 2026-10-01
+    confidence: medium
+    freshness: normal
+    applicability: current

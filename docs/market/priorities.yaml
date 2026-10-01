@@ -35,7 +35,7 @@ priorities:
     decision: differentiation
     confidence: medium
     capabilities: [wait-for-event, deterministic-ci, contracts, observation-window]
-    rationale: "Automated webhook testing, bounded waits, and outcome-oriented CI have credible demand proxies. The exact Ortyo DSL remains a hypothesis."
+    rationale: "Automated webhook testing, bounded waits, and request assertions are now clearly present in competitors. Ortyo should differentiate only where richer temporal/causal evidence semantics improve the outcome; the exact DSL remains a hypothesis."
 
   - id: cardinality-ordering
     horizon: validate
@@ -62,5 +62,5 @@ priorities:
     horizon: substrate
     decision: out_of_scope
     confidence: high
-    capabilities: [multi-protocol]
+    capabilities: [managed-compute]
     rationale: "Managed compute should remain replaceable substrate unless it directly improves the webhook verification lifecycle."

@@ -118,6 +118,8 @@ That hypothesis still requires external demand evidence; competitor absence alon
 - `signals.yaml` - direct demand, demand proxies, and market-motion evidence
 - `DEMAND_REPORT.md` - verification-first demand analysis and contradictory evidence
 - `priorities.yaml` - evidence-backed near-term dispositions with confidence
+- `matrix.yaml` - current product-by-capability projection with explicit unknowns
+- `MATRIX_REPORT.md` - primary-cohort completeness and sharpened differentiation analysis
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -138,7 +140,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 ## Next passes
 
 1. Complete remaining atomic product-capability evidence in the primary cohort.
-2. Build a generated product-by-capability projection without an aggregate score.
+2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Add an immutable baseline snapshot.
 5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.
