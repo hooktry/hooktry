@@ -179,16 +179,8 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
         .port();
     let local_runtime_base_url = format!("ws://127.0.0.1:{local_port}");
 
-    let (
-        capabilities,
-        exposures,
-        anonymous,
-        identities,
-        secrets,
-        approvals,
-        executions,
-        storage,
-    ) = open_hosted_stores(&config).await?;
+    let (capabilities, exposures, anonymous, identities, secrets, approvals, executions, storage) =
+        open_hosted_stores(&config).await?;
     let bootstrap_workspace_id = if let Some(slug) = config.bootstrap_workspace.as_deref() {
         Some(
             ensure_operator_bootstrap_async(&identities, &secrets, slug, &config.public_base_url)
