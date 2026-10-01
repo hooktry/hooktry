@@ -24,25 +24,33 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Snapshot immutability
+      - name: Snapshot immutability on pull request
+        if: github.event_name == 'pull_request'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${BASE_SHA}" || "${BASE_SHA}" =~ ^0+$ ]]; then
-            exit 0
-          fi
-
           git cat-file -e "${BASE_SHA}^{commit}"
-          changes="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' || true)"
-          invalid="$(printf '%s
-' "${changes}" | awk 'NF > 0 && $1 != "A" { print }')"
-
+          invalid="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' | grep -Ev '^A[[:space:]]' || true)"
           if [[ -n "${invalid}" ]]; then
             echo "Existing market snapshots are immutable. Add a new snapshot instead:"
-            printf '%s
-' "${invalid}"
+            echo "${invalid}"
+            exit 1
+          fi
+
+      - name: Snapshot immutability on main push
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BASE_SHA}^{commit}"
+          invalid="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' | grep -Ev '^A[[:space:]]' || true)"
+          if [[ -n "${invalid}" ]]; then
+            echo "Existing market snapshots are immutable. Add a new snapshot instead:"
+            echo "${invalid}"
             exit 1
           fi
 
