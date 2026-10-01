@@ -6,7 +6,11 @@ use std::{
 
 use postgres::{Client, NoTls};
 use reqwest::Url;
-use ring::digest::{SHA256, digest};
+use rand::RngCore;
+use ring::{
+    digest::{SHA256, digest},
+    hmac,
+};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -69,6 +73,8 @@ pub struct ApprovalSummary {
     pub path: String,
     pub header_names: Vec<String>,
     pub secret_header_names: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_fingerprint: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_sha256: Option<String>,
     pub capture_names: Vec<String>,
@@ -157,7 +163,13 @@ enum ApprovalBackend {
 #[derive(Clone)]
 pub struct ApprovalStore {
     backend: ApprovalBackend,
+    digest_key: Arc<[u8; 32]>,
 }
+
+pub const KEYED_FINGERPRINT_PREFIX: &str = "hmac-sha256:v1:";
+
+const REQUEST_DIGEST_DOMAIN: &[u8] = b"ortyo/approval/request-digest/v1";
+const BODY_FINGERPRINT_DOMAIN: &[u8] = b"ortyo/approval/body-fingerprint/v1";
 
 impl Default for ApprovalStore {
     fn default() -> Self {
@@ -167,18 +179,23 @@ impl Default for ApprovalStore {
 
 impl ApprovalStore {
     pub fn in_memory() -> Result<Self, ApprovalError> {
+        let mut digest_key = [0_u8; 32];
+        rand::rng().fill_bytes(&mut digest_key);
         let connection = Connection::open_in_memory()
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
-        Self::from_sqlite_connection(connection)
+        Self::from_sqlite_connection(connection, digest_key)
     }
 
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, ApprovalError> {
+    pub fn open(path: impl AsRef<Path>, digest_key: [u8; 32]) -> Result<Self, ApprovalError> {
         let connection =
             Connection::open(path).map_err(|error| ApprovalError::Storage(error.to_string()))?;
-        Self::from_sqlite_connection(connection)
+        Self::from_sqlite_connection(connection, digest_key)
     }
 
-    pub fn open_postgres(database_url: &str) -> Result<Self, ApprovalError> {
+    pub fn open_postgres(
+        database_url: &str,
+        digest_key: [u8; 32],
+    ) -> Result<Self, ApprovalError> {
         let mut client = Client::connect(database_url, NoTls)
             .map_err(|error| ApprovalError::Storage(error.to_string()))?;
         client
@@ -232,10 +249,14 @@ impl ApprovalStore {
         backfill_postgres_notification_outbox(&mut client)?;
         Ok(Self {
             backend: ApprovalBackend::Postgres(Arc::new(Mutex::new(client))),
+            digest_key: Arc::new(digest_key),
         })
     }
 
-    fn from_sqlite_connection(mut connection: Connection) -> Result<Self, ApprovalError> {
+    fn from_sqlite_connection(
+        mut connection: Connection,
+        digest_key: [u8; 32],
+    ) -> Result<Self, ApprovalError> {
         connection
             .execute_batch(
                 "CREATE TABLE IF NOT EXISTS hosted_approvals (
@@ -286,6 +307,7 @@ impl ApprovalStore {
         backfill_sqlite_notification_outbox(&mut connection)?;
         Ok(Self {
             backend: ApprovalBackend::Sqlite(Arc::new(Mutex::new(connection))),
+            digest_key: Arc::new(digest_key),
         })
     }
 
@@ -470,8 +492,8 @@ impl ApprovalStore {
             approval_id: Uuid::now_v7(),
             workspace_id,
             requested_by_credential_id,
-            request_digest: request_digest(request)?,
-            summary: request_summary(request)?,
+            request_digest: request_digest(self.digest_key.as_ref(), workspace_id, request)?,
+            summary: request_summary(self.digest_key.as_ref(), workspace_id, request)?,
             state: ApprovalState::Pending,
             requested_at_unix_ms: unix_time_ms(),
             decided_at_unix_ms: None,
@@ -1336,7 +1358,9 @@ impl ApprovalStore {
         execution_id: Uuid,
         request: &HttpExecutionRequest,
     ) -> Result<ApprovalRecord, ApprovalError> {
-        let request_digest = request_digest(request)?;
+        let request_digest =
+            request_digest(self.digest_key.as_ref(), workspace_id, request)?;
+        let legacy_request_digest = legacy_request_digest(request)?;
         let consumed_at = unix_time_ms();
 
         match &self.backend {
@@ -1348,7 +1372,7 @@ impl ApprovalStore {
                 let record = load_sqlite_record(&transaction, approval_id)?
                     .filter(|record| record.workspace_id == workspace_id)
                     .ok_or(ApprovalError::NotFound)?;
-                verify_consumable(&record, &request_digest)?;
+                verify_consumable(&record, &request_digest, &legacy_request_digest)?;
                 transaction
                     .execute(
                         "UPDATE hosted_approvals
@@ -1403,7 +1427,7 @@ impl ApprovalStore {
                 if record.workspace_id != workspace_id {
                     return Err(ApprovalError::NotFound);
                 }
-                verify_consumable(&record, &request_digest)?;
+                verify_consumable(&record, &request_digest, &legacy_request_digest)?;
                 let consumed_at = millis_i64(consumed_at)?;
                 let consumed_by = consumed_by_credential_id.to_string();
                 transaction
@@ -1720,36 +1744,63 @@ fn backfill_postgres_notification_outbox(client: &mut Client) -> Result<(), Appr
         .map_err(|error| ApprovalError::Storage(error.to_string()))
 }
 
-fn verify_consumable(record: &ApprovalRecord, request_digest: &str) -> Result<(), ApprovalError> {
+fn verify_consumable(
+    record: &ApprovalRecord,
+    request_digest: &str,
+    legacy_request_digest: &str,
+) -> Result<(), ApprovalError> {
     match record.state {
         ApprovalState::Pending => return Err(ApprovalError::Pending),
         ApprovalState::Denied => return Err(ApprovalError::Denied),
         ApprovalState::Consumed => return Err(ApprovalError::Consumed),
         ApprovalState::Approved => {}
     }
-    if record.request_digest != request_digest {
+    let expected = if record.request_digest.starts_with(KEYED_FINGERPRINT_PREFIX) {
+        request_digest
+    } else {
+        legacy_request_digest
+    };
+    if record.request_digest != expected {
         return Err(ApprovalError::RequestMismatch);
     }
     Ok(())
 }
 
-pub fn request_digest(request: &HttpExecutionRequest) -> Result<String, ApprovalError> {
+pub fn request_digest(
+    digest_key: &[u8; 32],
+    workspace_id: Uuid,
+    request: &HttpExecutionRequest,
+) -> Result<String, ApprovalError> {
     let value = serde_json::to_value(request).map_err(|_| ApprovalError::InvalidRequest)?;
     let canonical = canonicalize_json(value);
     let bytes = serde_json::to_vec(&canonical).map_err(|_| ApprovalError::InvalidRequest)?;
-    Ok(sha256_hex(&bytes))
+    Ok(keyed_fingerprint(
+        digest_key,
+        workspace_id,
+        REQUEST_DIGEST_DOMAIN,
+        &bytes,
+    ))
 }
 
-pub fn request_summary(request: &HttpExecutionRequest) -> Result<ApprovalSummary, ApprovalError> {
+pub fn request_summary(
+    digest_key: &[u8; 32],
+    workspace_id: Uuid,
+    request: &HttpExecutionRequest,
+) -> Result<ApprovalSummary, ApprovalError> {
     let url = Url::parse(&request.url).map_err(|_| ApprovalError::InvalidRequest)?;
     if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err(ApprovalError::InvalidRequest);
     }
 
-    let body_sha256 = request.body.as_ref().map(|body| {
+    let body_fingerprint = request.body.as_ref().map(|body| {
         let canonical = canonicalize_json(body.clone());
         let bytes = serde_json::to_vec(&canonical).expect("canonical JSON serializes");
-        sha256_hex(&bytes)
+        keyed_fingerprint(
+            digest_key,
+            workspace_id,
+            BODY_FINGERPRINT_DOMAIN,
+            &bytes,
+        )
     });
 
     Ok(ApprovalSummary {
@@ -1758,13 +1809,45 @@ pub fn request_summary(request: &HttpExecutionRequest) -> Result<ApprovalSummary
         path: url.path().to_owned(),
         header_names: request.headers.keys().cloned().collect(),
         secret_header_names: request.secret_headers.keys().cloned().collect(),
-        body_sha256,
+        body_fingerprint,
+        body_sha256: None,
         capture_names: request
             .capture
             .iter()
             .map(|capture| capture.secret_name.clone())
             .collect(),
     })
+}
+
+fn legacy_request_digest(request: &HttpExecutionRequest) -> Result<String, ApprovalError> {
+    let value = serde_json::to_value(request).map_err(|_| ApprovalError::InvalidRequest)?;
+    let canonical = canonicalize_json(value);
+    let bytes = serde_json::to_vec(&canonical).map_err(|_| ApprovalError::InvalidRequest)?;
+    Ok(sha256_hex(&bytes))
+}
+
+#[doc(hidden)]
+pub fn legacy_request_digest_for_test(
+    request: &HttpExecutionRequest,
+) -> Result<String, ApprovalError> {
+    legacy_request_digest(request)
+}
+
+fn keyed_fingerprint(
+    digest_key: &[u8; 32],
+    workspace_id: Uuid,
+    domain: &[u8],
+    bytes: &[u8],
+) -> String {
+    let key = hmac::Key::new(hmac::HMAC_SHA256, digest_key);
+    let mut context = hmac::Context::with_key(&key);
+    context.update(domain);
+    context.update(&[0]);
+    context.update(workspace_id.as_bytes());
+    context.update(&[0]);
+    context.update(bytes);
+    let tag = context.sign();
+    format!("{KEYED_FINGERPRINT_PREFIX}{}", hex(tag.as_ref()))
 }
 
 fn canonicalize_json(value: Value) -> Value {
@@ -1784,11 +1867,11 @@ fn canonicalize_json(value: Value) -> Value {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    digest(&SHA256, bytes)
-        .as_ref()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
+    hex(digest(&SHA256, bytes).as_ref())
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn parse_uuid(value: &str) -> Result<Uuid, ApprovalError> {
