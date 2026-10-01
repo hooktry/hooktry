@@ -29,5 +29,6 @@ pub mod scenario;
 pub mod scenario_run;
 pub mod secret;
 pub mod store;
+pub mod usage;
 pub mod web_assets;
 pub mod websocket_transport;
