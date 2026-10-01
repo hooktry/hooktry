@@ -893,6 +893,10 @@ impl AnonymousExposureService {
         }
     }
 
+    pub async fn purge_expired(&self) -> Result<(), AnonymousError> {
+        self.store.purge_expired().await
+    }
+
     async fn provision(
         &self,
         principal: Option<String>,
