@@ -41,7 +41,7 @@ The existing Hook capability and retained Interaction history remain unchanged.
 
 The primary cohort is product development, testing, and pilot workflows. GitHub is a common identity already present in that cohort and avoids asking for a password before the first useful Ortyo workflow.
 
-AUTH1 uses a GitHub OAuth App only as an identity provider. It requests the explicit `read:user` scope and does not request repository, organization, email, or write access.
+AUTH1 uses a GitHub OAuth App only as an identity provider. It requests **no OAuth scopes**. GitHub's no-scope token is sufficient to read public profile identity, which gives Ortyo the stable GitHub user ID, current login, and avatar without repository, organization, email, or write access.
 
 GitHub recommends GitHub Apps for repository integrations because they provide fine-grained permissions and short-lived credentials. That recommendation applies to future Ortyo repository/automation integrations. Those should use a separate GitHub App authority rather than expanding this sign-in credential.
 
