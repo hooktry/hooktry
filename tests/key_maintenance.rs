@@ -32,9 +32,7 @@ fn rewrap_then_terminal_approval_makes_old_key_safe_to_retire() {
 
     let v1_approvals = ApprovalStore::open(&path, derive_digest_key(&root_v1)).unwrap();
     let request = http_request();
-    let approval = v1_approvals
-        .create(workspace, requester, &request)
-        .unwrap();
+    let approval = v1_approvals.create(workspace, requester, &request).unwrap();
     drop(v1_approvals);
 
     let keyring = VersionedKeyring::new(2, root_v2, [(1, root_v1)]).unwrap();
@@ -139,9 +137,10 @@ fn digest1_implicit_v1_approval_blocks_v1_retirement() {
         .unwrap();
     drop(approvals);
 
-    let legacy_digest = approval
-        .request_digest
-        .replacen("hmac-sha256:v1:k1:", "hmac-sha256:v1:", 1);
+    let legacy_digest =
+        approval
+            .request_digest
+            .replacen("hmac-sha256:v1:k1:", "hmac-sha256:v1:", 1);
     let connection = rusqlite::Connection::open(&path).unwrap();
     connection
         .execute(
