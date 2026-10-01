@@ -151,7 +151,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
-5. Start collecting first-party demand proxies from Ortyo dogfooding/public usage.
+5. Collect first-party usage for duplicate/cardinality, ordering, and correlation/idempotency scenarios before deepening the temporal DSL.
 
 
 ## Executable validation
@@ -236,3 +236,16 @@ Use `--json` for automation.
 The queue separates current/next/validation/vector decisions from baseline-completion debt. An already implemented table stake does not become high-priority research merely because demand evidence exists.
 
 See `RESEARCH_DEBT.md`.
+
+
+## Evidence channel
+
+A product priority can choose the next evidence source explicitly.
+
+```yaml
+next_evidence: first_party_usage
+```
+
+This is used when desk research has established the problem sufficiently and the remaining uncertainty concerns Ortyo's own abstraction or workflow.
+
+`market-research-debt` keeps those unknown competitor cells visible in coverage totals but removes them from the top external-research queue.
