@@ -1,9 +1,7 @@
 import { env } from "cloudflare:workers";
-import { applyD1Migrations } from "cloudflare:test";
 
 import type { Env } from "../src/types";
 
-type TestMigrations = Parameters<typeof applyD1Migrations>[1];
-const testEnv = env as unknown as Env & { TEST_MIGRATIONS: TestMigrations };
+const testEnv = env as unknown as Env & { TEST_SCHEMA: string };
 
-await applyD1Migrations(testEnv.DB, testEnv.TEST_MIGRATIONS);
+await testEnv.DB.exec(testEnv.TEST_SCHEMA);
