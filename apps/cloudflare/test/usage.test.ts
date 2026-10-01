@@ -126,7 +126,6 @@ function event(): ScenarioUsageEvent {
     command_success: true,
     outcome_passed: false,
     check_count: 1,
-    observation_elapsed_ms: 712,
     features: {
       contract_count: 1,
       exact_cardinality: true,
