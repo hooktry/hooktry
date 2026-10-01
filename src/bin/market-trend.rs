@@ -337,9 +337,7 @@ fn render_text(report: &TrendReport) -> String {
     ));
 
     output.push_str("Evidence and market motion\n");
-    output.push_str(&format!(
-        "- research resolutions: {research_resolutions}\n"
-    ));
+    output.push_str(&format!("- research resolutions: {research_resolutions}\n"));
     output.push_str(&format!(
         "- observed external state changes: {observed_state_changes}\n"
     ));
@@ -365,9 +363,7 @@ fn render_text(report: &TrendReport) -> String {
         "- capability status changes: {}\n",
         report.ortyo_status_changes.len()
     ));
-    output.push_str(&format!(
-        "- matrix state changes: {ortyo_matrix_changes}\n"
-    ));
+    output.push_str(&format!("- matrix state changes: {ortyo_matrix_changes}\n"));
     output.push_str(&format!(
         "- disposition changes: {}\n\n",
         report.disposition_changes.len()
