@@ -105,3 +105,90 @@ jobs:
 
       - name: Cloudflare typecheck and tests
         run: npm run check
+
+  production_cleanup_proof:
+    name: production cleanup proof
+    if: github.event_name == 'pull_request' && github.head_ref == 'token1/r2-cleanup-proof'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      ORTYO_CLAIM_INTERNAL_TOKEN: ${{ secrets.ORTYO_CLAIM_INTERNAL_TOKEN }}
+      ORTYO_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
+      ORTYO_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Remove known orphan from pre-fix smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const key = "anonymous/01a0f7e6-a79b-7196-a0af-835c04d7f504/01a0f7e6-ade7-7fcc-93d2-ddce3f82212f";
+          const objectPath = key.split("/").map(encodeURIComponent).join("/");
+          const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/ortyo-payloads/objects/${objectPath}`;
+          const response = await fetch(url, {
+            method: "DELETE",
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (!response.ok && response.status !== 404) {
+            throw new Error(`orphan delete failed: ${response.status} ${await response.text()}`);
+          }
+          console.log("Known pre-fix R2 smoke orphan removed or already absent");
+          NODE
+
+      - name: Run production acceptance with verified cleanup
+        working-directory: apps/cloudflare
+        run: node scripts/smoke-production.mjs
+
+      - name: Prove production smoke storage is empty
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const databaseId = process.env.ORTYO_D1_DATABASE_ID;
+          const headers = { authorization: `Bearer ${token}` };
+
+          const objectsResponse = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/ortyo-payloads/objects`,
+            { headers },
+          );
+          const objectsPayload = await objectsResponse.json();
+          if (!objectsResponse.ok || objectsPayload.success === false) {
+            throw new Error(`R2 list failed: ${JSON.stringify(objectsPayload.errors ?? objectsPayload)}`);
+          }
+          if ((objectsPayload.result ?? []).length !== 0) {
+            throw new Error(`R2 is not empty: ${JSON.stringify(objectsPayload.result)}`);
+          }
+
+          const d1Response = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+            {
+              method: "POST",
+              headers: { ...headers, "content-type": "application/json" },
+              body: JSON.stringify({
+                sql: "SELECT (SELECT COUNT(*) FROM anonymous_exposures) AS exposures, (SELECT COUNT(*) FROM anonymous_interactions) AS interactions",
+              }),
+            },
+          );
+          const d1Payload = await d1Response.json();
+          if (!d1Response.ok || d1Payload.success === false) {
+            throw new Error(`D1 query failed: ${JSON.stringify(d1Payload.errors ?? d1Payload)}`);
+          }
+          const row = d1Payload.result?.[0]?.results?.[0];
+          if (!row || row.exposures !== 0 || row.interactions !== 0) {
+            throw new Error(`D1 smoke state is not empty: ${JSON.stringify(row)}`);
+          }
+
+          console.log("Production smoke storage verified empty: D1=0, R2=0");
+          NODE
+
