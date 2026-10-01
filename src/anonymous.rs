@@ -749,7 +749,11 @@ impl AnonymousExposureStore {
                     "UPDATE anonymous_exposures
                      SET workspace_id = ?1, claim_capability_digest = NULL
                      WHERE exposure_id = ?2 AND claim_capability_digest = ?3",
-                    params![&workspace_id_text, &raw.0, claim_capability_digest.as_slice()],
+                    params![
+                        &workspace_id_text,
+                        &raw.0,
+                        claim_capability_digest.as_slice()
+                    ],
                 )
                 .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 tx.commit()
@@ -787,7 +791,11 @@ impl AnonymousExposureStore {
                     "UPDATE anonymous_exposures
                      SET workspace_id = $1, claim_capability_digest = NULL
                      WHERE exposure_id = $2 AND claim_capability_digest = $3",
-                    &[&workspace_id_text, &exposure_id, &claim_capability_digest.as_slice()],
+                    &[
+                        &workspace_id_text,
+                        &exposure_id,
+                        &claim_capability_digest.as_slice(),
+                    ],
                 )
                 .map_err(|error| AnonymousError::Storage(error.to_string()))?;
                 tx.commit()
@@ -975,7 +983,11 @@ impl AnonymousExposureService {
         workspace_id: Uuid,
     ) -> Result<AnonymousExposureSummary, AnonymousError> {
         self.store
-            .claim(token_digest(claim_capability_token), workspace_id, unix_seconds_now())
+            .claim(
+                token_digest(claim_capability_token),
+                workspace_id,
+                unix_seconds_now(),
+            )
             .await
     }
 
