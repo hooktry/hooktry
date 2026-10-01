@@ -3,6 +3,7 @@ import { applyD1Migrations } from "cloudflare:test";
 
 import type { Env } from "../src/types";
 
-const env = testEnv as unknown as Env & { TEST_MIGRATIONS: D1Migration[] };
+type MigrationList = Parameters<typeof applyD1Migrations>[1];
+const env = testEnv as unknown as Env & { TEST_MIGRATIONS: MigrationList };
 
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
