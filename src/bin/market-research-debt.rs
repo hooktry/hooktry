@@ -75,9 +75,7 @@ fn main() -> ExitCode {
     let config = match parse_args(&args) {
         Some(config) => config,
         None => {
-            eprintln!(
-                "usage: market-research-debt [--limit N] [--max-per-capability N] [--json]"
-            );
+            eprintln!("usage: market-research-debt [--limit N] [--max-per-capability N] [--json]");
             return ExitCode::from(2);
         }
     };
@@ -171,7 +169,11 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
             continue;
         };
         let priority = effective_priority(capability, &model.priorities);
-        let signal = model.signals.get(capability_id).cloned().unwrap_or_default();
+        let signal = model
+            .signals
+            .get(capability_id)
+            .cloned()
+            .unwrap_or_default();
         let known_external_peers = row
             .iter()
             .filter(|(product, state)| product.as_str() != "ortyo" && state.as_str() != "unknown")
@@ -417,7 +419,10 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
     });
 
     let matrix_capabilities: HashSet<_> = model.matrix.keys().collect();
-    debug_assert!(debt.iter().all(|item| matrix_capabilities.contains(&item.capability)));
+    debug_assert!(
+        debt.iter()
+            .all(|item| matrix_capabilities.contains(&item.capability))
+    );
 
     debt
 }
@@ -815,22 +820,10 @@ mod tests {
 
     #[test]
     fn tiering_prioritizes_decision_change_over_existing_coverage() {
-        assert_eq!(
-            decision_tier("now", "partial", "must", 0, 0),
-            "P0"
-        );
-        assert_eq!(
-            decision_tier("next", "absent", "should", 1, 0),
-            "P1"
-        );
-        assert_eq!(
-            decision_tier("next", "unknown", "should", 0, 0),
-            "P2"
-        );
-        assert_eq!(
-            decision_tier("next", "implemented", "must", 4, 0),
-            "P4"
-        );
+        assert_eq!(decision_tier("now", "partial", "must", 0, 0), "P0");
+        assert_eq!(decision_tier("next", "absent", "should", 1, 0), "P1");
+        assert_eq!(decision_tier("next", "unknown", "should", 0, 0), "P2");
+        assert_eq!(decision_tier("next", "implemented", "must", 4, 0), "P4");
         assert_eq!(
             decision_tier("validate", "implemented", "differentiation", 0, 1),
             "P2"
