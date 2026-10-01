@@ -235,6 +235,37 @@ impl AnonymousExposureStore {
         })
     }
 
+    pub async fn purge_expired_async(&self) -> Result<(), AnonymousError> {
+        let store = self.clone();
+        tokio::task::spawn_blocking(move || store.purge_expired(unix_seconds_now()))
+            .await
+            .map_err(|error| AnonymousError::Storage(error.to_string()))?
+    }
+
+    fn purge_expired(&self, now: u64) -> Result<(), AnonymousError> {
+        let now = i64_from_u64(now)?;
+        match &self.backend {
+            AnonymousBackend::Sqlite(connection) => {
+                let mut connection = connection.lock().expect("anonymous store poisoned");
+                let tx = connection
+                    .transaction()
+                    .map_err(|error| AnonymousError::Storage(error.to_string()))?;
+                purge_sqlite(&tx, now)?;
+                tx.commit()
+                    .map_err(|error| AnonymousError::Storage(error.to_string()))
+            }
+            AnonymousBackend::Postgres(client) => {
+                let mut client = client.lock().expect("anonymous store poisoned");
+                let mut tx = client
+                    .transaction()
+                    .map_err(|error| AnonymousError::Storage(error.to_string()))?;
+                purge_postgres(&mut tx, now)?;
+                tx.commit()
+                    .map_err(|error| AnonymousError::Storage(error.to_string()))
+            }
+        }
+    }
+
     async fn create_async(
         &self,
         principal_digest: [u8; 32],
