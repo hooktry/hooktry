@@ -4,75 +4,95 @@ Checked: 2026-10-01
 
 ## Current comparison
 
-`2026-10-01-research-1 -> 2026-10-01-research-2`
+`2026-10-01-research-2 -> 2026-10-01-research-3`
 
-Both snapshots are on the same date because they represent successive research passes, not a claim of same-day market change.
+This pass expands the decision projection rather than claiming that competitors changed.
 
 ## Result
 
-- scope products added/removed: 0 / 0
-- matrix products added/removed: 0 / 0
-- capabilities added/removed: 0 / 0
-- matrix research resolutions: 4
-- observed external state changes: 0
-- atomic observations added: 4
-- signals added: 0
-- explicit market-motion signals added: 0
-- Ortyo capability-status changes: 0
-- Ortyo matrix changes: 0
-- disposition changes: 0
+Six existing canonical capabilities were added to the product matrix:
 
-The four transitions are all `unknown -> partial`.
+- contracts
+- scenario-runs
+- cardinality
+- ordering
+- observation-window
+- correlation-context
 
-They are **research resolution**, not market motion.
+The matrix therefore expands from 23 to 29 rows:
 
-## What was learned
+- external cells: 230 -> 290
+- previously projected evidenced cells retained: 74
+- evidence-backed states on newly projected rows: 10
+- current evidenced external cells: 84
+- current unknown external cells: 206
+- atomic observations: 84 -> 94
 
-Three competitors now have evidenced partial deterministic-CI depth:
+The trend analyzer should classify the new rows as **projection_scope_change**, not research regression and not market motion.
 
-- Hookdeck - CI authentication and non-interactive webhook forwarding/listening
-- Webhook Relay - structured synthetic send plus bounded delivery wait and evidence
-- Beeceptor - reproducible version-controlled mock environments with state reset for CI
+## Temporal-depth evidence added
 
-Beeceptor also has partial structured comparison through OpenAPI contract-drift detection.
+webhooks.cc:
 
-None of this currently proves the full Ortyo deterministic outcome model exists elsewhere.
+- contracts -> partial
+- scenario-runs -> present
+- cardinality -> partial
+- ordering -> partial
+- observation-window -> partial
 
-## Cumulative research movement from baseline
+Hooklistener:
 
-`2026-10-01-baseline -> 2026-10-01-research-2`
+- contracts -> partial
+- scenario-runs -> present
+- observation-window -> partial
 
-- research resolutions: 15
-- external evidenced cells: 59 -> 74
-- external unknown cells: 171 -> 156
-- atomic observations: 69 -> 84
-- explicit market-motion signals: 0
-- Ortyo motion: 0
-- disposition changes: 0
+Webhook Relay:
 
-## Interpretation boundary
+- scenario-runs -> partial
+- observation-window -> partial
 
-`unknown -> evidenced` remains research resolution.
+Correlation/idempotency context remains unknown for these competitors under the normalized Ortyo capability definition.
 
-A true market-motion claim requires dated evidence that a competitor changed, preferably recorded as `class: market_motion`.
+## Decision impact
 
-Ortyo delivery changes remain a separate `ortyo_motion` channel.
+No capability disposition changed.
+
+No Ortyo implementation status changed.
+
+No explicit market-motion signal was added.
+
+The differentiation hypothesis became narrower, but the roadmap did not move.
+
+## Remaining hypothesis
+
+Competitor evidence now covers reusable suites/scenarios, single-request contracts, expected counts, timestamp-sorted multi-event capture, and bounded waits.
+
+The remaining Ortyo hypothesis is:
+
+```text
+ranged cardinality + proof of no later extra matches
++ durable observed-order assertions
++ hard horizon + quiet/settle window
++ normalized correlation/causation/request/message/trace/idempotency context
++ persisted assertion evidence
++ behavior mismatch vs infrastructure/tool outcome semantics
+```
 
 ## Commands
 
-Latest incremental diff:
+Latest projection diff:
 
 ```bash
 cargo run --locked --bin market-trend -- \
-  --from docs/market/snapshots/2026-10-01-research-1.yaml \
-  --to docs/market/snapshots/2026-10-01-research-2.yaml
+  --from docs/market/snapshots/2026-10-01-research-2.yaml \
+  --to docs/market/snapshots/2026-10-01-research-3.yaml
 ```
 
-Cumulative diff:
+Cumulative diff from the original baseline:
 
 ```bash
 cargo run --locked --bin market-trend -- \
   --from docs/market/snapshots/2026-10-01-baseline.yaml \
-  --to docs/market/snapshots/2026-10-01-research-2.yaml \
+  --to docs/market/snapshots/2026-10-01-research-3.yaml \
   --json
 ```
