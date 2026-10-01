@@ -1,6 +1,6 @@
 # Ortyo market model
 
-Checked: 2026-10-01
+Checked: 2026-10-02
 
 Ortyo applies the portfolio-wide Market Capability Intelligence Framework (MCIF) from `sergii/projects/market-capability-intelligence`.
 
@@ -131,6 +131,8 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `FIRST_PARTY_PROOF.md` - thin product evidence loop for duplicate/order temporal primitives
 - `DOGFOOD_PROOF.md` - end-to-end buggy/fixed temporal probe acceptance and its evidence limits
 - `LIVE_INTEGRATION_PROOF.md` - real approval-outbox webhook workflow protected by Scenario exact-count/idempotency/settle semantics
+- `CROSS_PROJECT_PROOF.md` - Operational consumes a pinned Ortyo executable across repository/process/HTTP boundaries
+- `usage-evidence.yaml` - structured self-dogfood, first-party portfolio, and future external-customer usage evidence
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
@@ -154,7 +156,7 @@ See `DEMAND_REPORT.md` and `priorities.yaml`.
 2. Reduce only decision-relevant unknown cells in the current capability matrix.
 3. Record pricing/retention/limits separately because these are volatile.
 4. Compare future research passes against the immutable 2026-10-01 baseline snapshot.
-5. Keep the approval-webhook exact-count/idempotency/settle proof as a maintained live regression, find an independent live ordering use, and require repeated use or syntax pressure before deepening the temporal DSL.
+5. Seek an external developer/pilot for exact-count/idempotency/settle, find an independent first-party live ordering use, and require real syntax pressure before deepening the temporal DSL.
 
 
 ## Executable validation
