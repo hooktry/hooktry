@@ -169,12 +169,7 @@ mod tests {
 
         let root = app
             .clone()
-            .oneshot(
-                Request::builder()
-                    .uri("/")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(root.status(), StatusCode::OK);
@@ -231,10 +226,7 @@ mod tests {
     }
 
     fn url_path(url: &str) -> String {
-        let without_scheme = url
-            .split_once("://")
-            .map(|(_, rest)| rest)
-            .unwrap_or(url);
+        let without_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
         let path = without_scheme
             .find('/')
             .map(|index| &without_scheme[index..])
