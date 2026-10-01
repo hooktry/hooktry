@@ -22,6 +22,37 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Snapshot immutability on pull request
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BASE_SHA}^{commit}"
+          invalid="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' | grep -Ev '^A[[:space:]]' || true)"
+          if [[ -n "${invalid}" ]]; then
+            echo "Existing market snapshots are immutable. Add a new snapshot instead:"
+            echo "${invalid}"
+            exit 1
+          fi
+
+      - name: Snapshot immutability on main push
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BASE_SHA}^{commit}"
+          invalid="$(git diff --name-status "${BASE_SHA}" HEAD -- 'docs/market/snapshots/*.yaml' 'docs/market/snapshots/*.yml' | grep -Ev '^A[[:space:]]' || true)"
+          if [[ -n "${invalid}" ]]; then
+            echo "Existing market snapshots are immutable. Add a new snapshot instead:"
+            echo "${invalid}"
+            exit 1
+          fi
 
       - name: Install Node for embedded WEB1 assets
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -56,6 +87,9 @@ jobs:
 
       - name: Market model
         run: cargo run --locked --bin market-model-check -- --check
+
+      - name: Market snapshots
+        run: cargo run --locked --bin market-snapshot-check -- --check
 
       - name: Tests
         run: cargo test --locked --all-targets --all-features

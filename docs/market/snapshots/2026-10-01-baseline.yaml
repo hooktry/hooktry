@@ -1,0 +1,1075 @@
+schema_version: 1
+snapshot_id: 2026-10-01-baseline
+captured_at: 2026-10-01
+source_commit: ce7ba8bea8aff9e58afd9ea2084041757c4dde70
+source_dates:
+  scope_reviewed_at: 2026-10-01
+  matrix_checked_at: 2026-10-01
+  signals_checked_at: 2026-10-01
+counts:
+  scope_products: 16
+  matrix_products: 11
+  capabilities: 38
+  matrix_rows: 23
+  matrix_cells: 253
+  observations: 69
+  signals: 14
+
+scope_products:
+  - ortyo
+  - webhook-site
+  - hookdeck
+  - webhook-relay
+  - svix
+  - beeceptor
+  - vercel-emulate
+  - webhooks-cc
+  - hooklistener
+  - webhooker
+  - hook0
+  - requestbin-net
+  - ngrok
+  - tailscale-funnel
+  - cloudflare-computer
+  - namespace
+
+matrix_products:
+  - ortyo
+  - webhook-site
+  - hookdeck
+  - webhook-relay
+  - svix
+  - beeceptor
+  - webhooks-cc
+  - hooklistener
+  - webhooker
+  - hook0
+  - requestbin-net
+
+capabilities:
+  - id: instant-public-endpoint
+    disposition: must
+    ortyo_status: implemented
+  - id: no-signup-ephemeral-start
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: persistent-endpoint
+    disposition: should
+    ortyo_status: partial
+  - id: request-inspection
+    disposition: must
+    ortyo_status: implemented
+  - id: request-history
+    disposition: must
+    ortyo_status: implemented
+  - id: search-filter
+    disposition: must
+    ortyo_status: partial
+  - id: custom-response
+    disposition: must
+    ortyo_status: partial
+  - id: failure-simulation
+    disposition: should
+    ortyo_status: partial
+  - id: replay
+    disposition: must
+    ortyo_status: implemented
+  - id: portable-recording
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: local-forwarding
+    disposition: must
+    ortyo_status: implemented
+  - id: public-tunnel
+    disposition: watch
+    ortyo_status: implemented
+  - id: fanout
+    disposition: should
+    ortyo_status: unknown
+  - id: filtering-routing
+    disposition: should
+    ortyo_status: unknown
+  - id: transformation
+    disposition: should
+    ortyo_status: unknown
+  - id: durable-retries
+    disposition: watch
+    ortyo_status: unknown
+  - id: dlq
+    disposition: watch
+    ortyo_status: absent
+  - id: signature-verification
+    disposition: should
+    ortyo_status: unknown
+  - id: outbound-signing
+    disposition: should
+    ortyo_status: unknown
+  - id: provider-templates
+    disposition: should
+    ortyo_status: absent
+  - id: api
+    disposition: must
+    ortyo_status: implemented
+  - id: cli
+    disposition: must
+    ortyo_status: implemented
+  - id: mcp-agent
+    disposition: covered
+    ortyo_status: implemented
+  - id: wait-for-event
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: contracts
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: scenario-runs
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: cardinality
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: ordering
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: observation-window
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: deterministic-ci
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: correlation-context
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: request-diff
+    disposition: should
+    ortyo_status: unknown
+  - id: api-mocking
+    disposition: watch
+    ortyo_status: partial
+  - id: team-collaboration
+    disposition: should
+    ortyo_status: partial
+  - id: self-host
+    disposition: must
+    ortyo_status: implemented
+  - id: approval-gate
+    disposition: differentiation
+    ortyo_status: implemented
+  - id: multi-protocol
+    disposition: watch
+    ortyo_status: planned
+  - id: managed-compute
+    disposition: out_of_scope
+    ortyo_status: planned
+
+matrix:
+  instant-public-endpoint:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  no-signup-ephemeral-start:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  persistent-endpoint:
+    ortyo: partial
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  request-inspection:
+    ortyo: present
+    webhook-site: present
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: present
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+  request-history:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: present
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+  search-filter:
+    ortyo: partial
+    webhook-site: present
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  custom-response:
+    ortyo: partial
+    webhook-site: present
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  failure-simulation:
+    ortyo: partial
+    webhook-site: partial
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: present
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  replay:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+  local-forwarding:
+    ortyo: present
+    webhook-site: present
+    hookdeck: present
+    webhook-relay: present
+    svix: unknown
+    beeceptor: present
+    webhooks-cc: present
+    hooklistener: unknown
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  provider-templates:
+    ortyo: absent
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+  signature-verification:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: present
+    requestbin-net: unknown
+  api:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: present
+  cli:
+    ortyo: present
+    webhook-site: present
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: present
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  mcp-agent:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: present
+    webhook-relay: present
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: present
+    requestbin-net: present
+  wait-for-event:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: present
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  deterministic-ci:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  request-diff:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: present
+    hooklistener: present
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  self-host:
+    ortyo: present
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: present
+    requestbin-net: unknown
+  team-collaboration:
+    ortyo: partial
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: unknown
+  durable-retries:
+    ortyo: unknown
+    webhook-site: unknown
+    hookdeck: present
+    webhook-relay: present
+    svix: present
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: present
+    requestbin-net: unknown
+  dlq:
+    ortyo: absent
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: unknown
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: present
+    hook0: unknown
+    requestbin-net: unknown
+  api-mocking:
+    ortyo: partial
+    webhook-site: unknown
+    hookdeck: unknown
+    webhook-relay: unknown
+    svix: unknown
+    beeceptor: present
+    webhooks-cc: unknown
+    hooklistener: unknown
+    webhooker: unknown
+    hook0: unknown
+    requestbin-net: present
+
+signals:
+  - id: direct-local-testing-friction-2026-01-23
+    capability: replay
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-01-23
+    confidence: medium
+  - id: direct-api-access-for-webhook-tests-2025-04-22
+    capability: api
+    class: direct_demand
+    direction: supports
+    observed_at: 2025-04-22
+    confidence: medium
+  - id: direct-third-party-no-sandbox-2026-06-08
+    capability: portable-recording
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-06-08
+    confidence: medium
+  - id: direct-local-first-preference-2026-02-13
+    capability: self-host
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-02-13
+    confidence: medium
+  - id: direct-provider-cli-substitution-2026-02-13
+    capability: provider-templates
+    class: direct_demand
+    direction: mixed
+    observed_at: 2026-02-13
+    confidence: medium
+  - id: direct-duplicate-order-failure-testing-2026-02-13
+    capability: ordering
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-02-13
+    confidence: low
+  - id: direct-replay-self-built-2026-07-29
+    capability: replay
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-07-29
+    confidence: medium
+  - id: direct-signature-format-gap-2026-09-03
+    capability: signature-verification
+    class: direct_demand
+    direction: supports
+    observed_at: 2026-09-03
+    confidence: medium
+  - id: proxy-github-order-delay-signature-2026-10-01
+    capability: ordering
+    class: demand_proxy
+    observed_at: 2026-10-01
+    confidence: high
+  - id: proxy-svix-play-customer-use
+    capability: deterministic-ci
+    class: demand_proxy
+    observed_at: 2023-07-06
+    confidence: high
+  - id: proxy-deterministic-outcome-testing-2026-09-22
+    capability: deterministic-ci
+    class: demand_proxy
+    observed_at: 2026-09-22
+    confidence: medium
+  - id: market-hookdeck-mcp-write-2026-09-25
+    capability: mcp-agent
+    class: market_motion
+    observed_at: 2026-09-25
+    confidence: high
+  - id: market-webhookscc-ci-agent-2026-05
+    capability: deterministic-ci
+    class: market_motion
+    observed_at: 2026-05-01
+    confidence: high
+  - id: market-hook0-agent-operations-2026-10-01
+    capability: mcp-agent
+    class: market_motion
+    observed_at: 2026-10-01
+    confidence: high
+
+observations:
+  - id: webhook-site-inspect-2026-10-01
+    product: webhook-site
+    capability: request-inspection
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-transform-forward-2026-10-01
+    product: webhook-site
+    capability: transformation
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-local-2026-10-01
+    product: hookdeck
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-gateway-2026-10-01
+    product: hookdeck
+    capability: durable-retries
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-local-2026-10-01
+    product: webhook-relay
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-retries-2026-10-01
+    product: webhook-relay
+    capability: durable-retries
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-mcp-2026-10-01
+    product: webhook-relay
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: svix-play-api-2026-10-01
+    product: svix
+    capability: wait-for-event
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+  - id: svix-delivery-2026-10-01
+    product: svix
+    capability: durable-retries
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-inspection-2026-10-01
+    product: beeceptor
+    capability: request-inspection
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-mocking-2026-10-01
+    product: beeceptor
+    capability: api-mocking
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-mcp-2026-10-01
+    product: webhooks-cc
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-ci-2026-10-01
+    product: webhooks-cc
+    capability: deterministic-ci
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-forward-2026-10-01
+    product: hooklistener
+    capability: replay
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-tunnel-2026-10-01
+    product: hooklistener
+    capability: public-tunnel
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-retry-dlq-2026-10-01
+    product: webhooker
+    capability: dlq
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-local-2026-10-01
+    product: webhooker
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-reliable-2026-10-01
+    product: hook0
+    capability: durable-retries
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-mcp-2026-10-01
+    product: hook0
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-inspect-2026-10-01
+    product: requestbin-net
+    capability: request-inspection
+    state: present
+    observed_at: 2026-10-01
+    confidence: medium
+    freshness: normal
+    applicability: current
+  - id: beeceptor-history-2026-10-01
+    product: beeceptor
+    capability: request-history
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: vercel-emulate-stateful-2026-10-01
+    product: vercel-emulate
+    capability: api-mocking
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-search-2026-10-01
+    product: webhook-site
+    capability: search-filter
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-local-forward-2026-10-01
+    product: webhook-site
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-local-depth-2026-10-01
+    product: hookdeck
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-transform-2026-10-01
+    product: webhook-relay
+    capability: transformation
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-relay-routing-2026-10-01
+    product: webhook-relay
+    capability: filtering-routing
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-faults-2026-10-01
+    product: beeceptor
+    capability: failure-simulation
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-provider-templates-2026-10-01
+    product: webhooks-cc
+    capability: provider-templates
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-signatures-2026-10-01
+    product: webhooks-cc
+    capability: signature-verification
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-routing-2026-10-01
+    product: webhooker
+    capability: filtering-routing
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-fanout-2026-10-01
+    product: webhooker
+    capability: fanout
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-retry-depth-2026-10-01
+    product: hook0
+    capability: durable-retries
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-self-host-2026-10-01
+    product: hook0
+    capability: self-host
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-history-2026-10-01
+    product: requestbin-net
+    capability: request-history
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-replay-2026-10-01
+    product: requestbin-net
+    capability: replay
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-provider-templates-2026-10-01
+    product: requestbin-net
+    capability: provider-templates
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-mcp-2026-10-01
+    product: requestbin-net
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-custom-response-2026-10-01
+    product: webhook-site
+    capability: custom-response
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-failure-simulation-2026-10-01
+    product: webhook-site
+    capability: failure-simulation
+    state: partial
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-replay-2026-10-01
+    product: webhook-site
+    capability: replay
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhook-site-cli-2026-10-01
+    product: webhook-site
+    capability: cli
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-replay-2026-10-01
+    product: hookdeck
+    capability: replay
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hookdeck-mcp-2026-10-01
+    product: hookdeck
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+  - id: webhook-relay-wait-2026-10-01
+    product: webhook-relay
+    capability: wait-for-event
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: svix-play-response-2026-10-01
+    product: svix
+    capability: custom-response
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+  - id: svix-play-failure-2026-10-01
+    product: svix
+    capability: failure-simulation
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: durable
+    applicability: current
+  - id: svix-cli-2026-10-01
+    product: svix
+    capability: cli
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: svix-signature-verification-2026-10-01
+    product: svix
+    capability: signature-verification
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-local-tunnel-2026-10-01
+    product: beeceptor
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: beeceptor-custom-response-2026-10-01
+    product: beeceptor
+    capability: custom-response
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-search-2026-10-01
+    product: webhooks-cc
+    capability: search-filter
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-custom-response-2026-10-01
+    product: webhooks-cc
+    capability: custom-response
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-local-forward-2026-10-01
+    product: webhooks-cc
+    capability: local-forwarding
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-request-diff-2026-10-01
+    product: webhooks-cc
+    capability: request-diff
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooks-cc-deterministic-ci-depth-2026-10-01
+    product: webhooks-cc
+    capability: deterministic-ci
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-search-2026-10-01
+    product: hooklistener
+    capability: search-filter
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-custom-response-2026-10-01
+    product: hooklistener
+    capability: custom-response
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-api-2026-10-01
+    product: hooklistener
+    capability: api
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-cli-2026-10-01
+    product: hooklistener
+    capability: cli
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-mcp-2026-10-01
+    product: hooklistener
+    capability: mcp-agent
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-deterministic-ci-2026-10-01
+    product: hooklistener
+    capability: deterministic-ci
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hooklistener-request-diff-2026-10-01
+    product: hooklistener
+    capability: request-diff
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: volatile
+    applicability: current
+  - id: webhooker-search-2026-10-01
+    product: webhooker
+    capability: search-filter
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-api-2026-10-01
+    product: webhooker
+    capability: api
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: webhooker-cli-2026-10-01
+    product: webhooker
+    capability: cli
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: hook0-signature-2026-10-01
+    product: hook0
+    capability: signature-verification
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-api-2026-10-01
+    product: requestbin-net
+    capability: api
+    state: present
+    observed_at: 2026-10-01
+    confidence: high
+    freshness: normal
+    applicability: current
+  - id: requestbin-api-mocking-2026-10-01
+    product: requestbin-net
+    capability: api-mocking
+    state: present
+    observed_at: 2026-10-01
+    confidence: medium
+    freshness: normal
+    applicability: current
