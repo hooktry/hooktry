@@ -127,6 +127,13 @@ pub async fn emit_from_env(event: &ScenarioUsageEvent) -> Result<(), String> {
 }
 
 fn append_jsonl(path: &Path, event: &ScenarioUsageEvent) -> Result<(), String> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("create usage log directory {}: {error}", parent.display()))?;
+    }
+
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
