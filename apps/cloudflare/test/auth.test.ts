@@ -43,9 +43,14 @@ describe("AUTH1 GitHub claim flow", () => {
 
     const state = location.searchParams.get("state");
     expect(state).toMatch(/^oauth_[A-Za-z0-9_-]+$/);
+    expect(location.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(location.searchParams.get("code_challenge")).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
 
     const cookie = requiredHeader(response, "set-cookie");
     expect(cookie).toContain(`ortyo_oauth_state=${state}`);
+    expect(cookie).toContain("ortyo_oauth_pkce=");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
     expect(cookie).toContain("Secure");
@@ -237,12 +242,16 @@ async function login(returnTo: string): Promise<{
   const state = authorize.searchParams.get("state");
   if (!state) throw new Error("missing OAuth state");
 
+  const startCookies = requiredHeader(start, "set-cookie");
+  const pkce = startCookies.match(/ortyo_oauth_pkce=([^;,]+)/)?.[1];
+  if (!pkce) throw new Error("missing OAuth PKCE cookie");
+
   const response = await finishGitHubOAuth(
     new Request(
       `https://ortyo.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
       {
         headers: {
-          cookie: `ortyo_oauth_state=${state}`,
+          cookie: `ortyo_oauth_state=${state}; ortyo_oauth_pkce=${pkce}`,
         },
       },
     ),
@@ -267,6 +276,7 @@ const fakeGitHubFetch: typeof fetch = async (input, init) => {
     expect(init?.method).toBe("POST");
     expect(String(init?.body)).toContain("client_id=test-github-client");
     expect(String(init?.body)).toContain("client_secret=test-github-secret");
+    expect(String(init?.body)).toMatch(/code_verifier=[A-Za-z0-9_-]{43}/);
     return Response.json({
       access_token: "gho_ephemeral_test_token",
       scope: "read:user",
