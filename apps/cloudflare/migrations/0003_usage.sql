@@ -7,7 +7,6 @@ CREATE TABLE usage_events (
   command_success INTEGER NOT NULL CHECK (command_success IN (0, 1)),
   outcome_passed INTEGER NOT NULL CHECK (outcome_passed IN (0, 1)),
   check_count INTEGER NOT NULL,
-  observation_elapsed_ms INTEGER NOT NULL,
   contract_count INTEGER NOT NULL,
   exact_cardinality INTEGER NOT NULL CHECK (exact_cardinality IN (0, 1)),
   ranged_cardinality INTEGER NOT NULL CHECK (ranged_cardinality IN (0, 1)),
