@@ -24,6 +24,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
       ORTYO_CLAIM_INTERNAL_TOKEN: ${{ secrets.ORTYO_CLAIM_INTERNAL_TOKEN }}
+      ORTYO_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
 
     steps:
       - name: Checkout
@@ -77,10 +78,22 @@ jobs:
           --var "ORTYO_RELEASE_SHA:${GITHUB_SHA}"
           --var "GITHUB_CLIENT_ID:${GITHUB_CLIENT_ID}"
 
+      - name: Install optional usage ingest secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${ORTYO_USAGE_INGEST_TOKEN:-}" ]]; then
+            printf '%s' "$ORTYO_USAGE_INGEST_TOKEN" |
+              npx wrangler secret put USAGE_INGEST_TOKEN --config wrangler.production.jsonc
+          else
+            echo "ORTYO_USAGE_INGEST_TOKEN is not configured; usage ingest remains disabled."
+          fi
+
       - name: Production acceptance
         env:
           ORTYO_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
           ORTYO_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
           ORTYO_EXPECTED_RELEASE_SHA: ${{ github.sha }}
           ORTYO_EXPECT_GITHUB_AUTH: "1"
+          ORTYO_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
         run: node scripts/smoke-production.mjs
