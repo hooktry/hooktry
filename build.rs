@@ -23,19 +23,19 @@ fn main() {
     }
 
     let mut generated =
-        String::from("pub(crate) static EMBEDDED_WEB_ASSETS: &[EmbeddedAsset] = &[\\n");
+        String::from("pub(crate) static EMBEDDED_WEB_ASSETS: &[EmbeddedAsset] = &[\n");
 
     for (relative, path) in files {
         let absolute = fs::canonicalize(&path)
             .unwrap_or_else(|error| panic!("canonicalize {}: {error}", path.display()));
         generated.push_str(&format!(
-            "    EmbeddedAsset {{ path: {:?}, bytes: include_bytes!({:?}) }},\\n",
+            "    EmbeddedAsset {{ path: {:?}, bytes: include_bytes!({:?}) }},\n",
             relative,
             absolute.to_string_lossy()
         ));
     }
 
-    generated.push_str("];\\n");
+    generated.push_str("];\n");
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is set by Cargo"));
     fs::write(out_dir.join("embedded_web_assets.rs"), generated)
