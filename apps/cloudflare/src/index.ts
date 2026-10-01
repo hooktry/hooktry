@@ -18,8 +18,8 @@ import {
   createExposure,
   deleteExposure,
   expiredExposureIds,
-  findExposureByIngress,
-  findExposureByViewer,
+  findExposureByIngressCapability,
+  findExposureByViewCapability,
   payloadKeysForExposure,
 } from "./repository";
 import type { AnonymousProvision, Env } from "./types";
@@ -81,7 +81,7 @@ async function createHook(request: Request, env: Env): Promise<Response> {
   const now = Math.floor(Date.now() / 1000);
   const expiresAt = now + ANONYMOUS_TTL_SECONDS;
 
-  const [principalDigest, ingressDigest, viewerDigest, claimDigest] =
+  const [principalDigest, ingressCapabilityDigest, viewCapabilityDigest, claimCapabilityDigest] =
     await Promise.all([
       sha256Hex(principal),
       sha256Hex(hook),
@@ -92,9 +92,9 @@ async function createHook(request: Request, env: Env): Promise<Response> {
   const exposure = await createExposure(env, {
     exposureId,
     principalDigest,
-    ingressDigest,
-    viewerDigest,
-    claimDigest,
+    ingressCapabilityDigest,
+    viewCapabilityDigest,
+    claimCapabilityDigest,
     now,
     expiresAt,
   });
@@ -138,7 +138,7 @@ async function routeHook(
     throw new AdapterError(413, "body_too_large");
   }
 
-  const row = await findExposureByIngress(env, await sha256Hex(token));
+  const row = await findExposureByIngressCapability(env, await sha256Hex(token));
   if (!row) {
     throw new AdapterError(404, "not_found");
   }
@@ -155,7 +155,7 @@ async function routeView(
   env: Env,
   token: string,
 ): Promise<Response> {
-  const row = await findExposureByViewer(env, await sha256Hex(token));
+  const row = await findExposureByViewCapability(env, await sha256Hex(token));
   if (!row) {
     throw new AdapterError(404, "not_found");
   }
