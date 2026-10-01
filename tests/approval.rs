@@ -100,10 +100,8 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
 
 #[test]
 fn keyed_approval_survives_master_key_rotation() {
-    let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-key-rotation-{}.db",
-        Uuid::now_v7()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("ortyo-approval-key-rotation-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
@@ -117,9 +115,7 @@ fn keyed_approval_survives_master_key_rotation() {
     let first = v1_store
         .create(workspace_id, requester_id, &request)
         .unwrap();
-    assert!(first
-        .request_digest
-        .starts_with("hmac-sha256:v1:k1:"));
+    assert!(first.request_digest.starts_with("hmac-sha256:v1:k1:"));
     v1_store
         .decide(
             workspace_id,
@@ -144,11 +140,9 @@ fn keyed_approval_survives_master_key_rotation() {
 
     let root_v2 = [0x22; 32];
     let master_keys = VersionedKeyring::new(2, root_v2, [(1, root_v1)]).unwrap();
-    let rotated = ApprovalStore::open_with_digest_keyring(
-        &path,
-        derive_digest_keyring(&master_keys),
-    )
-    .unwrap();
+    let rotated =
+        ApprovalStore::open_with_digest_keyring(&path, derive_digest_keyring(&master_keys))
+            .unwrap();
 
     let consumed = rotated
         .consume(
@@ -164,15 +158,19 @@ fn keyed_approval_survives_master_key_rotation() {
     let new_approval = rotated
         .create(workspace_id, requester_id, &request)
         .unwrap();
-    assert!(new_approval
-        .request_digest
-        .starts_with("hmac-sha256:v1:k2:"));
+    assert!(
+        new_approval
+            .request_digest
+            .starts_with("hmac-sha256:v1:k2:")
+    );
     assert_ne!(first.request_digest, new_approval.request_digest);
-    assert!(new_approval
-        .summary
-        .body_fingerprint
-        .as_deref()
-        .is_some_and(|value| value.starts_with("hmac-sha256:v1:k2:")));
+    assert!(
+        new_approval
+            .summary
+            .body_fingerprint
+            .as_deref()
+            .is_some_and(|value| value.starts_with("hmac-sha256:v1:k2:"))
+    );
     drop(rotated);
 
     let v2_only = ApprovalStore::open_with_digest_keyring(
