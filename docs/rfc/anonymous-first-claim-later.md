@@ -87,13 +87,16 @@ Example response:
 
 ```json
 {
-  "exposure": {
-    "exposure_id": "...",
-    "expires_at_unix_seconds": 0,
-    "request_limit": 100,
-    "max_body_bytes": 5242880,
-    "max_retained_bytes": 52428800
-  },
+  "exposure_id": "...",
+  "workspace_id": null,
+  "created_at_unix_seconds": 0,
+  "expires_at_unix_seconds": 0,
+  "request_count": 0,
+  "retained_bytes": 0,
+  "request_limit": 100,
+  "max_body_bytes": 5242880,
+  "max_retained_bytes": 52428800,
+  "claimed": false,
   "hook_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
   "view_url": "https://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
   "view_websocket_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
