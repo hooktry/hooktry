@@ -243,6 +243,10 @@ ORTYO_EXPOSURE_URL
 The command exits `0` only when both the child command and ScenarioOutcome pass, `1` when either behavior or the child command fails, and `2` when ORTYO cannot orchestrate or complete the run. If shell syntax is needed, invoke a shell explicitly after `--`.
 
 
+## First public release
+
+The first public release is gated by the production acceptance checklist in [docs/ops/first-public-release-gates.md](docs/ops/first-public-release-gates.md). In particular, production must complete and prove the first real master-key rotation from v1 to v2 before the release/tag is created.
+
 ## License
 
 TBD before the first public release.
