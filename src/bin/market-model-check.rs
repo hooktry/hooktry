@@ -538,12 +538,12 @@ fn parse_scope(text: &str) -> ScopeModel {
             if let Some(value) = line.strip_prefix("  - id: ") {
                 current_product = scalar(value);
                 scope.products.entry(current_product.clone()).or_default();
-            } else if let Some(value) = line.strip_prefix("    cohorts: ") {
-                if !current_product.is_empty() {
-                    scope
-                        .products
-                        .insert(current_product.clone(), inline_list(value));
-                }
+            } else if let Some(value) = line.strip_prefix("    cohorts: ")
+                && !current_product.is_empty()
+            {
+                scope
+                    .products
+                    .insert(current_product.clone(), inline_list(value));
             }
         }
     }
@@ -575,14 +575,15 @@ fn parse_matrix(text: &str) -> MatrixModel {
             if line.starts_with("  ") && !line.starts_with("    ") && line.ends_with(':') {
                 current_capability = scalar(line.trim().trim_end_matches(':'));
                 model.rows.entry(current_capability.clone()).or_default();
-            } else if line.starts_with("    ") && !current_capability.is_empty() {
-                if let Some((product, state)) = key_value(line.trim()) {
-                    model
-                        .rows
-                        .entry(current_capability.clone())
-                        .or_default()
-                        .insert(product, state);
-                }
+            } else if line.starts_with("    ")
+                && !current_capability.is_empty()
+                && let Some((product, state)) = key_value(line.trim())
+            {
+                model
+                    .rows
+                    .entry(current_capability.clone())
+                    .or_default()
+                    .insert(product, state);
             }
         }
     }
@@ -833,7 +834,7 @@ fn http_token(value: &str) -> Option<String> {
     let start = value.find("http")?;
     let tail = &value[start..];
     let end = tail
-        .find(|character: char| matches!(character, '"' | '\'' | '}' | ' ' | ','))
+        .find(['"', '\'', '}', ' ', ','])
         .unwrap_or(tail.len());
     Some(tail[..end].to_owned())
 }
