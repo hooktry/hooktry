@@ -3,7 +3,7 @@ market:
   name: "Webhook product development, testing, and pilot"
   primary_job: "Create a reachable webhook endpoint, observe real events, iterate on a receiver, replay or reproduce behavior, and prove the integration works."
   primary_stage: development_testing_pilot
-  vector_invariant: "Every expansion must strengthen receive/capture -> inspect -> relay/replay -> verify for webhook/integration development while preserving canonical Interaction/evidence semantics; otherwise it remains an integration, substrate, or separate product."
+  vector_invariant: "Every expansion must strengthen receive/capture -> inspect -> respond/relay/replay -> verify for webhook/integration development while preserving canonical Interaction/evidence semantics; otherwise it remains an integration, substrate, or separate product."
   stopping_rule: "Research all material products that can substitute for Ortyo in the primary job; continue discovery until new primary products no longer add material capabilities, then sample depth/adjacent/substrate cohorts only enough to model expansion vectors."
 
 cohorts:
@@ -63,6 +63,11 @@ products:
     roles: [direct]
     cohorts: [primary, api-virtualization]
     inclusion_reason: "Request inspection plus mock API/service virtualization for development and testing."
+  - id: vercel-emulate
+    name: Vercel Labs emulate
+    roles: [capability_substitute]
+    cohorts: [api-virtualization]
+    inclusion_reason: "Adjacent local/stateful API emulation for development, CI, and no-network sandboxes; not a primary webhook receiver substitute."
   - id: webhooks-cc
     name: webhooks.cc
     roles: [direct]
