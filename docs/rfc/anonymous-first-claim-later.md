@@ -108,6 +108,8 @@ https://hook.ortyo.com/e/:capability
 
 and resolve the capability to an Exposure record.
 
+A single Durable Object class with one object instance keyed by active Exposure is acceptable and may be useful for atomic quota/claim state plus live fan-out. That is data sharding, not infrastructure-per-endpoint. Idle instances should be allowed to hibernate.
+
 Recommended responsibilities:
 
 - Workers: ingress, capability validation, quotas, lightweight request normalization
@@ -183,6 +185,12 @@ Exposure
 ```
 
 Claim changes authority and retention. It does not create a parallel webhook subsystem.
+
+## External validation
+
+Cloudflare's temporary preview accounts use the same broad lifecycle for agent-first deployment: create and use before authentication, return a bearer claim URL, delete unclaimed temporary resources after expiry, and preserve supported resources after claim. See https://developers.cloudflare.com/workers/platform/claim-deployments/.
+
+This validates the product pattern without requiring Ortyo to copy Cloudflare's resource model or 60-minute claim window.
 
 ## Non-goals
 
