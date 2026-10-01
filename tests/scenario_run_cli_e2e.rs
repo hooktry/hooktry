@@ -121,9 +121,13 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
     assert!(!usage.features.idempotency_context);
     assert!(!usage.features.duplicate_guard);
 
+    assert_eq!(usage_raw.lines().count(), 1);
     assert!(!usage_raw.contains("payment.created"));
     assert!(!usage_raw.contains("/webhook"));
     assert!(!usage_raw.contains(&base_url));
+    assert!(!usage_raw.contains(&report.scenario_id.to_string()));
+    assert!(!usage_raw.contains(&report.run_id.to_string()));
+    assert!(!usage_raw.contains(&report.exposure_id.to_string()));
 }
 
 #[tokio::test]
