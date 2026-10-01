@@ -35,9 +35,10 @@ describe("CF1 anonymous Exposure conformance", () => {
     if (!socket) {
       throw new Error("expected WebSocket response");
     }
+    const inbox = jsonInbox(socket);
     socket.accept();
 
-    const ready = await nextJson(socket);
+    const ready = await inbox.next();
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
 
@@ -53,7 +54,7 @@ describe("CF1 anonymous Exposure conformance", () => {
     );
     expect(first.status).toBe(200);
 
-    const pushed = await nextJson(socket);
+    const pushed = await inbox.next();
     expect(pushed.type).toBe("interaction");
     expect(pushed.interaction.sequence).toBe(1);
     expect(pushed.interaction.path).toBe("/stripe");
@@ -70,7 +71,7 @@ describe("CF1 anonymous Exposure conformance", () => {
       }),
     );
     expect(afterEviction.status).toBe(200);
-    const pushedAfterEviction = await nextJson(socket);
+    const pushedAfterEviction = await inbox.next();
     expect(pushedAfterEviction.interaction.sequence).toBe(2);
     expect(pushedAfterEviction.interaction.body).toBe("after-eviction");
 
@@ -96,7 +97,7 @@ describe("CF1 anonymous Exposure conformance", () => {
       }),
     );
     expect(afterClaim.status).toBe(200);
-    const pushedAfterClaim = await nextJson(socket);
+    const pushedAfterClaim = await inbox.next();
     expect(pushedAfterClaim.interaction.sequence).toBe(3);
     expect(pushedAfterClaim.interaction.body).toBe("after-claim");
 
@@ -204,23 +205,44 @@ async function createAnonymous(): Promise<AnonymousProvision> {
   return (await response.json()) as AnonymousProvision;
 }
 
-function nextJson(socket: WebSocket): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error("timed out waiting for WebSocket message")),
-      2_000,
-    );
-    socket.addEventListener(
-      "message",
-      (event) => {
-        clearTimeout(timeout);
-        try {
-          resolve(JSON.parse(String(event.data)));
-        } catch (error) {
-          reject(error);
-        }
-      },
-      { once: true },
-    );
+function jsonInbox(socket: WebSocket): { next: () => Promise<any> } {
+  const queued: any[] = [];
+  const waiting: Array<{
+    resolve: (value: any) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }> = [];
+
+  socket.addEventListener("message", (event) => {
+    const value = JSON.parse(String(event.data));
+    const waiter = waiting.shift();
+    if (waiter) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(value);
+      return;
+    }
+    queued.push(value);
   });
+
+  return {
+    next(): Promise<any> {
+      const value = queued.shift();
+      if (value !== undefined) {
+        return Promise.resolve(value);
+      }
+
+      return new Promise((resolve, reject) => {
+        const waiter = {
+          resolve,
+          timer: setTimeout(() => {
+            const index = waiting.indexOf(waiter);
+            if (index >= 0) {
+              waiting.splice(index, 1);
+            }
+            reject(new Error("timed out waiting for WebSocket message"));
+          }, 2_000),
+        };
+        waiting.push(waiter);
+      });
+    },
+  };
 }
