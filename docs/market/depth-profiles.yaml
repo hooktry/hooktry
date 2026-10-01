@@ -1,0 +1,25 @@
+profiles:
+  - id: capture-inspection
+    name: Capture and inspection
+    dimensions: [instant_public_endpoint, no_signup_start, live_request_stream, request_list, request_detail, headers_query_body, json_formatting, history_retention, structured_search, export_or_copy_as_curl, shareable_view]
+  - id: sender-response-control
+    name: Sender response control and failure simulation
+    dimensions: [configurable_status, configurable_headers, configurable_body, response_delay, rule_based_responses, deterministic_failure, variable_or_template_response]
+  - id: local-development
+    name: Local development and reachability
+    dimensions: [localhost_forwarding, bidirectional_response_forwarding, persistent_public_url, path_preservation, direct_tunnel, cli, reconnect, multi_source_or_route]
+  - id: replay-provider-testing
+    name: Replay and provider-aware testing
+    dimensions: [replay_captured_event, edit_before_replay, replay_result_evidence, provider_templates, outbound_signing, inbound_signature_verification, provider_specific_helpers, compare_attempts]
+  - id: automation-ci-agent
+    name: Automation, CI, and agent operation
+    dimensions: [management_api, scriptable_cli, sdk, mcp, async_wait, isolated_test_endpoint, deterministic_cleanup, machine_readable_result, ci_exit_semantics]
+  - id: deterministic-verification
+    name: Deterministic integration verification
+    dimensions: [structured_contract, reusable_scenario, request_response_assertions, cardinality_assertions, ordering_assertions, observation_window, correlation_context, idempotency_context, persisted_assertion_evidence, behavior_outcome]
+  - id: routing-reliable-delivery
+    name: Routing and reliable delivery
+    dimensions: [fanout, filtering, transformations, per_destination_delivery, durable_retry, retry_policy, dead_letter, circuit_breaker, manual_replay, delivery_attempt_history, signing, tenant_routing]
+  - id: platform-operations
+    name: Platform and team operations
+    dimensions: [accounts, workspaces_or_projects, team_sharing, scoped_credentials, self_host, retention_controls, usage_limits, auditability, custom_domain, enterprise_auth]

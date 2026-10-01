@@ -1,0 +1,31 @@
+scenarios:
+  - id: first-real-webhook
+    name: First real webhook
+    outcome: "Create an endpoint, receive a provider event, and inspect method, path, query, headers, body, and arrival metadata."
+    stage: development
+    capabilities: [instant-public-endpoint, request-inspection, request-history]
+  - id: local-iteration
+    name: Local webhook iteration
+    outcome: "A remote provider reaches a local handler; the developer sees request/response evidence, changes code, and retries the same event."
+    stage: development
+    capabilities: [local-forwarding, request-inspection, replay, cli]
+  - id: sender-error-case
+    name: Sender retry/error simulation
+    outcome: "Return a chosen status/body or delay and observe how the webhook sender reacts."
+    stage: development_testing
+    capabilities: [custom-response, failure-simulation]
+  - id: provider-signature-case
+    name: Provider signature test
+    outcome: "Send or capture a realistic provider event with signing metadata and verify receiver signature-validation behavior."
+    stage: testing
+    capabilities: [provider-templates, outbound-signing, signature-verification]
+  - id: ci-behavior-proof
+    name: CI integration behavior proof
+    outcome: "Create an isolated webhook URL, run application behavior, wait for evidence, verify payload/cardinality/order, emit a machine-readable outcome, and clean up."
+    stage: testing
+    capabilities: [scenario-runs, wait-for-event, contracts, cardinality, ordering, observation-window, deterministic-ci]
+  - id: pilot-reliability
+    name: Early pilot reliability
+    outcome: "A stable endpoint receives partner/customer webhooks and preserves delivery/history across a temporary destination outage."
+    stage: pilot
+    capabilities: [persistent-endpoint, request-history, durable-retries, dlq, team-collaboration]
