@@ -1100,10 +1100,7 @@ async fn capture_request(
 async fn view_anonymous(
     State(state): State<AnonymousRouterState>,
     Path(viewer_token): Path<String>,
-    ws: Result<
-        WebSocketUpgrade,
-        axum::extract::ws::rejection::WebSocketUpgradeRejection,
-    >,
+    ws: Result<WebSocketUpgrade, axum::extract::ws::rejection::WebSocketUpgradeRejection>,
 ) -> Result<Response, AnonymousApiError> {
     let exposure = state
         .anonymous
