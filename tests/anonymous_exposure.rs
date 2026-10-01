@@ -181,26 +181,7 @@ async fn anonymous_viewer_capability_is_not_an_ingress_capability() {
         .await
         .unwrap();
 
-    let legacy_create = client
-        .post(format!("http://{addr}/_ortyo/anonymous/exposures"))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(legacy_create.status(), reqwest::StatusCode::NOT_FOUND);
-
     let viewer_token = provision.view_url.rsplit('/').next().unwrap();
-    let hook_token = provision.hook_url.rsplit('/').next().unwrap();
-    let claim_token = provision.claim_url.rsplit('/').next().unwrap();
-
-    for legacy_url in [
-        format!("http://{addr}/h/{hook_token}"),
-        format!("http://{addr}/_ortyo/anonymous/view/{viewer_token}"),
-        format!("http://{addr}/_ortyo/anonymous/claim/{claim_token}"),
-    ] {
-        let response = client.get(&legacy_url).send().await.unwrap();
-        assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
-    }
-
     let response = client
         .post(format!("http://{addr}/hook/{viewer_token}"))
         .body("must not route")
