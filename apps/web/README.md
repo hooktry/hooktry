@@ -4,13 +4,13 @@ Shared React/Vite surface for ORTYO.
 
 The browser application is intentionally deployment-provider neutral. It talks only to the canonical ORTYO HTTP/WebSocket contract and defaults to same-origin URLs.
 
-The same compiled bundle is intended to run from:
+The same compiled bundle runs from:
 
 - ORTYO managed cloud
 - the local Rust binary
 - a future Tauri shell
 
-Cloudflare is only the first static-assets adapter.
+Cloudflare and the native Rust binary are asset-serving adapters over the same WEB1 bundle.
 
 ## WEB1 flow
 
@@ -45,7 +45,7 @@ Session storage is a convenience, not authority on the server.
 
 ## Local development
 
-Run the native/Cloudflare-compatible API on port 8787, then:
+Run the native ORTYO runtime on port 7777, then:
 
 ~~~sh
 npm install
@@ -60,7 +60,9 @@ Vite serves the UI on port 5173 and proxies:
 - /claim
 - /healthz
 
-to http://127.0.0.1:8787.
+to http://127.0.0.1:7777 by default.
+
+Set ORTYO_LOCAL_RUNTIME to point Vite at another compatible runtime, for example a local Wrangler instance.
 
 The production build has no Cloudflare dependency:
 
@@ -87,3 +89,28 @@ Cloudflare routes API/capability paths through the Worker first:
 Normal application assets are served directly by Workers Static Assets.
 
 A normal GET /view/vw_... resolves to the SPA shell. A WebSocket upgrade on exactly that URL remains an authenticated view-capability request handled by the Worker and Durable Object.
+
+
+## Native binary embedding
+
+LOCAL1 embeds the compiled dist/ directory into the Rust executable.
+
+Build a single binary with:
+
+~~~sh
+bash scripts/build-binary.sh
+~~~
+
+Then run:
+
+~~~sh
+./target/release/ortyo ui
+~~~
+
+or keep the process headless with:
+
+~~~sh
+./target/release/ortyo serve
+~~~
+
+Both expose WEB1 and the canonical Hook API at http://127.0.0.1:7777.
