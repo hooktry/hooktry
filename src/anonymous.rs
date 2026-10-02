@@ -75,6 +75,16 @@ pub struct AnonymousProvision {
     pub anonymous_principal: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AnonymousIngressProvision {
+    pub exposure_id: Uuid,
+    pub hook_url: String,
+    pub expires_at_unix_seconds: Option<u64>,
+    pub request_limit: u32,
+    pub max_body_bytes: usize,
+    pub max_retained_bytes: u64,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct AnonymousInteraction {
     pub interaction_id: Uuid,
@@ -906,6 +916,18 @@ impl AnonymousExposureService {
 
     pub async fn purge_expired(&self) -> Result<(), AnonymousError> {
         self.store.purge_expired().await
+    }
+
+    pub async fn provision_ingress(&self) -> Result<AnonymousIngressProvision, AnonymousError> {
+        let provision = self.provision(None).await?;
+        Ok(AnonymousIngressProvision {
+            exposure_id: provision.exposure.exposure_id,
+            hook_url: provision.hook_url,
+            expires_at_unix_seconds: provision.exposure.expires_at_unix_seconds,
+            request_limit: provision.exposure.request_limit,
+            max_body_bytes: provision.exposure.max_body_bytes,
+            max_retained_bytes: provision.exposure.max_retained_bytes,
+        })
     }
 
     async fn provision(

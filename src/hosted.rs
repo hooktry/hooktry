@@ -25,6 +25,7 @@ use crate::{
         Workspace,
     },
     hosted_state::{HostedExposureRecord, HostedExposureStore},
+    mcp_remote,
     relay::RelayBroker,
     relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
@@ -287,6 +288,13 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
         .route("/llms.txt", get(agent_surface::llms_txt))
         .route("/llms-full.txt", get(agent_surface::llms_full_txt))
         .route("/skills/hooktry/SKILL.md", get(agent_surface::skill_md))
+        .route(
+            "/mcp",
+            post(mcp_remote::post)
+                .get(mcp_remote::method_not_allowed)
+                .delete(mcp_remote::method_not_allowed)
+                .options(mcp_remote::options),
+        )
         .route("/_hooktry/health", get(health))
         .route("/healthz", get(health))
         .route("/_hooktry/bootstrap", post(bootstrap_first_workspace))

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hooktry",
+  "version": "0.1.0",
+  "description": "Create temporary webhook endpoints and test integration boundaries with Hooktry.",
+  "author": {
+    "name": "Hooktry"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Hooktry",
+        "shortDescription": "Test webhooks with Hooktry",
+        "longDescription": "Use Hooktry to create temporary webhook endpoints for integration testing. The first remote plugin slice intentionally exposes only anonymous endpoint creation; authenticated evidence, replay, scenarios, and event subscriptions are added only after request-scoped OAuth is available.",
+        "developerName": "Hooktry",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Create temporary webhook endpoints"
+        ],
+        "defaultPrompt": [
+          "Create a temporary webhook endpoint for testing.",
+          "Give me a webhook URL I can use for an integration test."
+        ]
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md"
+    }
+  }
+}
