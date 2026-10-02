@@ -58,10 +58,23 @@ jobs:
         working-directory: apps/web
         run: npm install --no-audit --no-fund
 
+      - name: Resolve source PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr_number="$(git log -1 --pretty=%B | sed -nE 's/.*\(#([0-9]+)\).*/\1/p' | head -n1)"
+          if [[ -n "$pr_number" ]]; then
+            echo "VITE_BUILD_PR=$pr_number" >> "$GITHUB_ENV"
+            echo "Resolved source PR #$pr_number"
+          else
+            echo "No source PR number found in commit message"
+          fi
+
       - name: Build shared web assets
         working-directory: apps/web
         env:
           VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_PR: ${{ env.VITE_BUILD_PR }}
         run: npm run check
 
       - name: Install Cloudflare dependencies
