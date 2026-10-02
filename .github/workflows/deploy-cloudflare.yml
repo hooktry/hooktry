@@ -79,6 +79,7 @@ jobs:
             npx wrangler deploy
             --config wrangler.production.jsonc
             --var "HOOKTRY_RELEASE_SHA:${GITHUB_SHA}"
+            --var "HOOKTRY_PUBLIC_ORIGIN:https://hooktry.com"
           )
           if [[ -n "${GITHUB_CLIENT_ID:-}" ]]; then
             args+=(--var "GITHUB_CLIENT_ID:${GITHUB_CLIENT_ID}")
