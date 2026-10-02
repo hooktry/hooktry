@@ -21,13 +21,13 @@ The returned `view_url` is a separate bearer capability for the user to inspect 
 
 The returned `handoff_url` is a short-lived, one-time owner handoff for the user to open in a browser. It transfers the owner-side provision into that browser so the user can later claim the Hook through the normal authenticated browser flow. Never give the handoff URL to the webhook sender or integration under test. Do not describe it as a permanent management URL.
 
-In user-facing responses, label this URL **Open in browser**. Do not label it **Handoff** unless the user is explicitly discussing Hooktry's internal capability model. "Handoff" is an implementation/security term; "Open in browser" is the product-facing action.
+In user-facing responses, label this URL **Open as owner** or **Open as owner in browser**. Explain that it is one-time and is the route into owner actions such as claiming/managing the Hook. Do not label it **Handoff** unless the user is explicitly discussing Hooktry's internal capability model. "Handoff" is an implementation/security term.
 
 When the user asks for a webhook and the tool returns `handoff_url`, the final user-facing response MUST include all three links below. Do not omit `Open in browser`, even when the user asked only for a webhook URL. Keep the response concise and clearly separate:
 
-- Send: `hook_url`
-- View: `view_url`
-- Open in browser: `handoff_url` (one-time; expires at `handoff_expires_at_unix_seconds`)
+- Send webhooks here: `hook_url`
+- View captured requests (read-only): `view_url`
+- Open as owner in browser: `handoff_url` (one-time; use this to continue into claim/manage actions; expires at `handoff_expires_at_unix_seconds`)
 
 Treat these fields as operational metadata:
 
