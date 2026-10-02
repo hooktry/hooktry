@@ -66,6 +66,16 @@ async fn remote_tool_catalog_is_curated_and_reviewable() {
     assert!(tool["description"].is_string());
     assert!(tool["inputSchema"].is_object());
     assert!(tool["outputSchema"].is_object());
+    assert_eq!(
+        tool["outputSchema"]["properties"]["view_url"]["format"],
+        "uri"
+    );
+    assert!(
+        tool["outputSchema"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("view_url"))
+    );
     assert_eq!(tool["annotations"]["readOnlyHint"], false);
     assert_eq!(tool["annotations"]["destructiveHint"], false);
     assert_eq!(tool["annotations"]["openWorldHint"], false);
