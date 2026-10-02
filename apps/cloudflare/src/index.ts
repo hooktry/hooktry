@@ -2,17 +2,14 @@ import {
   ANONYMOUS_MAX_BODY_BYTES,
   ANONYMOUS_TTL_SECONDS,
   AdapterError,
-  anonymousPrincipal,
   errorResponse,
   json,
-  randomCapability,
-  randomPrincipal,
   sha256Hex,
   summaryFromRow,
-  uuidV7,
   validWorkspaceId,
 } from "./core";
 import { ExposureRuntime, INTERNAL_EXPOSURE_HEADER } from "./exposure-runtime";
+import { provisionAnonymousHook } from "./anonymous-service";
 import {
   finishGitHubOAuth,
   logout,
@@ -125,52 +122,13 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 async function createHook(request: Request, env: Env): Promise<Response> {
-  const principal = anonymousPrincipal(request) ?? randomPrincipal();
-  const hook = randomCapability("hk_");
-  const view = randomCapability("vw_");
-  const claim = randomCapability("cl_");
-  const exposureId = uuidV7();
-  const now = Math.floor(Date.now() / 1000);
-  const expiresAt = now + ANONYMOUS_TTL_SECONDS;
-
-  const [principalDigest, ingressCapabilityDigest, viewCapabilityDigest, claimCapabilityDigest] =
-    await Promise.all([
-      sha256Hex(principal),
-      sha256Hex(hook),
-      sha256Hex(view),
-      sha256Hex(claim),
-    ]);
-
-  const exposure = await createExposure(env, {
-    exposureId,
-    principalDigest,
-    ingressCapabilityDigest,
-    viewCapabilityDigest,
-    claimCapabilityDigest,
-    now,
-    expiresAt,
-  });
-
+  const provision = await provisionAnonymousHook(request, env);
   const url = new URL(request.url);
-  const base = url.origin;
-  const websocketBase =
-    url.protocol === "https:"
-      ? `wss://${url.host}`
-      : `ws://${url.host}`;
-
-  const provision: AnonymousProvision = {
-    ...exposure,
-    hook_url: `${base}/hook/${hook}`,
-    view_url: `${base}/view/${view}`,
-    view_websocket_url: `${websocketBase}/view/${view}`,
-    claim_url: `${base}/claim/${claim}`,
-    anonymous_principal: principal,
-  };
 
   const response = json(provision, 201);
   response.headers.set(
     "set-cookie",
-    `hooktry_anon=${principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${url.protocol === "https:" ? "; Secure" : ""}`,
+    `hooktry_anon=${provision.anonymous_principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${url.protocol === "https:" ? "; Secure" : ""}`,
   );
   response.headers.set("cache-control", "no-store");
   return response;
