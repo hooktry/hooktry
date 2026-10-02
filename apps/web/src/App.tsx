@@ -409,7 +409,7 @@ export function App() {
 
             <div
               className="workspace-grid"
-              style={{ gridTemplateColumns: `${interactionPaneWidth}px 9px minmax(0, 1fr)` }}
+              style={{ gridTemplateColumns: `${interactionPaneWidth}px 1px minmax(0, 1fr)` }}
             >
               <InteractionList
                 interactions={filtered}
