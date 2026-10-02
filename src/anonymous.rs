@@ -79,6 +79,7 @@ pub struct AnonymousProvision {
 pub struct AnonymousIngressProvision {
     pub exposure_id: Uuid,
     pub hook_url: String,
+    pub view_url: String,
     pub expires_at_unix_seconds: Option<u64>,
     pub request_limit: u32,
     pub max_body_bytes: usize,
@@ -923,6 +924,7 @@ impl AnonymousExposureService {
         Ok(AnonymousIngressProvision {
             exposure_id: provision.exposure.exposure_id,
             hook_url: provision.hook_url,
+            view_url: provision.view_url,
             expires_at_unix_seconds: provision.exposure.expires_at_unix_seconds,
             request_limit: provision.exposure.request_limit,
             max_body_bytes: provision.exposure.max_body_bytes,
