@@ -133,6 +133,12 @@ try {
   const ready = await inbox.next("ready");
   assert(ready.exposure?.exposure_id === provision.exposure_id, "viewer ready Exposure mismatch");
 
+  const initialSnapshot = await inbox.next("snapshot");
+  assert(
+    Array.isArray(initialSnapshot.interactions) && initialSnapshot.interactions.length === 0,
+    "viewer bootstrap snapshot should be empty for a new Hook",
+  );
+
   const firstCapture = await fetch(`${provision.hook_url}/deploy1?phase=before-claim`, {
     method: "POST",
     headers: { "content-type": "application/json" },
