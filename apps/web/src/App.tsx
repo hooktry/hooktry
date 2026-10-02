@@ -646,11 +646,14 @@ function HookHeader({
                 <span className="dot" />
                 {connectionLabel(connection)}
               </span>
+              {summary?.claimed ? (
+                <span className="badge claimed-badge">claimed · persistent</span>
+              ) : null}
             </div>
 
             {summary ? (
               <div className="hook-id-row">
-                <span className="hook-id-label">Hook ID</span>
+                <span className="hook-id-label">HOOK ID</span>
                 <code className="hook-id" aria-label={summary.exposure_id}>
                   <span className="hook-id-full" aria-hidden="true">
                     {summary.exposure_id}
@@ -675,19 +678,17 @@ function HookHeader({
                     </svg>
                   )}
                 </button>
+                <button
+                  className="button secondary new-hook-button inline-new-hook"
+                  type="button"
+                  onClick={onNewHook}
+                >
+                  + New Hook
+                </button>
               </div>
             ) : (
               <div className="hook-loading">Loading viewer…</div>
             )}
-          </div>
-
-          <div className="header-actions">
-            {summary?.claimed ? (
-              <span className="badge claimed-badge">claimed · persistent</span>
-            ) : null}
-            <button className="button secondary new-hook-button" type="button" onClick={onNewHook}>
-              + New Hook
-            </button>
           </div>
         </div>
 
@@ -707,7 +708,7 @@ function HookHeader({
 
         <div className="viewer-capability">
           <div className="viewer-capability-head">
-            <span className="viewer-capability-label">Viewer URL</span>
+            <span className="viewer-capability-label">VIEWER URL</span>
             {!provision ? <span className="viewer-capability-badge">read-only</span> : null}
           </div>
 
