@@ -53,8 +53,15 @@
       "/hook/*",
       "/view/*",
       "/claim/*",
-      "/healthz"
+      "/healthz",
+      "/mcp"
     ]
   },
-  "workers_dev": true
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "mcp.hooktry.com",
+      "custom_domain": true
+    }
+  ]
 }
