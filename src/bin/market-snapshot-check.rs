@@ -492,12 +492,12 @@ fn parse_snapshot(text: &str) -> Snapshot {
             }
             "scope_products" => {
                 if let Some(value) = raw.strip_prefix("  - ") {
-                    snapshot.scope_products.push(scalar(value));
+                    snapshot.scope_products.push(canonical_product(value));
                 }
             }
             "matrix_products" => {
                 if let Some(value) = raw.strip_prefix("  - ") {
-                    snapshot.matrix_products.push(scalar(value));
+                    snapshot.matrix_products.push(canonical_product(value));
                 }
             }
             "capabilities" => {
@@ -514,7 +514,7 @@ fn parse_snapshot(text: &str) -> Snapshot {
                 {
                     match key.as_str() {
                         "disposition" => item.disposition = value,
-                        "hooktry_status" => item.hooktry_status = value,
+                        "hooktry_status" | "ortyo_status" => item.hooktry_status = value,
                         _ => {}
                     }
                 }
@@ -534,7 +534,7 @@ fn parse_snapshot(text: &str) -> Snapshot {
                         .matrix
                         .entry(matrix_capability.clone())
                         .or_default()
-                        .insert(product, state);
+                        .insert(canonical_product(&product), state);
                 }
             }
             "signals" => {
@@ -572,7 +572,7 @@ fn parse_snapshot(text: &str) -> Snapshot {
                     && let Some((key, value)) = key_value(raw.trim())
                 {
                     match key.as_str() {
-                        "product" => item.product = value,
+                        "product" => item.product = canonical_product(&value),
                         "capability" => item.capability = value,
                         "state" => item.state = value,
                         "observed_at" => item.observed_at = value,
@@ -605,6 +605,15 @@ fn key_value(value: &str) -> Option<(String, String)> {
     Some((scalar(key), scalar(value)))
 }
 
+fn canonical_product(value: &str) -> String {
+    let value = scalar(value);
+    if value == "ortyo" {
+        "hooktry".to_owned()
+    } else {
+        value
+    }
+}
+
 fn scalar(value: &str) -> String {
     value
         .trim()
@@ -627,6 +636,19 @@ mod tests {
             "snapshot validation errors:\n{}",
             errors.join("\n")
         );
+    }
+
+    #[test]
+    fn canonicalizes_legacy_ortyo_snapshot_brand() {
+        let snapshot = parse_snapshot(
+            "schema_version: 1\nsnapshot_id: 2026-10-01-legacy\ncaptured_at: 2026-10-01\nsource_commit: 0123456789012345678901234567890123456789\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: replay\n    disposition: must\n    ortyo_status: implemented\nmatrix:\n  replay:\n    ortyo: present\nobservations:\n  - id: legacy-observation\n    product: ortyo\n    capability: replay\n    state: present\n",
+        );
+
+        assert_eq!(snapshot.scope_products, ["hooktry"]);
+        assert_eq!(snapshot.matrix_products, ["hooktry"]);
+        assert_eq!(snapshot.capabilities[0].hooktry_status, "implemented");
+        assert_eq!(snapshot.matrix["replay"]["hooktry"], "present");
+        assert_eq!(snapshot.observations[0].product, "hooktry");
     }
 
     #[test]
