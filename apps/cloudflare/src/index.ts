@@ -10,6 +10,7 @@ import {
 } from "./core";
 import { ExposureRuntime, INTERNAL_EXPOSURE_HEADER } from "./exposure-runtime";
 import { provisionAnonymousHook } from "./anonymous-service";
+import { handleMcp } from "./mcp";
 import {
   finishGitHubOAuth,
   logout,
@@ -20,14 +21,13 @@ import {
 import { cleanupExpiredAuth } from "./auth-repository";
 import {
   claimExposure,
-  createExposure,
   deleteExposure,
   expiredExposureIds,
   findExposureByIngressCapability,
   findExposureByViewCapability,
   payloadKeysForExposure,
 } from "./repository";
-import type { AnonymousProvision, Env } from "./types";
+import type { Env } from "./types";
 import { ingestUsageEvent } from "./usage";
 
 export { ExposureRuntime };
@@ -36,6 +36,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
       const url = new URL(request.url);
+
+      if (url.pathname === "/mcp") {
+        return await handleMcp(request, env);
+      }
 
       if (request.method === "GET" && url.pathname === "/healthz") {
         return json({
