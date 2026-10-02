@@ -93,6 +93,8 @@ jobs:
         env:
           HOOKTRY_BASE_URL: https://ortyo-cloudflare.web33.workers.dev
           HOOKTRY_D1_DATABASE_ID: 60eaa4ee-ce8d-4663-99c6-1df794ec47f8
+          HOOKTRY_R2_BUCKET: ortyo-payloads
+          HOOKTRY_MCP_URL: https://mcp.hooktry.com/mcp
           HOOKTRY_EXPECTED_RELEASE_SHA: ${{ github.sha }}
           HOOKTRY_EXPECT_GITHUB_AUTH: "1"
           HOOKTRY_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
