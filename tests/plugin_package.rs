@@ -21,10 +21,7 @@ fn portable_plugin_package_points_to_canonical_remote_mcp() {
         .unwrap();
     assert!(short_description.chars().count() <= 30);
 
-    assert_eq!(
-        mcp["mcpServers"]["hooktry"]["type"],
-        "streamable-http"
-    );
+    assert_eq!(mcp["mcpServers"]["hooktry"]["type"], "streamable-http");
     assert_eq!(
         mcp["mcpServers"]["hooktry"]["url"],
         "https://mcp.hooktry.com/mcp"
