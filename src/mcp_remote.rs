@@ -165,7 +165,12 @@ fn tools() -> Vec<Value> {
         },
         "securitySchemes": [
             {"type": "noauth"}
-        ]
+        ],
+        "_meta": {
+            "securitySchemes": [
+                {"type": "noauth"}
+            ]
+        }
     })]
 }
 
