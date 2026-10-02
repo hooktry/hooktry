@@ -135,6 +135,18 @@ A WebSocket upgrade on the same URL is routed to the Exposure Durable Object.
 
 This preserves one stable view URL for both browser navigation and live stream authority.
 
+## Anonymous rediscovery
+
+WEB1's current owner session is only the first persistence step.
+
+The browser surface should evolve toward a local capability wallet for Recent Hooks so losing a tab does not lose anonymous owner-side capabilities.
+
+A Hook created outside this browser - for example from CLI, MCP, CI, or a remote devbox - must not be inferred from request IP, User-Agent, or cookie state. It requires an explicit one-time cross-device handoff before it can enter the browser wallet.
+
+After authentication, durable cross-device discovery comes from Workspace Inventory.
+
+See [DISC1 - Anonymous Capability Discovery and Cross-device Handoff](capability-discovery-handoff.md).
+
 ## State model
 
 Server-side durable history remains authoritative.
