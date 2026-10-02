@@ -18,6 +18,14 @@ fn portable_plugin_package_points_to_canonical_remote_mcp() {
         plugin["extensions"]["com.openai"]["onboardingSkill"],
         "./skills/get-started/SKILL.md"
     );
+    assert!(
+        plugin["extensions"]["com.openai"].get("apps").is_none(),
+        "Hooktry uses bundled MCP configuration and must not declare an app mapping"
+    );
+    assert!(
+        !std::path::Path::new("plugin/.app.json").exists(),
+        "Hooktry source package must not contain a registered app mapping"
+    );
     assert_eq!(
         plugin["extensions"]["com.openai"]["interface"]["category"],
         "Developer Tools"
