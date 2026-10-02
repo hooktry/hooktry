@@ -5,17 +5,24 @@ description: Use the Hooktry remote plugin when the user needs a temporary webho
 
 # Hooktry remote plugin
 
-Use `create_webhook_endpoint` when the user needs a temporary URL that an external service can call during webhook or integration testing.
+Use `create_webhook_endpoint` when the user needs a temporary URL that an external service can call during webhook or integration testing. The tool returns both the send URL and a separate private viewer URL for the same temporary endpoint.
 
 ## Current remote surface
 
 The first remote plugin slice intentionally supports endpoint creation only.
 
-Do not claim that the remote plugin can inspect captured requests, replay interactions, run Scenarios, access a Workspace, or subscribe to events until those authenticated capabilities are actually present in `tools/list`.
+The plugin can give the user a browser viewer URL, but it cannot read captured request contents through MCP. Do not claim that the remote plugin itself can inspect captured requests, replay interactions, run Scenarios, access a Workspace, or subscribe to events until those capabilities are actually present in `tools/list`.
 
 ## Endpoint handling
 
-The returned `hook_url` is a bearer-capability ingress endpoint. Give it only to the webhook sender or integration being tested.
+The returned `hook_url` is a bearer-capability ingress endpoint. Give it to the webhook sender or integration being tested.
+
+The returned `view_url` is a separate bearer capability for the user to inspect that endpoint in Hooktry. Present it as the private View link. Do not give it to the webhook sender unless the user explicitly asks to share viewing authority.
+
+When the user asks for a webhook, prefer a concise response that clearly separates:
+
+- Send: `hook_url`
+- View: `view_url`
 
 Treat these fields as operational metadata:
 
@@ -25,7 +32,7 @@ Treat these fields as operational metadata:
 - `max_body_bytes`
 - `max_retained_bytes`
 
-The remote tool deliberately does not return Hooktry viewer, claim, anonymous-principal, or WebSocket-view capabilities. Never infer, reconstruct, or invent them from the webhook URL or Exposure ID.
+The remote tool deliberately does not return the claim capability, anonymous principal, or WebSocket-view capability. Never infer, reconstruct, or invent those values from the Hook URL, View URL, or Exposure ID.
 
 ## Safety
 
