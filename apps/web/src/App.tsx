@@ -57,6 +57,7 @@ export function App() {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [interactionPaneWidth, setInteractionPaneWidth] = useState(360);
 
   const viewCapability = viewCapabilityFromPath(pathname);
   const handoffCapability =
@@ -357,11 +358,33 @@ export function App() {
     }
   }
 
+  function startPaneResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (window.innerWidth <= 650) return;
+
+    const startX = event.clientX;
+    const startWidth = interactionPaneWidth;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const next = Math.min(560, Math.max(280, startWidth + moveEvent.clientX - startX));
+      setInteractionPaneWidth(next);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.classList.remove("resizing-pane");
+    };
+
+    document.body.classList.add("resizing-pane");
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+  }
+
   return (
     <div className="app-shell">
-      <Sidebar viewing={viewing} onNewHook={handleNewHook} />
+      <Sidebar />
       <main className="main">
-        <Topbar viewing={viewing} owner={owner} />
+        <Topbar viewing={viewing} />
 
         {handoffCapability ? (
           <HandoffLanding opening={openingHandoff} error={error} />
@@ -384,7 +407,10 @@ export function App() {
 
             {error ? <div className="error-banner">{error}</div> : null}
 
-            <div className="workspace-grid">
+            <div
+              className="workspace-grid"
+              style={{ gridTemplateColumns: `${interactionPaneWidth}px 5px minmax(0, 1fr)` }}
+            >
               <InteractionList
                 interactions={filtered}
                 total={interactions.length}
@@ -392,6 +418,13 @@ export function App() {
                 search={search}
                 onSearch={setSearch}
                 onSelect={setSelectedId}
+              />
+              <div
+                className="pane-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize interaction list"
+                onPointerDown={startPaneResize}
               />
               <Inspector
                 interaction={selected}
@@ -417,13 +450,7 @@ export function App() {
   );
 }
 
-function Sidebar({
-  viewing,
-  onNewHook,
-}: {
-  viewing: boolean;
-  onNewHook: () => void;
-}) {
+function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -436,42 +463,15 @@ function Sidebar({
           <span>Hooks</span>
           <kbd>H</kbd>
         </button>
-        <div className="nav-section">Evidence</div>
-        <button className="nav-item muted" type="button" disabled>
-          Recordings
-        </button>
-        <button className="nav-item muted" type="button" disabled>
-          Replays
-        </button>
-        <button className="nav-item muted" type="button" disabled>
-          Contracts
-        </button>
-        <button className="nav-item muted" type="button" disabled>
-          Scenarios
-        </button>
       </nav>
-
-      <div className="sidebar-footer">
-        {viewing ? (
-          <button className="button secondary full" type="button" onClick={onNewHook}>
-            + New Hook
-          </button>
-        ) : null}
-        <div className="runtime-label">
-          <span className="dot" />
-          shared web surface
-        </div>
-      </div>
     </aside>
   );
 }
 
 function Topbar({
   viewing,
-  owner,
 }: {
   viewing: boolean;
-  owner: boolean;
 }) {
   return (
     <header className="topbar">
@@ -480,13 +480,11 @@ function Topbar({
         <span className="sep">/</span>
         <strong>Hooks</strong>
       </div>
-      <div className="topbar-actions">
-        {viewing ? (
-          <span className="badge">{owner ? "owner session" : "read-only capability"}</span>
-        ) : (
+      {!viewing ? (
+        <div className="topbar-actions">
           <span className="badge">no account required</span>
-        )}
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -802,11 +800,13 @@ function InteractionList({
                   {interaction.path}
                   {interaction.query ? <span className="query">?{interaction.query}</span> : null}
                 </span>
+                <span className="interaction-time">
+                  {formatTimestamp(interaction.received_at_unix_ms)}
+                </span>
               </div>
               <div className="interaction-meta">
                 <span>#{interaction.sequence}</span>
                 <span>{formatBytes(interaction.body_bytes)}</span>
-                <span>{formatTimestamp(interaction.received_at_unix_ms)}</span>
               </div>
             </button>
           ))
@@ -853,10 +853,7 @@ function Inspector({
             </span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
-          </div>
-          <div className="inspector-sub">
-            <code>{interaction.interaction_id}</code>
-            <span>sequence {interaction.sequence}</span>
+            <span className="request-sequence">#{interaction.sequence}</span>
           </div>
         </div>
         <button
