@@ -36,6 +36,13 @@ import type {
 
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
 type InspectorTab = "body" | "query" | "headers" | "metadata";
+type Theme = "light" | "dark";
+
+function initialTheme(): Theme {
+  const stored = window.localStorage.getItem("hooktry-theme");
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
 
 export function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname);
@@ -58,6 +65,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [interactionPaneWidth, setInteractionPaneWidth] = useState(360);
+  const [theme, setTheme] = useState<Theme>(() => initialTheme());
 
   const viewCapability = viewCapabilityFromPath(pathname);
   const handoffCapability =
@@ -78,6 +86,14 @@ export function App() {
     const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem("hooktry-theme", theme);
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
+  }, [theme]);
 
   useEffect(() => {
     if (!newHookOpen) return;
@@ -391,9 +407,13 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar viewing={viewing} onNewHook={handleNewHook} />
+      <Sidebar viewing={viewing} onNewHook={handleNewHook} theme={theme} />
       <main className="main">
-        <Topbar viewing={viewing} />
+        <Topbar
+          viewing={viewing}
+          theme={theme}
+          onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+        />
 
         {handoffCapability ? (
           <HandoffLanding opening={openingHandoff} error={error} />
@@ -462,9 +482,11 @@ export function App() {
 function Sidebar({
   viewing,
   onNewHook,
+  theme,
 }: {
   viewing: boolean;
   onNewHook: () => void;
+  theme: Theme;
 }) {
   const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
   const shortBuildSha = buildSha === "dev" ? buildSha : buildSha.slice(0, 7);
@@ -476,8 +498,25 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">H</span>
-        <span>Hooktry</span>
+        <img
+          className="brand-logo brand-lockup"
+          src={
+            theme === "dark"
+              ? "/brand/hooktry-lockup-inverse.svg"
+              : "/brand/hooktry-lockup-primary.svg"
+          }
+          alt="Hooktry"
+        />
+        <img
+          className="brand-logo brand-mark-logo"
+          src={
+            theme === "dark"
+              ? "/brand/hooktry-mark-inverse.svg"
+              : "/brand/hooktry-mark-primary.svg"
+          }
+          alt=""
+          aria-hidden="true"
+        />
       </div>
 
       <nav className="nav">
@@ -524,8 +563,12 @@ function Sidebar({
 
 function Topbar({
   viewing,
+  theme,
+  onToggleTheme,
 }: {
   viewing: boolean;
+  theme: Theme;
+  onToggleTheme: () => void;
 }) {
   return (
     <header className="topbar">
@@ -534,11 +577,27 @@ function Topbar({
         <span className="sep">/</span>
         <strong>Hooks</strong>
       </div>
-      {!viewing ? (
-        <div className="topbar-actions">
-          <span className="badge">no account required</span>
-        </div>
-      ) : null}
+      <div className="topbar-actions">
+        {!viewing ? <span className="badge">no account required</span> : null}
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={onToggleTheme}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        >
+          {theme === "dark" ? (
+            <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+              <circle cx="10" cy="10" r="3.25" />
+              <path d="M10 2.25v1.5M10 16.25v1.5M2.25 10h1.5M16.25 10h1.5M4.52 4.52l1.06 1.06M14.42 14.42l1.06 1.06M15.48 4.52l-1.06 1.06M5.58 14.42l-1.06 1.06" />
+            </svg>
+          ) : (
+            <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+              <path d="M15.8 12.7A6.3 6.3 0 0 1 7.3 4.2 6.3 6.3 0 1 0 15.8 12.7Z" />
+            </svg>
+          )}
+        </button>
+      </div>
     </header>
   );
 }
