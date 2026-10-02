@@ -21,7 +21,8 @@
           "Create a temporary webhook endpoint for testing.",
           "Give me a webhook URL I can use for an integration test."
         ]
-      }
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md"
     }
   }
 }
