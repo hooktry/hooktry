@@ -34,6 +34,30 @@ describe("CF1 ephemeral Hook conformance", () => {
     });
   });
 
+  it("publishes Hook, View, and Claim URLs on the canonical public origin", async () => {
+    const response = await worker.fetch(
+      new Request("https://mcp.hooktry.com/api/v1/hooks", {
+        method: "POST",
+      }),
+      { ...bindings, HOOKTRY_PUBLIC_ORIGIN: "https://hooktry.com" },
+    );
+
+    expect(response.status).toBe(201);
+    const provision = (await response.json()) as AnonymousProvision;
+    expect(provision.hook_url).toMatch(
+      /^https:\/\/hooktry\.com\/hook\/hk_[A-Za-z0-9_-]{32}$/,
+    );
+    expect(provision.view_url).toMatch(
+      /^https:\/\/hooktry\.com\/view\/vw_[A-Za-z0-9_-]{32}$/,
+    );
+    expect(provision.view_websocket_url).toMatch(
+      /^wss:\/\/hooktry\.com\/view\/vw_[A-Za-z0-9_-]{32}$/,
+    );
+    expect(provision.claim_url).toMatch(
+      /^https:\/\/hooktry\.com\/claim\/cl_[A-Za-z0-9_-]{32}$/,
+    );
+  });
+
   it(
     "creates, pushes, survives DO eviction, claims, and preserves the hook URL",
     async () => {
