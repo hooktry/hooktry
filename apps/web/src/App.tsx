@@ -489,11 +489,15 @@ function Sidebar({
   theme: Theme;
 }) {
   const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
+  const buildPr = (import.meta.env.VITE_BUILD_PR as string | undefined)?.trim() || null;
   const shortBuildSha = buildSha === "dev" ? buildSha : buildSha.slice(0, 7);
   const buildHref =
     buildSha === "dev"
       ? null
       : `https://github.com/hooktry/hooktry/commit/${buildSha}`;
+  const prHref = buildPr
+    ? `https://github.com/hooktry/hooktry/pull/${buildPr}`
+    : null;
 
   return (
     <aside className="sidebar">
@@ -555,6 +559,14 @@ function Sidebar({
           ) : (
             <span>build {shortBuildSha}</span>
           )}
+          {prHref ? (
+            <>
+              <span className="build-meta-sep">·</span>
+              <a href={prHref} target="_blank" rel="noreferrer">
+                PR #{buildPr}
+              </a>
+            </>
+          ) : null}
         </div>
       </div>
     </aside>
