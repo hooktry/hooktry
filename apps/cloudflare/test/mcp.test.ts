@@ -41,6 +41,8 @@ describe("PLUGIN1 remote MCP", () => {
       format: "uri",
     });
     expect(body.result.tools[0].outputSchema.required).toContain("handoff_url");
+    expect(body.result.tools[0].description).toContain("should all be surfaced");
+    expect(body.result.tools[0].description).toContain("Do not omit handoff_url");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
@@ -85,6 +87,8 @@ describe("PLUGIN1 remote MCP", () => {
     expect(
       result.structuredContent.handoff_expires_at_unix_seconds,
     ).toBeTypeOf("number");
+    expect(result.content[0].text).toContain("surface all three links");
+    expect(result.content[0].text).toContain("Open in browser:");
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [
