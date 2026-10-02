@@ -43,12 +43,15 @@ export async function provisionAnonymousHook(
     expiresAt,
   });
 
-  const url = new URL(request.url);
-  const base = url.origin;
+  const requestUrl = new URL(request.url);
+  const publicUrl = new URL(
+    env.HOOKTRY_PUBLIC_ORIGIN?.trim() || requestUrl.origin,
+  );
+  const base = publicUrl.origin;
   const websocketBase =
-    url.protocol === "https:"
-      ? `wss://${url.host}`
-      : `ws://${url.host}`;
+    publicUrl.protocol === "https:"
+      ? `wss://${publicUrl.host}`
+      : `ws://${publicUrl.host}`;
 
   return {
     ...exposure,
