@@ -6,7 +6,10 @@ fn portable_plugin_package_points_to_canonical_remote_mcp() {
     let mcp: Value = serde_json::from_str(include_str!("../plugin/mcp.json")).unwrap();
 
     assert_eq!(plugin["name"], "hooktry");
-    assert_eq!(plugin["version"], "0.1.0");
+    let version = plugin["version"].as_str().unwrap();
+    let parts: Vec<_> = version.split('.').collect();
+    assert_eq!(parts.len(), 3);
+    assert!(parts.iter().all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit())));
     assert_eq!(
         plugin["extensions"]["com.openai"]["onboardingSkill"],
         "./skills/get-started/SKILL.md"
@@ -20,6 +23,12 @@ fn portable_plugin_package_points_to_canonical_remote_mcp() {
         .as_str()
         .unwrap();
     assert!(short_description.chars().count() <= 30);
+
+    let interface = &plugin["extensions"]["com.openai"]["interface"];
+    assert_eq!(interface["logo"], "./assets/hooktry-mark-light.svg");
+    assert_eq!(interface["logoDark"], "./assets/hooktry-mark-dark.svg");
+    assert_eq!(interface["composerIcon"], "./assets/hooktry-mark-light.svg");
+    assert_eq!(interface["composerIconDark"], "./assets/hooktry-mark-dark.svg");
 
     assert_eq!(mcp["mcpServers"]["hooktry"]["type"], "streamable-http");
     assert_eq!(
