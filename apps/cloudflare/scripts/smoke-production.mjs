@@ -107,19 +107,7 @@ try {
   );
 
   const handoffToken = new URL(provision.handoff_url).hash.slice(1);
-  const handoffExchange = await fetch(
-    `${publicOrigin}/api/v1/handoffs/exchange`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ handoff_token: handoffToken }),
-    },
-  );
-  assert(
-    handoffExchange.ok,
-    `handoff exchange failed: ${handoffExchange.status}`,
-  );
-  ownerProvision = await handoffExchange.json();
+  ownerProvision = await exchangeHandoffWithConvergence(handoffToken);
   assert(
     ownerProvision.hook_url === provision.hook_url,
     "handoff Hook capability mismatch",
@@ -137,18 +125,7 @@ try {
     "handoff leaked anonymous principal",
   );
 
-  const handoffReplay = await fetch(
-    `${publicOrigin}/api/v1/handoffs/exchange`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ handoff_token: handoffToken }),
-    },
-  );
-  assert(
-    handoffReplay.status === 410,
-    `handoff capability was reusable: ${handoffReplay.status}`,
-  );
+  await verifyHandoffReplayRejected(handoffToken);
 
   const inbox = websocketInbox(provision.view_websocket_url);
   await inbox.opened;
@@ -230,6 +207,79 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function exchangeHandoffWithConvergence(handoffToken) {
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 0;
+  let lastError = "unreachable";
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(
+        `${publicOrigin}/api/v1/handoffs/exchange`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ handoff_token: handoffToken }),
+        },
+      );
+      lastStatus = response.status;
+      if (response.ok) {
+        return await response.json();
+      }
+
+      lastError = await response.text();
+      if (response.status !== 404) {
+        throw new Error(
+          `handoff exchange failed: ${response.status} ${lastError}`,
+        );
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      if (!lastError.includes("404")) {
+        throw error;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(
+    `handoff exchange route did not converge within 90s; last status: ${lastStatus}; last error: ${lastError}`,
+  );
+}
+
+async function verifyHandoffReplayRejected(handoffToken) {
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 0;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(
+      `${publicOrigin}/api/v1/handoffs/exchange`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handoff_token: handoffToken }),
+      },
+    );
+    lastStatus = response.status;
+
+    if (response.status === 410) {
+      return;
+    }
+    if (response.status !== 404) {
+      throw new Error(
+        `handoff capability was reusable or failed unexpectedly: ${response.status} ${await response.text()}`,
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(
+    `handoff replay route did not converge within 90s; last status: ${lastStatus}`,
+  );
 }
 
 async function waitForPublicOrigin() {
