@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 const baseUrl = required("HOOKTRY_BASE_URL").replace(/\/$/, "");
+const publicOrigin = (process.env.HOOKTRY_PUBLIC_ORIGIN?.trim() || baseUrl).replace(/\/$/, "");
 const claimToken = required("HOOKTRY_CLAIM_INTERNAL_TOKEN");
 const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
@@ -19,6 +20,7 @@ const interactions = [];
 
 try {
   await waitForHealth();
+  await waitForPublicOrigin();
   if (mcpUrl) {
     await verifyMcp();
   }
@@ -54,9 +56,15 @@ try {
     "view capability did not resolve to the shared React app",
   );
 
-  assert(provision.hook_url?.startsWith(baseUrl), "hook_url does not use deployed Worker");
+  assert(
+    provision.hook_url?.startsWith(`${publicOrigin}/hook/`),
+    "hook_url does not use canonical public origin",
+  );
   assert(provision.view_websocket_url?.startsWith("wss://"), "missing WebSocket viewer URL");
-  assert(provision.claim_url?.startsWith(baseUrl), "claim_url does not use deployed Worker");
+  assert(
+    provision.claim_url?.startsWith(`${publicOrigin}/claim/`),
+    "claim_url does not use canonical public origin",
+  );
 
   const inbox = websocketInbox(provision.view_websocket_url);
   await inbox.opened;
@@ -138,6 +146,42 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function waitForPublicOrigin() {
+  if (publicOrigin === baseUrl) {
+    return;
+  }
+
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 0;
+  let lastRevision = null;
+  let lastError = "unreachable";
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${publicOrigin}/healthz`);
+      lastStatus = response.status;
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        lastRevision = payload?.revision ?? null;
+        if (!expectedReleaseSha || lastRevision === expectedReleaseSha) {
+          console.log(`DEPLOY1 public origin ready: ${publicOrigin}`);
+          return;
+        }
+      } else {
+        lastError = await response.text();
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(
+    `public origin did not converge: ${publicOrigin}; last status: ${lastStatus}; last revision: ${lastRevision}; last error: ${lastError}`,
+  );
 }
 
 async function verifyMcp() {
