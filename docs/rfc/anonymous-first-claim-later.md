@@ -189,6 +189,20 @@ Keep the hot path streaming and metadata-light:
 
 No memory is reserved per dormant Exposure. A thousand inactive Exposures should cost approximately storage rows, not a thousand resident processes.
 
+## Anonymous discovery
+
+Capability separation intentionally means that a Hook cannot be rediscovered from its ingress URL alone.
+
+Anonymous discovery is therefore explicit:
+
+- same-browser resources may be retained in a local capability wallet
+- CLI/MCP/remote-devbox resources may be transferred to a browser through a distinct one-time handoff capability
+- authenticated resources are discovered through Workspace Inventory
+
+Ingress responses must never reveal view, claim, or handoff capabilities. IP addresses, User-Agent strings, cookies, and network proximity are not ownership authority.
+
+See [DISC1 - Anonymous Capability Discovery and Cross-device Handoff](capability-discovery-handoff.md).
+
 ## Claim invariants
 
 Claim must be atomic and idempotent.

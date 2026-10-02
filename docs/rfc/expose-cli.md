@@ -47,6 +47,23 @@ hooktry exposure-revoke <id>
 
 All successful commands emit JSON.
 
+## Browser handoff
+
+A CLI-created anonymous Hook or Exposure must not depend on browser state for creation, and the browser must not infer ownership from the machine that later sends requests.
+
+For future anonymous Hook creation, CLI output should include a distinct one-time browser handoff URL in addition to ingress/view/claim capabilities:
+
+~~~text
+Open in browser
+  https://hooktry.com/open/ho_...
+~~~
+
+The handoff capability is short-lived and single-use. It transfers the owner-side anonymous provision into the browser's local capability wallet without weakening ingress/view/claim separation.
+
+Authenticated CLI resources are instead discoverable through Workspace Inventory.
+
+See [DISC1 - Anonymous Capability Discovery and Cross-device Handoff](capability-discovery-handoff.md).
+
 ## Hosted relay
 
 ACCESS3-6 already provide the relay transport, authenticated runtime registration, HTTP ingress, and resilience primitives. This CLI slice does not claim a hosted Hooktry relay exists. Wiring these primitives to a real deployment requires a control-plane endpoint that provisions relay exposure + capability and a TLS-protected relay address.
