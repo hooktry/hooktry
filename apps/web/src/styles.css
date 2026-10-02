@@ -1934,3 +1934,88 @@ kbd,
 :root[data-theme="light"] .method-delete {
   color: #b54747;
 }
+
+
+.interaction-row {
+  min-height: 66px;
+}
+
+.interaction-main {
+  min-height: 18px;
+  line-height: 18px;
+}
+
+.interaction-main .path,
+.interaction-main .query {
+  line-height: 18px;
+}
+
+.interaction-main .query {
+  font-size: 9px;
+  color: #66707c;
+}
+
+
+:root[data-theme="light"] {
+  --bg: #f5f6f7;
+  --panel: #ffffff;
+  --panel-2: #f6f7f9;
+  --panel-3: #eceff2;
+  --line: #d4d9e0;
+  --line-soft: #e7eaee;
+  --text: #17191d;
+  --muted: #65707c;
+  --muted-2: #87919d;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 78% 8%, rgba(143, 196, 0, 0.025), transparent 24rem),
+    var(--bg);
+}
+
+:root[data-theme="light"] .sidebar {
+  background: #fafbfc;
+}
+
+:root[data-theme="light"] .topbar {
+  background: rgba(250, 251, 252, 0.94);
+}
+
+:root[data-theme="light"] .hook-type-label,
+:root[data-theme="light"] .hook-kind,
+:root[data-theme="light"] .hook-id-label,
+:root[data-theme="light"] .viewer-capability-label,
+:root[data-theme="light"] .metric-label,
+:root[data-theme="light"] .interaction-id-label {
+  color: #68727e;
+}
+
+:root[data-theme="light"] .nav-item-pending {
+  opacity: 0.62;
+}
+
+:root[data-theme="light"] .interaction-row.selected {
+  background: #edf0f3;
+}
+
+:root[data-theme="light"] .interaction-main .query {
+  color: #7a8490;
+}
+
+:root[data-theme="light"] .new-hook-limits {
+  border-color: #d9dde3;
+  background: #f6f7f8;
+}
+
+:root[data-theme="light"] .new-hook-limit {
+  border-right-color: #d9dde3;
+}
+
+:root[data-theme="light"] .new-hook-limit strong {
+  color: #1f2328;
+}
+
+:root[data-theme="light"] .new-hook-limit span {
+  color: #6e7884;
+}
