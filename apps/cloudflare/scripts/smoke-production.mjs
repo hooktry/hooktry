@@ -7,6 +7,9 @@ const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 const databaseId = required("HOOKTRY_D1_DATABASE_ID");
 const r2Bucket = required("HOOKTRY_R2_BUCKET");
 const mcpUrl = process.env.HOOKTRY_MCP_URL?.trim() || null;
+const publicOrigin = (
+  process.env.HOOKTRY_PUBLIC_ORIGIN?.trim() || baseUrl
+).replace(/\/$/, "");
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 const expectedReleaseSha = process.env.HOOKTRY_EXPECTED_RELEASE_SHA?.trim() || null;
 const expectGitHubAuth = process.env.HOOKTRY_EXPECT_GITHUB_AUTH === "1";
@@ -45,6 +48,10 @@ try {
   }
   provision = await create.json();
 
+  if (publicOrigin !== baseUrl) {
+    await waitForPublicOrigin();
+  }
+
   const viewerPage = await fetch(provision.view_url, {
     headers: { accept: "text/html" },
   });
@@ -54,9 +61,24 @@ try {
     "view capability did not resolve to the shared React app",
   );
 
-  assert(provision.hook_url?.startsWith(baseUrl), "hook_url does not use deployed Worker");
-  assert(provision.view_websocket_url?.startsWith("wss://"), "missing WebSocket viewer URL");
-  assert(provision.claim_url?.startsWith(baseUrl), "claim_url does not use deployed Worker");
+  assert(
+    provision.hook_url?.startsWith(`${publicOrigin}/hook/`),
+    "hook_url does not use canonical public origin",
+  );
+  assert(
+    provision.view_url?.startsWith(`${publicOrigin}/view/`),
+    "view_url does not use canonical public origin",
+  );
+  assert(
+    provision.view_websocket_url?.startsWith(
+      `${publicOrigin.replace(/^http/, "ws")}/view/`,
+    ),
+    "view_websocket_url does not use canonical public origin",
+  );
+  assert(
+    provision.claim_url?.startsWith(`${publicOrigin}/claim/`),
+    "claim_url does not use canonical public origin",
+  );
 
   const inbox = websocketInbox(provision.view_websocket_url);
   await inbox.opened;
@@ -138,6 +160,41 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function waitForPublicOrigin() {
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 0;
+  let lastError = "unreachable";
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${publicOrigin}/healthz`);
+      lastStatus = response.status;
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        const revisionReady =
+          !expectedReleaseSha || payload?.revision === expectedReleaseSha;
+        if (revisionReady) {
+          console.log(
+            `PUBLIC-ORIGIN acceptance passed: ${publicOrigin} -> healthz`,
+          );
+          return;
+        }
+        lastError = `revision ${payload?.revision ?? "missing"}`;
+      } else {
+        lastError = await response.text();
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(
+    `public origin did not converge within 90s; origin: ${publicOrigin}; last status: ${lastStatus}; last error: ${lastError}`,
+  );
 }
 
 async function verifyMcp() {
