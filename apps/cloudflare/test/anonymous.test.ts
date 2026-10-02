@@ -45,16 +45,16 @@ describe("CF1 ephemeral Hook conformance", () => {
     expect(response.status).toBe(201);
     const provision = (await response.json()) as AnonymousProvision;
     expect(provision.hook_url).toMatch(
-      /^https:\/\/hooktry\.com\/hook\/hk_[A-Za-z0-9_-]{32}$/,
+      /^https:\/\/hooktry\.com\/hook\/hk_[0-9a-f]{32}$/,
     );
     expect(provision.view_url).toMatch(
-      /^https:\/\/hooktry\.com\/view\/vw_[A-Za-z0-9_-]{32}$/,
+      /^https:\/\/hooktry\.com\/view\/vw_[0-9a-f]{32}$/,
     );
     expect(provision.view_websocket_url).toMatch(
-      /^wss:\/\/hooktry\.com\/view\/vw_[A-Za-z0-9_-]{32}$/,
+      /^wss:\/\/hooktry\.com\/view\/vw_[0-9a-f]{32}$/,
     );
     expect(provision.claim_url).toMatch(
-      /^https:\/\/hooktry\.com\/claim\/cl_[A-Za-z0-9_-]{32}$/,
+      /^https:\/\/hooktry\.com\/claim\/cl_[0-9a-f]{32}$/,
     );
   });
 
@@ -63,15 +63,15 @@ describe("CF1 ephemeral Hook conformance", () => {
     async () => {
     const provision = await withStage("create", createHook());
 
-    expect(provision.hook_url).toMatch(/\/hook\/hk_[A-Za-z0-9_-]{32}$/);
-    expect(provision.view_url).toMatch(/\/view\/vw_[A-Za-z0-9_-]{32}$/);
+    expect(provision.hook_url).toMatch(/\/hook\/hk_[0-9a-f]{32}$/);
+    expect(provision.view_url).toMatch(/\/view\/vw_[0-9a-f]{32}$/);
     expect(provision.view_websocket_url).toMatch(
-      /^wss?:\/\/[^/]+\/view\/vw_[A-Za-z0-9_-]{32}$/,
+      /^wss?:\/\/[^/]+\/view\/vw_[0-9a-f]{32}$/,
     );
     expect(
       provision.view_websocket_url.replace(/^wss?:\/\//, ""),
     ).toBe(provision.view_url.replace(/^https?:\/\//, ""));
-    expect(provision.claim_url).toMatch(/\/claim\/cl_[A-Za-z0-9_-]{32}$/);
+    expect(provision.claim_url).toMatch(/\/claim\/cl_[0-9a-f]{32}$/);
     expect(provision.expires_at_unix_seconds).toBeTypeOf("number");
 
     const viewerResponse = await withStage("viewer-upgrade", fetchWorker(

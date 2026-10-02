@@ -64,7 +64,7 @@ describe("PLUGIN1 remote MCP", () => {
 
     expect(result.isError).toBe(false);
     expect(result.structuredContent.hook_url).toMatch(
-      /^https:\/\/hooktry\.com\/hook\/hk_[A-Za-z0-9_-]{32}$/,
+      /^https:\/\/hooktry\.com\/hook\/hk_[0-9a-f]{32}$/,
     );
 
     const serialized = JSON.stringify(result);

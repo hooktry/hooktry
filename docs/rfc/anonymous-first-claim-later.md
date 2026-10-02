@@ -105,10 +105,10 @@ Example response:
   "max_body_bytes": 5242880,
   "max_retained_bytes": 52428800,
   "claimed": false,
-  "hook_url": "https://hooktry.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
-  "view_url": "https://hooktry.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "view_websocket_url": "wss://hooktry.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "claim_url": "https://hooktry.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
+  "hook_url": "https://hooktry.com/hook/hk_4e91f63b8ab44ad79553e1eae3fbdf21",
+  "view_url": "https://hooktry.com/view/vw_a318d58c93b94dd59457f68e83c6e839",
+  "view_websocket_url": "wss://hooktry.com/view/vw_a318d58c93b94dd59457f68e83c6e839",
+  "claim_url": "https://hooktry.com/claim/cl_8ec73fc471b64a1583d1ea343fac5be2",
   "anonymous_principal": "hooktry_ap_..."
 }
 ```
@@ -138,13 +138,15 @@ Anonymous Exposures must be data, not infrastructure objects.
 Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one shared origin with capability-specific paths:
 
 ```text
-https://hooktry.com/hook/hk_<32-char-base64url>
-https://hooktry.com/view/vw_<32-char-base64url>
-wss://hooktry.com/view/vw_<32-char-base64url>
-https://hooktry.com/claim/cl_<32-char-base64url>
+https://hooktry.com/hook/hk_<32-char-lowercase-hex>
+https://hooktry.com/view/vw_<32-char-lowercase-hex>
+wss://hooktry.com/view/vw_<32-char-lowercase-hex>
+https://hooktry.com/claim/cl_<32-char-lowercase-hex>
 ```
 
-There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
+There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each newly generated capability contains 16 cryptographically random bytes (128 bits) encoded as 32 lowercase hexadecimal characters. The punctuation-free suffix is deliberate: capability IDs are frequently copied from terminals, logs, and chat, and should remain easy to select as one word. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
+
+The format is inspired by the typed-opaque-ID ergonomics used by systems such as ChatGPT, but Hooktry does not depend on another provider's undocumented ID generator. Existing Base64URL capability tokens remain valid until normal expiry or claim because lookup hashes the complete token and does not parse the suffix.
 
 Hook, view, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
 
