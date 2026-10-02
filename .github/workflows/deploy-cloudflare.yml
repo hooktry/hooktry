@@ -60,6 +60,8 @@ jobs:
 
       - name: Build shared web assets
         working-directory: apps/web
+        env:
+          VITE_BUILD_SHA: ${{ github.sha }}
         run: npm run check
 
       - name: Install Cloudflare dependencies
