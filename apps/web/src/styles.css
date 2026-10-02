@@ -879,6 +879,8 @@ kbd,
 .pane-resizer {
   position: relative;
   z-index: 3;
+  width: 9px;
+  justify-self: center;
   cursor: col-resize;
   background: transparent;
   touch-action: none;
@@ -891,7 +893,7 @@ kbd,
   left: 50%;
   width: 1px;
   transform: translateX(-50%);
-  background: #252b34;
+  background: var(--line-soft);
   content: "";
 }
 
@@ -899,22 +901,22 @@ kbd,
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 4px;
-  height: 30px;
+  width: 3px;
+  height: 22px;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: #39414d;
-  box-shadow: 0 0 0 3px #12151a;
+  background: #4a515c;
+  opacity: 0.68;
   content: "";
   transition:
     background 120ms ease,
-    box-shadow 120ms ease;
+    opacity 120ms ease;
 }
 
 .pane-resizer:hover::after,
 .resizing-pane .pane-resizer::after {
-  background: #a6b06f;
-  box-shadow: 0 0 0 3px #171b21;
+  background: #7d8794;
+  opacity: 0.95;
 }
 
 .resizing-pane {
