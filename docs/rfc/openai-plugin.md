@@ -365,6 +365,9 @@ The ChatGPT UI reported one transient service error before retrying the same ope
 
 This proof upgrades PLUGIN1.B from transport acceptance to first-party mobile product dogfood acceptance.
 
+
+The same observability proof showed upstream connection/session, forwarding, and tracing metadata on MCP requests. Treat that metadata as operationally sensitive. Do not surface it as product evidence, and review Cloudflare observability retention/redaction before public release so session identifiers, forwarded network metadata, and tracing headers are retained only when operationally necessary.
+
 ## References
 
 - OpenAI - Package your plugin: https://developers.openai.com/plugins/build/plugins
