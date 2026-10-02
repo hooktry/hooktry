@@ -379,6 +379,7 @@ export function App() {
               onCopy={copy}
               onNewHook={handleNewHook}
               nowMs={nowMs}
+              connection={connection}
             />
 
             {error ? <div className="error-banner">{error}</div> : null}
@@ -583,6 +584,7 @@ function HookHeader({
   onCopy,
   onNewHook,
   nowMs,
+  connection,
 }: {
   provision: HookProvision | null;
   summary: ExposureSummary | null;
@@ -593,104 +595,137 @@ function HookHeader({
   onCopy: (value: string, key: string) => void;
   onNewHook: () => void;
   nowMs: number;
+  connection: ConnectionState;
 }) {
   return (
     <div className="hook-header">
-      <div className="hook-title-row">
-        <div>
-          <div className="eyebrow">
-            {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
+      <div className="hook-header-inner">
+        <div className="hook-title-row">
+          <div className="hook-identity">
+            <div className="hook-kicker-row">
+              <div className="eyebrow">
+                {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
+              </div>
+              <span className={`hook-status hook-status-${connection}`}>
+                <span className="dot" />
+                {connectionLabel(connection)}
+              </span>
+            </div>
+
+            {summary ? (
+              <div className="hook-id-row">
+                <h1 className="hook-id" aria-label={summary.exposure_id}>
+                  <span className="hook-id-full" aria-hidden="true">
+                    {summary.exposure_id}
+                  </span>
+                  <span className="hook-id-short" aria-hidden="true">
+                    {shortId(summary.exposure_id)}
+                  </span>
+                </h1>
+                <button
+                  className="icon-button hook-id-copy"
+                  type="button"
+                  aria-label="Copy Hook ID"
+                  title="Copy Hook ID"
+                  onClick={() => onCopy(summary.exposure_id, "exposure-id")}
+                >
+                  {copied === "exposure-id" ? (
+                    <span className="icon-button-text">Copied</span>
+                  ) : (
+                    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+                      <rect x="7" y="7" width="9" height="9" rx="1.5" />
+                      <path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-7A1.5 1.5 0 0 0 3 5.5v7A1.5 1.5 0 0 0 4.5 14H7" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <h1>Loading viewer…</h1>
+            )}
           </div>
-          {summary ? (
-            <h1 className="hook-id" aria-label={summary.exposure_id}>
-              <span className="hook-id-full" aria-hidden="true">
-                {summary.exposure_id}
-              </span>
-              <span className="hook-id-short" aria-hidden="true">
-                {shortId(summary.exposure_id)}
-              </span>
-            </h1>
-          ) : (
-            <h1>Loading viewer…</h1>
-          )}
+
+          <div className="header-actions">
+            {summary?.claimed ? (
+              <span className="badge claimed-badge">claimed · persistent</span>
+            ) : null}
+            <button className="button secondary new-hook-button" type="button" onClick={onNewHook}>
+              + New Hook
+            </button>
+          </div>
         </div>
-        <div className="header-actions">
-          {summary?.claimed ? (
-            <span className="badge claimed-badge">claimed · persistent</span>
+
+        {provision ? (
+          <div className="url-box">
+            <div className="url-label">Public ingress</div>
+            <code>{provision.hook_url}</code>
+            <button
+              className="copy-button"
+              type="button"
+              onClick={() => onCopy(provision.hook_url, "hook")}
+            >
+              {copied === "hook" ? "Copied" : "Copy"}
+            </button>
+          </div>
+        ) : null}
+
+        <div className="viewer-url-group">
+          <div className="url-box viewer-url-box">
+            <div className="url-label">Viewer URL</div>
+            <code>{viewUrl}</code>
+            <button
+              className="copy-button"
+              type="button"
+              onClick={() => onCopy(viewUrl, "view")}
+            >
+              {copied === "view" ? "Copied" : "Copy"}
+            </button>
+          </div>
+
+          {!provision ? (
+            <div className="readonly-note">
+              <span className="readonly-icon" aria-hidden="true">i</span>
+              <span>
+                <strong>Read-only capability.</strong> Hook and claim capabilities cannot be derived from this URL.
+              </span>
+            </div>
           ) : null}
-          <button className="button secondary new-hook-button" type="button" onClick={onNewHook}>
-            + New Hook
-          </button>
         </div>
-      </div>
 
-      {provision ? (
-        <div className="url-box">
-          <div className="url-label">Public ingress</div>
-          <code>{provision.hook_url}</code>
-          <button
-            className="copy-button"
-            type="button"
-            onClick={() => onCopy(provision.hook_url, "hook")}
-          >
-            {copied === "hook" ? "Copied" : "Copy"}
-          </button>
+        <div className="metrics">
+          <Metric
+            label="Requests"
+            value={summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}
+          />
+          <Metric
+            label="Retained"
+            value={summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}
+          />
+          <Metric
+            label="Max body"
+            value={summary ? formatBytes(summary.max_body_bytes) : "—"}
+          />
+          <Metric
+            label="Expires"
+            value={
+              summary?.claimed
+                ? "persistent"
+                : formatExpiry(summary?.expires_at_unix_seconds, nowMs)
+            }
+            action={
+              provision && !summary?.claimed ? (
+                <button
+                  className="button secondary compact claim-metric"
+                  type="button"
+                  title="Keep this Hook by claiming it into a workspace"
+                  onClick={onClaim}
+                  disabled={claiming}
+                >
+                  {claiming ? "Claiming…" : "Claim"}
+                </button>
+              ) : null
+            }
+          />
         </div>
-      ) : null}
-
-      <div className="url-box viewer-url-box">
-        <div className="url-label">Viewer</div>
-        <code>{viewUrl}</code>
-        <button
-          className="copy-button"
-          type="button"
-          onClick={() => onCopy(viewUrl, "view")}
-        >
-          {copied === "view" ? "Copied" : "Copy"}
-        </button>
-      </div>
-
-      {!provision ? (
-        <div className="readonly-note">
-          This URL carries read authority only. The hook and claim capabilities are not
-          derivable from it.
-        </div>
-      ) : null}
-
-      <div className="metrics">
-        <Metric
-          label="Requests"
-          value={summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}
-        />
-        <Metric
-          label="Retained"
-          value={summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}
-        />
-        <Metric
-          label="Max body"
-          value={summary ? formatBytes(summary.max_body_bytes) : "—"}
-        />
-        <Metric
-          label="Expires"
-          value={
-            summary?.claimed
-              ? "persistent"
-              : formatExpiry(summary?.expires_at_unix_seconds, nowMs)
-          }
-          action={
-            provision && !summary?.claimed ? (
-              <button
-                className="button secondary compact claim-metric"
-                type="button"
-                title="Keep this Hook by claiming it into a workspace"
-                onClick={onClaim}
-                disabled={claiming}
-              >
-                {claiming ? "Claiming…" : "Claim"}
-              </button>
-            ) : null
-          }
-        />
       </div>
     </div>
   );
