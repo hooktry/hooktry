@@ -61,7 +61,9 @@ jobs:
           cache: false
 
       - name: Workflow static validation
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca
+        run: >
+          go run github.com/rhysd/actionlint/cmd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca
+          -ignore 'configuration variable name "github_client_id" must not start with the GITHUB_ prefix'
 
       - name: Shell static validation
         shell: bash
