@@ -618,8 +618,8 @@ function HookHeader({
           {summary?.claimed ? (
             <span className="badge claimed-badge">claimed · persistent</span>
           ) : null}
-          <button className="button ghost" type="button" onClick={onNewHook}>
-            New Hook
+          <button className="button secondary new-hook-button" type="button" onClick={onNewHook}>
+            + New Hook
           </button>
         </div>
       </div>
@@ -832,9 +832,11 @@ function Inspector({
           </div>
         </div>
         <button
-          className="button ghost compact"
+          className="button secondary compact inspector-copy-button"
           type="button"
           onClick={() => onCopy(body, "body")}
+          disabled={!body}
+          title={body ? "Copy request body" : "No body to copy"}
         >
           {copied === "body" ? "Copied" : "Copy body"}
         </button>
@@ -854,9 +856,16 @@ function Inspector({
 
       <div className="inspector-content">
         {tab === "body" ? (
-          <pre className="body-view" data-encoding={interaction.body_encoding}>
-            {body || "∅"}
-          </pre>
+          body ? (
+            <pre className="body-view" data-encoding={interaction.body_encoding}>
+              {body}
+            </pre>
+          ) : (
+            <div className="body-empty-state">
+              <strong>No request body</strong>
+              <span>0 bytes received</span>
+            </div>
+          )
         ) : null}
 
         {tab === "headers" ? (
@@ -945,7 +954,9 @@ function NewHookModal({
           onClick={onClose}
           disabled={creating}
         >
-          ×
+          <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+            <path d="M5 5l10 10M15 5L5 15" />
+          </svg>
         </button>
 
         <div className="eyebrow">NEW EPHEMERAL HOOK</div>
@@ -963,7 +974,7 @@ function NewHookModal({
 
         <div className="modal-actions">
           <button
-            className="button ghost"
+            className="button secondary modal-action-button"
             type="button"
             onClick={onClose}
             disabled={creating}
@@ -971,7 +982,7 @@ function NewHookModal({
             Cancel
           </button>
           <button
-            className="button primary create"
+            className="button primary modal-action-button modal-create-button"
             type="button"
             onClick={onCreate}
             disabled={creating}
