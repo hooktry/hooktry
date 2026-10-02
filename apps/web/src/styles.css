@@ -1050,19 +1050,18 @@ kbd,
 
   .interaction-list {
     height: auto;
-    min-height: 220px;
-    max-height: 42dvh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 
   .empty-list {
-    min-height: 220px;
+    min-height: 180px;
     padding: 28px 18px;
   }
 
   .inspector-panel {
-    min-height: 360px;
+    min-height: 0;
   }
 
   .inspector-head {
@@ -1106,12 +1105,13 @@ kbd,
 
   .inspector-content {
     height: auto;
-    min-height: 300px;
-    max-height: 60dvh;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 
   .body-view {
-    min-height: 300px;
+    min-height: 160px;
   }
 
   .kv-row {
