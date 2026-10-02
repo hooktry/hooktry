@@ -107,8 +107,8 @@ export function randomPrincipal(): string {
 }
 
 export function randomCapability(prefix: "hk_" | "vw_" | "cl_"): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return prefix + base64Url(bytes);
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return prefix + hex(bytes);
 }
 
 export function uuidV7(nowMs = Date.now()): string {
@@ -166,10 +166,3 @@ function hex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function base64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-}
