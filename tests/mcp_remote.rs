@@ -93,12 +93,11 @@ async fn remote_webhook_tool_returns_only_ingress_capability() {
 
     let result = &response["result"];
     assert_eq!(result["isError"], false);
-    assert_eq!(
+    assert!(
         result["structuredContent"]["hook_url"]
             .as_str()
             .unwrap()
-            .starts_with("https://hooktry.example/hook/hk_"),
-        true
+            .starts_with("https://hooktry.example/hook/hk_")
     );
 
     let serialized = serde_json::to_string(result).unwrap();
