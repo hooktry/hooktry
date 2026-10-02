@@ -69,6 +69,16 @@ This RFC does not make Hooktry:
 
 Hooktry may consume identifiers or references from those systems when they improve evidence interpretation.
 
+## Transport evidence as the base of understanding
+
+Production Hook dogfood already demonstrates useful wire-level evidence such as method/path/query/body, User-Agent, forwarded protocol, host, and managed-ingress metadata.
+
+Treat those as preserved transport/provenance evidence first. A later understanding layer may derive provider/event identity, signature status, correlations, and higher-level meaning from that evidence, but must not replace the raw source.
+
+The browser inspector is therefore part of the evidence surface, not only a debugging convenience.
+
+See [WEB2 - First Interaction Onboarding](first-interaction-onboarding.md) and the production proof in `docs/market/EPHEMERAL_HOOK_PROOF.md`.
+
 ## Canonical evidence versus normalized context
 
 Raw or near-raw request and response data remains part of `Interaction.request` and `Interaction.response`.
