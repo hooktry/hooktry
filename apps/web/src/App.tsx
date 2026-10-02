@@ -812,7 +812,7 @@ function InteractionList({
           <strong>Interactions</strong>
           <span className="count">{total}</span>
         </div>
-        <span className="live-hint">as received</span>
+        <span className="live-hint">live stream</span>
       </div>
       <div className="search-row">
         <input
@@ -890,19 +890,21 @@ function Inspector({
   }
 
   const body = prettyBody(interaction);
+  const activeTab: InspectorTab =
+    tab === "query" && !interaction.query ? "body" : tab;
   const queryEntries = interaction.query
     ? Array.from(new URLSearchParams(interaction.query).entries())
     : [];
 
   const copyTarget =
-    tab === "body"
+    activeTab === "body"
       ? { label: "body", value: body }
-      : tab === "query"
+      : activeTab === "query"
         ? {
             label: "query",
             value: queryEntries.map(([name, value]) => `${name}=${value}`).join("\n"),
           }
-        : tab === "headers"
+        : activeTab === "headers"
           ? {
               label: "headers",
               value: interaction.headers.map(([name, value]) => `${name}: ${value}`).join("\n"),
@@ -952,24 +954,24 @@ function Inspector({
       </div>
 
       <div className="tabs">
-        <Tab active={tab === "body"} onClick={() => onTab("body")}>
+        <Tab active={activeTab === "body"} onClick={() => onTab("body")}>
           Body
         </Tab>
         {interaction.query ? (
-          <Tab active={tab === "query"} onClick={() => onTab("query")}>
+          <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
             Query <span>{queryEntries.length}</span>
           </Tab>
         ) : null}
-        <Tab active={tab === "headers"} onClick={() => onTab("headers")}>
+        <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
           Headers <span>{interaction.headers.length}</span>
         </Tab>
-        <Tab active={tab === "metadata"} onClick={() => onTab("metadata")}>
+        <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
           Metadata
         </Tab>
       </div>
 
       <div className="inspector-content">
-        {tab === "body" ? (
+        {activeTab === "body" ? (
           body ? (
             <pre className="body-view" data-encoding={interaction.body_encoding}>
               {body}
@@ -982,7 +984,7 @@ function Inspector({
           )
         ) : null}
 
-        {tab === "query" ? (
+        {activeTab === "query" ? (
           <div className="kv-table">
             {queryEntries.map(([name, value], index) => (
               <div className="kv-row" key={`${name}-${index}`}>
@@ -993,18 +995,23 @@ function Inspector({
           </div>
         ) : null}
 
-        {tab === "headers" ? (
-          <div className="kv-table">
-            {interaction.headers.map(([name, value], index) => (
+        {activeTab === "headers" ? (
+          <>
+            <div className="inspector-note">
+              Captured as received. Header sets vary by client and may include transport-added headers.
+            </div>
+            <div className="kv-table">
+              {interaction.headers.map(([name, value], index) => (
               <div className="kv-row" key={`${name}-${index}`}>
                 <code>{name}</code>
                 <code>{value}</code>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         ) : null}
 
-        {tab === "metadata" ? (
+        {activeTab === "metadata" ? (
           <div className="kv-table">
             <KeyValue label="Interaction ID" value={interaction.interaction_id} />
             <KeyValue label="Exposure ID" value={interaction.exposure_id} />
