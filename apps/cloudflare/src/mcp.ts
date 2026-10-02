@@ -248,10 +248,11 @@ async function callTool(
       {
         type: "text",
         text: [
-          "Created a temporary Hooktry webhook endpoint. Surface all three links with their distinct roles:",
-          `Send webhooks here: ${provision.hook_url}`,
-          `View captured requests (read-only): ${provision.view_url}`,
-          `Open as owner in browser (one-time; use this to claim/manage the Hook): ${provision.handoff_url}`,
+          "Created a temporary Hooktry webhook endpoint. Keep these three roles distinct in the user-facing answer:",
+          `Webhook URL — SEND REQUESTS HERE: ${provision.hook_url}`,
+          `Viewer URL — VIEW ONLY (read-only): ${provision.view_url}`,
+          `Owner link — OPEN TO CLAIM / MANAGE (one-time): ${provision.handoff_url}`,
+          "The owner link is not the Viewer URL. It opens the owner-side browser session where claim/manage actions become available.",
         ].join("\n"),
       },
     ],
