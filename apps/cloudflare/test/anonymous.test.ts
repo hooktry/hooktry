@@ -56,6 +56,53 @@ describe("CF1 ephemeral Hook conformance", () => {
     expect(provision.claim_url).toMatch(
       /^https:\/\/hooktry\.com\/claim\/cl_[0-9a-f]{32}$/,
     );
+    expect(provision.handoff_url).toMatch(
+      /^https:\/\/hooktry\.com\/open#ho_[0-9a-f]{32}$/,
+    );
+    expect(provision.handoff_expires_at_unix_seconds).toBeTypeOf("number");
+    expect(provision.handoff_expires_at_unix_seconds).toBeLessThan(
+      provision.expires_at_unix_seconds!,
+    );
+  });
+
+  it("exchanges a fragment handoff exactly once into owner capabilities", async () => {
+    const provision = await createHook();
+    const handoff = new URL(provision.handoff_url).hash.slice(1);
+
+    const landing = await fetchWorker(
+      new Request("https://hooktry.test/open", {
+        headers: { accept: "text/html" },
+      }),
+    );
+    expect(landing.status).toBe(200);
+    expect(landing.headers.get("cache-control")).toBe("no-store");
+    expect(landing.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(landing.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+
+    const exchange = await fetchWorker(
+      new Request("https://hooktry.test/api/v1/handoffs/exchange", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handoff_token: handoff }),
+      }),
+    );
+    expect(exchange.status).toBe(200);
+    const owner = (await exchange.json()) as Record<string, unknown>;
+    expect(owner.hook_url).toBe(provision.hook_url);
+    expect(owner.view_url).toBe(provision.view_url);
+    expect(owner.view_websocket_url).toBe(provision.view_websocket_url);
+    expect(owner.claim_url).toBe(provision.claim_url);
+    expect(owner.anonymous_principal).toBeUndefined();
+    expect(owner.handoff_url).toBeUndefined();
+
+    const replay = await fetchWorker(
+      new Request("https://hooktry.test/api/v1/handoffs/exchange", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handoff_token: handoff }),
+      }),
+    );
+    expect(replay.status).toBe(410);
   });
 
   it(
@@ -124,6 +171,19 @@ describe("CF1 ephemeral Hook conformance", () => {
     expect(claimedBody.claimed).toBe(true);
     expect(claimedBody.workspace_id).toBe(WORKSPACE_ID);
     expect(claimedBody.expires_at_unix_seconds).toBeUndefined();
+
+    const handoffAfterClaim = new URL(provision.handoff_url).hash.slice(1);
+    const invalidatedHandoff = await withStage(
+      "handoff-after-claim",
+      fetchWorker(
+        new Request("https://hooktry.test/api/v1/handoffs/exchange", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ handoff_token: handoffAfterClaim }),
+        }),
+      ),
+    );
+    expect(invalidatedHandoff.status).toBe(410);
 
     const afterClaim = await withStage("capture-after-claim", fetchWorker(
       new Request(provision.hook_url, {
