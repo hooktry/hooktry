@@ -23,7 +23,7 @@ The returned `handoff_url` is a short-lived, one-time owner handoff for the user
 
 In user-facing responses, label this URL **Open in browser**. Do not label it **Handoff** unless the user is explicitly discussing Hooktry's internal capability model. "Handoff" is an implementation/security term; "Open in browser" is the product-facing action.
 
-When the user asks for a webhook, prefer a concise response that clearly separates:
+When the user asks for a webhook and the tool returns `handoff_url`, the final user-facing response MUST include all three links below. Do not omit `Open in browser`, even when the user asked only for a webhook URL. Keep the response concise and clearly separate:
 
 - Send: `hook_url`
 - View: `view_url`
