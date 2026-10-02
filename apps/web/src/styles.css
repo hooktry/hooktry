@@ -978,13 +978,24 @@ kbd,
 
   .url-box {
     width: 100%;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
     margin-top: 14px;
+  }
+
+  .url-box + .url-box {
+    margin-top: 8px;
+  }
+
+  .url-label {
+    display: block;
+    padding-left: 10px;
   }
 
   .url-box code {
     display: block;
     min-width: 0;
     overflow: hidden;
+    padding: 0 8px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
