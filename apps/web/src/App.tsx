@@ -409,7 +409,7 @@ export function App() {
 
             <div
               className="workspace-grid"
-              style={{ gridTemplateColumns: `${interactionPaneWidth}px 5px minmax(0, 1fr)` }}
+              style={{ gridTemplateColumns: `${interactionPaneWidth}px 9px minmax(0, 1fr)` }}
             >
               <InteractionList
                 interactions={filtered}
@@ -901,12 +901,11 @@ function Inspector({
             </span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
-            <span
-              className="request-sequence"
-              title={`Interaction ID: ${interaction.interaction_id}`}
-            >
-              #{interaction.sequence}
-            </span>
+            <span className="request-sequence">#{interaction.sequence}</span>
+          </div>
+          <div className="interaction-id-row">
+            <span className="interaction-id-label">INTERACTION ID</span>
+            <code>{interaction.interaction_id}</code>
           </div>
         </div>
         <button
