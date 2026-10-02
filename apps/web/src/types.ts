@@ -16,7 +16,9 @@ export interface HookProvision extends ExposureSummary {
   view_url: string;
   view_websocket_url: string;
   claim_url: string;
-  anonymous_principal: string;
+  handoff_url?: string;
+  handoff_expires_at_unix_seconds?: number;
+  anonymous_principal?: string;
 }
 
 export interface Interaction {
