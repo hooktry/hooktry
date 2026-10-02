@@ -136,7 +136,7 @@ function tools(): Array<Record<string, unknown>> {
       name: "create_webhook_endpoint",
       title: "Create webhook endpoint",
       description:
-        "Create a temporary Hooktry webhook URL when the user needs an endpoint to receive test webhook or integration traffic. The endpoint expires automatically. This tool does not expose captured request data, viewer capabilities, or claim capabilities.",
+        "Create a temporary Hooktry webhook endpoint for integration testing. Returns the send URL and a separate private viewer URL for the same temporary endpoint. The endpoint expires automatically. Claim and account capabilities are not returned.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -151,6 +151,10 @@ function tools(): Array<Record<string, unknown>> {
             format: "uuid",
           },
           hook_url: {
+            type: "string",
+            format: "uri",
+          },
+          view_url: {
             type: "string",
             format: "uri",
           },
@@ -170,6 +174,7 @@ function tools(): Array<Record<string, unknown>> {
         required: [
           "exposure_id",
           "hook_url",
+          "view_url",
           "expires_at_unix_seconds",
           "request_limit",
           "max_body_bytes",
@@ -219,6 +224,7 @@ async function callTool(
   const structuredContent = {
     exposure_id: provision.exposure_id,
     hook_url: provision.hook_url,
+    view_url: provision.view_url,
     expires_at_unix_seconds: provision.expires_at_unix_seconds ?? null,
     request_limit: provision.request_limit,
     max_body_bytes: provision.max_body_bytes,
@@ -229,7 +235,7 @@ async function callTool(
     content: [
       {
         type: "text",
-        text: `Created a temporary Hooktry webhook endpoint: ${provision.hook_url}`,
+        text: `Created a temporary Hooktry webhook endpoint. Send: ${provision.hook_url} View: ${provision.view_url}`,
       },
     ],
     structuredContent,
