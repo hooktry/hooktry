@@ -15,12 +15,17 @@ It is an adapter, not the Hooktry domain model.
 | expiry cleanup | scheduled Worker |
 | HTTP ingress | Worker routes |
 
-The Worker exposes the same public Hook API and capability routes as the native implementation:
+The Worker exposes the same public Hook API and capability routes as the native implementation.
 
-- `POST /api/v1/hooks`
-- `ANY /hook/hk_<capability>/*`
-- `GET /view/vw_<capability>`
-- `POST /claim/cl_<capability>`
+Canonical product URLs live on the shared Hooktry origin:
+
+- `https://hooktry.com/api/v1/hooks`
+- `https://hooktry.com/hook/hk_<capability>/*`
+- `https://hooktry.com/view/vw_<capability>`
+- `wss://hooktry.com/view/vw_<capability>`
+- `https://hooktry.com/claim/cl_<capability>`
+
+The MCP transport remains separate at `https://mcp.hooktry.com/mcp`. Creation requests may arrive through that transport or through a provider acceptance hostname, but emitted Hook/View/Claim URLs must not inherit the request host. Production sets `HOOKTRY_PUBLIC_ORIGIN=https://hooktry.com`; local/test environments fall back to the request origin.
 
 ## Local development
 
@@ -105,7 +110,7 @@ The bootstrap workflow:
 
 This separation prevents ordinary CI/CD from retaining resource-creation/deletion authority.
 
-The initial acceptance endpoint uses the account Workers subdomain. Custom Hooktry domains are a separate networking slice after the runtime proof is green.
+Production binds both `hooktry.com` and `mcp.hooktry.com` to the managed Worker. The workers.dev hostname remains an acceptance/control route, while product-facing capability URLs are canonicalized to `hooktry.com`.
 
 ## GitHub authentication
 
