@@ -184,7 +184,10 @@ async fn create_and_start(
         .unwrap();
 
     client
-        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
+        .post(format!(
+            "{base_url}/_hooktry/scenarios/{}/start",
+            scenario.id
+        ))
         .send()
         .await
         .unwrap()
@@ -206,7 +209,9 @@ async fn send(exposure_url: &str, body: &str) {
 
 async fn complete(base_url: &str, run_id: uuid::Uuid) -> ScenarioOutcome {
     reqwest::Client::new()
-        .post(format!("{base_url}/_hooktry/scenario-runs/{run_id}/complete"))
+        .post(format!(
+            "{base_url}/_hooktry/scenario-runs/{run_id}/complete"
+        ))
         .send()
         .await
         .unwrap()

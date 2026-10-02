@@ -86,7 +86,10 @@ async fn scenario_without_ordering_keeps_existing_order_agnostic_behavior() {
         .unwrap();
 
     let run: ScenarioRun = client
-        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
+        .post(format!(
+            "{base_url}/_hooktry/scenarios/{}/start",
+            scenario.id
+        ))
         .send()
         .await
         .unwrap()
@@ -180,7 +183,10 @@ async fn create_and_start(base_url: &str, port: u16) -> ScenarioRun {
         .unwrap();
 
     client
-        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
+        .post(format!(
+            "{base_url}/_hooktry/scenarios/{}/start",
+            scenario.id
+        ))
         .send()
         .await
         .unwrap()
@@ -203,7 +209,9 @@ async fn send(exposure_url: &str, path: &str) {
 
 async fn complete(base_url: &str, run_id: uuid::Uuid) -> ScenarioOutcome {
     reqwest::Client::new()
-        .post(format!("{base_url}/_hooktry/scenario-runs/{run_id}/complete"))
+        .post(format!(
+            "{base_url}/_hooktry/scenario-runs/{run_id}/complete"
+        ))
         .send()
         .await
         .unwrap()

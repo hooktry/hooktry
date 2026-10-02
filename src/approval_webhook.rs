@@ -44,7 +44,10 @@ pub(crate) fn webhook_payload(
 pub(crate) fn webhook_headers(notification_id: Uuid) -> BTreeMap<String, String> {
     BTreeMap::from([
         ("idempotency-key".to_owned(), notification_id.to_string()),
-        ("x-hooktry-event".to_owned(), "approval_requested".to_owned()),
+        (
+            "x-hooktry-event".to_owned(),
+            "approval_requested".to_owned(),
+        ),
     ])
 }
 

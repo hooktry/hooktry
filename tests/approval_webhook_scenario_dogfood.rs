@@ -119,7 +119,10 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
         .unwrap();
 
     let run: ScenarioRun = client
-        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
+        .post(format!(
+            "{base_url}/_hooktry/scenarios/{}/start",
+            scenario.id
+        ))
         .send()
         .await
         .unwrap()

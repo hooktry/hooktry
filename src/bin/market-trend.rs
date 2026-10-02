@@ -363,7 +363,9 @@ fn render_text(report: &TrendReport) -> String {
         "- capability status changes: {}\n",
         report.hooktry_status_changes.len()
     ));
-    output.push_str(&format!("- matrix state changes: {hooktry_matrix_changes}\n"));
+    output.push_str(&format!(
+        "- matrix state changes: {hooktry_matrix_changes}\n"
+    ));
     output.push_str(&format!(
         "- disposition changes: {}\n\n",
         report.disposition_changes.len()

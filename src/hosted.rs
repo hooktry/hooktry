@@ -304,7 +304,10 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
             "/_hooktry/hosted/approvals",
             get(list_pending_approvals).post(create_approval),
         )
-        .route("/_hooktry/hosted/approvals/{approval_id}", get(get_approval))
+        .route(
+            "/_hooktry/hosted/approvals/{approval_id}",
+            get(get_approval),
+        )
         .route(
             "/_hooktry/hosted/approvals/{approval_id}/decision",
             post(decide_approval),
@@ -653,7 +656,10 @@ async fn provision_exposure(
         .as_secs();
 
     let public_url = format!("{}/e/{exposure_id}", state.public_base_url);
-    let runtime_url = format!("{}/_hooktry/runtime/{exposure_id}", state.runtime_ws_base_url);
+    let runtime_url = format!(
+        "{}/_hooktry/runtime/{exposure_id}",
+        state.runtime_ws_base_url
+    );
 
     if state
         .exposures

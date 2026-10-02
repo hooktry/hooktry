@@ -37,9 +37,11 @@ async fn main() {
         Command::Exposures => get_json(&format!("{}/_hooktry/exposures", cli.base_url))
             .await
             .map(|_| 0),
-        Command::ExposureGet { id } => get_json(&format!("{}/_hooktry/exposures/{id}", cli.base_url))
-            .await
-            .map(|_| 0),
+        Command::ExposureGet { id } => {
+            get_json(&format!("{}/_hooktry/exposures/{id}", cli.base_url))
+                .await
+                .map(|_| 0)
+        }
         Command::ExposureRevoke { id } => {
             delete_json(&format!("{}/_hooktry/exposures/{id}", cli.base_url))
                 .await
@@ -78,9 +80,11 @@ async fn main() {
         Command::Mcp => hooktry::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
         Command::ScenarioRun { path, command } => scenario_run(&cli.base_url, &path, command).await,
-        Command::ScenarioGet { id } => get_json(&format!("{}/_hooktry/scenarios/{id}", cli.base_url))
-            .await
-            .map(|_| 0),
+        Command::ScenarioGet { id } => {
+            get_json(&format!("{}/_hooktry/scenarios/{id}", cli.base_url))
+                .await
+                .map(|_| 0)
+        }
         Command::ScenarioStart { id } => {
             post_json(&format!("{}/_hooktry/scenarios/{id}/start", cli.base_url))
                 .await

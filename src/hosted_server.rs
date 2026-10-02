@@ -206,7 +206,9 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     };
     let dogfood = dogfood_exposure_config(|key| std::env::var(key).ok(), local_port)?;
     if dogfood.is_some() && bootstrap_workspace_id.is_none() {
-        return Err("HOOKTRY_DOGFOOD_EXPOSURE_PORT requires HOOKTRY_BOOTSTRAP_WORKSPACE".to_owned());
+        return Err(
+            "HOOKTRY_DOGFOOD_EXPOSURE_PORT requires HOOKTRY_BOOTSTRAP_WORKSPACE".to_owned(),
+        );
     }
     if config.approval_webhook_url.is_some() && bootstrap_workspace_id.is_none() {
         return Err("HOOKTRY_APPROVAL_WEBHOOK_URL requires HOOKTRY_BOOTSTRAP_WORKSPACE".to_owned());
@@ -507,7 +509,8 @@ fn dogfood_exposure_config(
     mut lookup: impl FnMut(&str) -> Option<String>,
     self_port: u16,
 ) -> Result<Option<DogfoodExposureConfig>, String> {
-    let Some(port) = lookup("HOOKTRY_DOGFOOD_EXPOSURE_PORT").filter(|value| !value.trim().is_empty())
+    let Some(port) =
+        lookup("HOOKTRY_DOGFOOD_EXPOSURE_PORT").filter(|value| !value.trim().is_empty())
     else {
         return Ok(None);
     };
@@ -665,7 +668,10 @@ async fn run_dogfood_approval_webhook(
         state,
         workspace_id,
         "POST",
-        &format!("/_hooktry/hosted/approvals/{}/decision", approval.approval_id),
+        &format!(
+            "/_hooktry/hosted/approvals/{}/decision",
+            approval.approval_id
+        ),
         Some(json!({"decision": "deny"})),
     )
     .await?;
@@ -803,7 +809,10 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_hooktry/hosted/approvals/{}/decision", approval.approval_id),
+        &format!(
+            "/_hooktry/hosted/approvals/{}/decision",
+            approval.approval_id
+        ),
         Some(json!({"decision": "approve"})),
     )
     .await?;
@@ -836,7 +845,10 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
+        &format!(
+            "/_hooktry/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
         Some(
             serde_json::to_value(mismatched)
                 .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
@@ -854,7 +866,10 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
+        &format!(
+            "/_hooktry/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
         Some(
             serde_json::to_value(&inner_request)
                 .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
@@ -897,7 +912,10 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "GET",
-        &format!("/_hooktry/hosted/executions/{}", proof.execution.execution_id),
+        &format!(
+            "/_hooktry/hosted/executions/{}",
+            proof.execution.execution_id
+        ),
         None,
     )
     .await?;
@@ -922,7 +940,10 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
+        &format!(
+            "/_hooktry/hosted/approvals/{}/execute",
+            approval.approval_id
+        ),
         Some(
             serde_json::to_value(&inner_request)
                 .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
