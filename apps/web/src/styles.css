@@ -1022,6 +1022,10 @@ kbd,
     gap: 3px;
   }
 
+  .metric:nth-child(even) {
+    padding-left: 10px;
+  }
+
   .metric strong {
     max-width: 100%;
     overflow: hidden;
