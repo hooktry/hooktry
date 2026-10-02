@@ -295,6 +295,7 @@ export function App() {
             <HookHeader
               provision={provision}
               summary={activeSummary}
+              viewUrl={provision?.view_url ?? `${window.location.origin}${pathname}`}
               copied={copied}
               claiming={claiming}
               onClaim={handleClaim}
@@ -463,6 +464,7 @@ function Policy({ value, label }: { value: string; label: string }) {
 function HookHeader({
   provision,
   summary,
+  viewUrl,
   copied,
   claiming,
   onClaim,
@@ -471,6 +473,7 @@ function HookHeader({
 }: {
   provision: HookProvision | null;
   summary: ExposureSummary | null;
+  viewUrl: string;
   copied: string | null;
   claiming: boolean;
   onClaim: () => void;
@@ -518,12 +521,26 @@ function HookHeader({
             {copied === "hook" ? "Copied" : "Copy"}
           </button>
         </div>
-      ) : (
+      ) : null}
+
+      <div className="url-box viewer-url-box">
+        <div className="url-label">Viewer</div>
+        <code>{viewUrl}</code>
+        <button
+          className="copy-button"
+          type="button"
+          onClick={() => onCopy(viewUrl, "view")}
+        >
+          {copied === "view" ? "Copied" : "Copy"}
+        </button>
+      </div>
+
+      {!provision ? (
         <div className="readonly-note">
           This URL carries read authority only. The hook and claim capabilities are not
           derivable from it.
         </div>
-      )}
+      ) : null}
 
       <div className="metrics">
         <Metric

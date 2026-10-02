@@ -906,3 +906,226 @@ kbd,
     padding: 24px;
   }
 }
+
+
+/* Mobile hook viewer hardening */
+@media (max-width: 650px) {
+  .app-shell {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: var(--topbar);
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .breadcrumb {
+    min-width: 0;
+  }
+
+  .topbar-actions {
+    min-width: 0;
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .badge,
+  .connection {
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
+  .workspace {
+    min-height: calc(100dvh - var(--topbar));
+  }
+
+  .hook-header {
+    padding: 16px 14px;
+  }
+
+  .hook-title-row {
+    gap: 14px;
+  }
+
+  .hook-title-row > div:first-child {
+    min-width: 0;
+  }
+
+  .hook-header h1 {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .url-box {
+    width: 100%;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    margin-top: 14px;
+  }
+
+  .url-box + .url-box {
+    margin-top: 8px;
+  }
+
+  .url-label {
+    display: block;
+    padding-left: 10px;
+  }
+
+  .url-box code {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .readonly-note {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin-top: 16px;
+  }
+
+  .metric {
+    min-width: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .metric strong {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-grid {
+    display: block;
+    height: auto;
+    min-height: 0;
+  }
+
+  .interaction-panel {
+    min-height: 0;
+  }
+
+  .panel-header {
+    height: 44px;
+  }
+
+  .search-row {
+    padding: 8px 12px;
+  }
+
+  .interaction-list {
+    height: auto;
+    min-height: 220px;
+    max-height: 42dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .empty-list {
+    min-height: 220px;
+    padding: 28px 18px;
+  }
+
+  .inspector-panel {
+    min-height: 360px;
+  }
+
+  .inspector-head {
+    height: auto;
+    min-height: 58px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .inspector-head > div,
+  .request-line {
+    min-width: 0;
+  }
+
+  .request-line strong {
+    max-width: 100%;
+  }
+
+  .inspector-sub {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+
+  .inspector-sub code {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    padding-left: 4px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+  }
+
+  .inspector-content {
+    height: auto;
+    min-height: 300px;
+    max-height: 60dvh;
+  }
+
+  .body-view {
+    min-height: 300px;
+  }
+
+  .kv-row {
+    grid-template-columns: minmax(92px, 32%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 12px;
+  }
+
+  .landing {
+    min-height: calc(100dvh - var(--topbar));
+    padding: 24px 14px;
+  }
+
+  .landing-card {
+    padding: 20px 16px;
+  }
+}
