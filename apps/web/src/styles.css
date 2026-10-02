@@ -1713,3 +1713,13 @@ kbd,
     flex-wrap: wrap;
   }
 }
+
+
+.request-line > .query {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.live-hint {
+  text-transform: none;
+}
