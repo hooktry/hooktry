@@ -1076,12 +1076,22 @@ kbd,
     min-width: 0;
   }
 
-  .request-line strong {
-    max-width: 100%;
+  .inspector-head .request-line {
+    display: none;
+  }
+
+  .inspector-head {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+
+  .inspector-head > div {
+    flex: 1 1 auto;
   }
 
   .inspector-sub {
     min-width: 0;
+    margin-top: 0;
     flex-wrap: wrap;
     gap: 4px 10px;
   }
