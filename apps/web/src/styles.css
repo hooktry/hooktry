@@ -429,21 +429,74 @@ kbd,
 }
 
 .hook-header {
-  padding: 18px;
+  padding: 20px 18px 18px;
   border-bottom: 1px solid var(--line-soft);
+}
+
+.hook-header-inner {
+  width: min(100%, 1180px);
 }
 
 .hook-title-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
+}
+
+.hook-identity {
+  min-width: 0;
+}
+
+.hook-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hook-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #727c89;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.hook-status-live {
+  color: #b7d973;
+}
+
+.hook-status-live .dot {
+  background: #a9d358;
+  box-shadow: 0 0 0 3px rgba(169, 211, 88, 0.07);
+}
+
+.hook-status-connecting .dot,
+.hook-status-disconnected .dot {
+  background: var(--warning);
+}
+
+.hook-status-error .dot {
+  background: var(--danger);
+}
+
+.hook-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 7px;
 }
 
 .hook-header h1 {
-  font-size: 21px;
+  min-width: 0;
+  margin: 0;
+  color: #eef1f4;
+  font-size: 18px;
   font-family: "SFMono-Regular", Menlo, monospace;
   font-weight: 580;
+  line-height: 1.25;
   letter-spacing: -0.025em;
 }
 
@@ -455,30 +508,71 @@ kbd,
   display: none;
 }
 
+.icon-button {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #313844;
+  border-radius: 6px;
+  background: #15191f;
+  color: #7f8996;
+  cursor: pointer;
+}
+
+.icon-button:hover:not(:disabled) {
+  border-color: #4b5665;
+  background: #1c222a;
+  color: #d9dde3;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid rgba(217, 255, 100, 0.7);
+  outline-offset: 2px;
+}
+
+.icon-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.icon-button-text {
+  font-size: 8px;
+}
+
+.viewer-url-group {
+  width: min(100%, 980px);
+}
+
 .url-box {
   width: min(100%, 980px);
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
   align-items: center;
-  min-height: 40px;
+  min-height: 42px;
   margin-top: 16px;
   border: 1px solid #303640;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #101318;
   overflow: hidden;
 }
 
 .url-label {
   padding-left: 12px;
-  color: #68717e;
+  color: #737d8a;
   font-size: 10px;
+  font-weight: 600;
 }
 
 .url-box code {
   min-width: 0;
   padding: 0 10px;
   overflow: hidden;
-  color: #d8dce2;
+  color: #dde1e6;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -486,40 +580,83 @@ kbd,
 
 .copy-button {
   align-self: stretch;
+  min-width: 58px;
   border: 0;
   border-left: 1px solid #2b3139;
-  padding: 0 13px;
-  background: #171b21;
-  color: #949daa;
+  padding: 0 14px;
+  background: #191e25;
+  color: #a3acb8;
   cursor: pointer;
   font-size: 10px;
+  font-weight: 600;
+}
+
+.copy-button:hover {
+  background: #20262e;
+  color: #eef1f4;
 }
 
 .readonly-note {
-  width: min(100%, 980px);
-  margin-top: 16px;
-  border: 1px solid #29303a;
-  border-radius: 5px;
-  padding: 9px 11px;
-  color: #737d89;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 0 2px;
+  color: #697380;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.readonly-note strong {
+  color: #8f99a6;
+  font-weight: 600;
+}
+
+.readonly-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #343b46;
+  border-radius: 50%;
+  color: #8993a0;
+  font-family: "SFMono-Regular", Menlo, monospace;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .metrics {
-  max-width: 980px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  margin-top: 14px;
+  width: min(100%, 980px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 18px;
+  border-top: 1px solid #20252d;
+  padding-top: 14px;
 }
 
 .metric {
+  min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 7px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0 18px;
+  border-right: 1px solid #242a32;
+}
+
+.metric:first-child {
+  padding-left: 0;
+}
+
+.metric:last-child {
+  border-right: 0;
 }
 
 .metric-value {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -532,15 +669,21 @@ kbd,
   color: #c7e884;
 }
 
-.metric span {
-  color: #606a77;
-  font-size: 10px;
+.metric > span {
+  color: #5f6976;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .metric strong {
-  color: #aeb5bf;
-  font-size: 10px;
-  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  color: #bcc3cc;
+  font-size: 12px;
+  font-weight: 520;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-backdrop {
@@ -1116,6 +1259,10 @@ kbd,
     padding: 16px 14px;
   }
 
+  .hook-header-inner {
+    width: 100%;
+  }
+
   .hook-title-row {
     gap: 14px;
   }
@@ -1127,9 +1274,18 @@ kbd,
   .hook-header h1 {
     max-width: 100%;
     overflow: hidden;
-    font-size: 20px;
+    font-size: 18px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .hook-id-row {
+    gap: 6px;
+  }
+
+  .hook-id-copy {
+    width: 28px;
+    height: 28px;
   }
 
   .hook-id-full {
@@ -1173,28 +1329,38 @@ kbd,
 
   .readonly-note {
     width: 100%;
-    margin-top: 14px;
-    padding: 10px 12px;
+    margin-top: 8px;
+    padding: 0 2px;
     line-height: 1.5;
     overflow-wrap: anywhere;
   }
 
   .metrics {
-    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 16px;
+    gap: 0;
     margin-top: 16px;
+    padding-top: 12px;
   }
 
   .metric {
     min-width: 0;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    padding: 8px 12px;
+    border-right: 0;
+    border-bottom: 1px solid #20252d;
+  }
+
+  .metric:nth-child(odd) {
+    padding-left: 0;
+    border-right: 1px solid #242a32;
   }
 
   .metric:nth-child(even) {
-    padding-left: 10px;
+    padding-left: 12px;
+  }
+
+  .metric:nth-last-child(-n + 2) {
+    border-bottom: 0;
   }
 
   .metric strong {
