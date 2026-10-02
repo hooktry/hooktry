@@ -434,6 +434,10 @@ Authenticated Workspace Inventory builds on the existing Workspace and credentia
 
 The public capability separation remains unchanged.
 
+## Post-claim workspace lifecycle
+
+DISC1 stops at authenticated discovery. The detailed post-claim management model - list/reopen/history/revoke/delete/capability rotation - is defined in [HOOK2 - Persistent Workspace Hook Inventory](persistent-workspace-hooks.md).
+
 ## Suggested implementation slices
 
 Do not implement everything at once.
