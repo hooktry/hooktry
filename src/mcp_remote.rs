@@ -12,10 +12,7 @@ const MODERN_PROTOCOL_VERSION: &str = "2026-07-28";
 const LATEST_HANDSHAKE_PROTOCOL_VERSION: &str = "2025-11-25";
 const LEGACY_HANDSHAKE_PROTOCOL_VERSION: &str = "2025-06-18";
 
-pub async fn post(
-    State(state): State<HostedRelayState>,
-    Json(request): Json<Value>,
-) -> Response {
+pub async fn post(State(state): State<HostedRelayState>, Json(request): Json<Value>) -> Response {
     let response = match handle(&state, request).await {
         Ok(Some(body)) => (StatusCode::OK, Json(body)).into_response(),
         Ok(None) => StatusCode::ACCEPTED.into_response(),
@@ -47,10 +44,7 @@ pub async fn method_not_allowed() -> Response {
     with_cors(response)
 }
 
-pub async fn handle(
-    state: &HostedRelayState,
-    request: Value,
-) -> Result<Option<Value>, String> {
+pub async fn handle(state: &HostedRelayState, request: Value) -> Result<Option<Value>, String> {
     let id = request.get("id").cloned();
     let method = request
         .get("method")
@@ -85,11 +79,7 @@ pub async fn handle(
         "ping" => json!({}),
         "tools/list" => json!({"tools": tools()}),
         "tools/call" => {
-            call_tool(
-                state,
-                request.get("params").cloned().unwrap_or(Value::Null),
-            )
-            .await?
+            call_tool(state, request.get("params").cloned().unwrap_or(Value::Null)).await?
         }
         _ => return Ok(Some(error(id, -32601, "method not found"))),
     };
