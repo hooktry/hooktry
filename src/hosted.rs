@@ -12,7 +12,6 @@ use uuid::Uuid;
 
 use crate::{
     agent_surface,
-    mcp_remote,
     anonymous::{AnonymousExposureService, AnonymousExposureStore, anonymous_app},
     approval::{ApprovalDecision, ApprovalError, ApprovalRecord, ApprovalStore},
     domain::{ExposureAccess, ExposureMode},
@@ -26,6 +25,7 @@ use crate::{
         Workspace,
     },
     hosted_state::{HostedExposureRecord, HostedExposureStore},
+    mcp_remote,
     relay::RelayBroker,
     relay_auth::{CapabilityStore, token_digest},
     relay_ingress::{RelayIngressState, relay_ingress_app},
