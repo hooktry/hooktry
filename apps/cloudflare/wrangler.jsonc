@@ -53,7 +53,8 @@
       "/hook/*",
       "/view/*",
       "/claim/*",
-      "/healthz"
+      "/healthz",
+      "/mcp"
     ]
   }
 }
