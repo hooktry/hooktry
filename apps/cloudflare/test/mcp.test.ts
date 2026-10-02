@@ -88,10 +88,10 @@ describe("PLUGIN1 remote MCP", () => {
     expect(
       result.structuredContent.handoff_expires_at_unix_seconds,
     ).toBeTypeOf("number");
-    expect(result.content[0].text).toContain("Send webhooks here:");
-    expect(result.content[0].text).toContain("View captured requests (read-only):");
-    expect(result.content[0].text).toContain("Open as owner in browser");
-    expect(result.content[0].text).toContain("claim/manage the Hook");
+    expect(result.content[0].text).toContain("SEND REQUESTS HERE:");
+    expect(result.content[0].text).toContain("VIEW ONLY (read-only):");
+    expect(result.content[0].text).toContain("OPEN TO CLAIM / MANAGE");
+    expect(result.content[0].text).toContain("owner link is not the Viewer URL");
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [
