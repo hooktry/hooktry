@@ -880,21 +880,41 @@ kbd,
   position: relative;
   z-index: 3;
   cursor: col-resize;
-  background: #171b21;
-  border-inline: 1px solid #20252d;
+  background: transparent;
   touch-action: none;
+}
+
+.pane-resizer::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: #252b34;
+  content: "";
 }
 
 .pane-resizer::after {
   position: absolute;
-  inset: 0 1px;
-  background: transparent;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #39414d;
+  box-shadow: 0 0 0 3px #12151a;
   content: "";
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .pane-resizer:hover::after,
 .resizing-pane .pane-resizer::after {
-  background: rgba(217, 255, 100, 0.32);
+  background: #a6b06f;
+  box-shadow: 0 0 0 3px #171b21;
 }
 
 .resizing-pane {
@@ -1089,7 +1109,9 @@ kbd,
 }
 
 .inspector-head {
-  height: 45px;
+  min-height: 58px;
+  height: auto;
+  padding-block: 8px;
 }
 
 .request-line strong {
@@ -1107,6 +1129,32 @@ kbd,
   color: #5f6976;
   font-family: "SFMono-Regular", Menlo, monospace;
   font-size: 9px;
+}
+
+.interaction-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 5px;
+}
+
+.interaction-id-label {
+  flex: 0 0 auto;
+  color: #505965;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+}
+
+.interaction-id-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: #68727f;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabs {
@@ -1148,7 +1196,7 @@ kbd,
 }
 
 .inspector-content {
-  height: calc(100% - 79px);
+  height: calc(100% - 92px);
   overflow: auto;
 }
 
@@ -1570,8 +1618,12 @@ kbd,
   }
 
   .inspector-head {
-    min-height: 44px;
+    min-height: 58px;
     padding-block: 8px;
+  }
+
+  .interaction-id-row code {
+    max-width: 100%;
   }
 
   .inspector-head > div {
