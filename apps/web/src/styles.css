@@ -943,6 +943,10 @@ kbd,
   border-bottom: 1px solid var(--line-soft);
 }
 
+.panel-header {
+  height: 58px;
+}
+
 .panel-header strong {
   font-size: 11px;
   font-weight: 650;
@@ -964,13 +968,16 @@ kbd,
 }
 
 .search-row {
-  padding: 8px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
   border-bottom: 1px solid var(--line-soft);
 }
 
 .search-row input {
   width: 100%;
-  height: 30px;
+  height: 28px;
   border: 1px solid #292f38;
   border-radius: 5px;
   outline: none;
@@ -989,7 +996,7 @@ kbd,
 }
 
 .interaction-list {
-  height: calc(100% - 84px);
+  height: calc(100% - 92px);
   overflow: auto;
 }
 
