@@ -41,7 +41,7 @@ describe("PLUGIN1 remote MCP", () => {
   });
 
   it("creates a usable webhook without leaking viewer or claim capabilities", async () => {
-    const response = await fetchWorker(
+    const response = await worker.fetch(
       new Request("https://mcp.hooktry.com/mcp", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -55,6 +55,7 @@ describe("PLUGIN1 remote MCP", () => {
           },
         }),
       }),
+      { ...bindings, HOOKTRY_PUBLIC_ORIGIN: "https://hooktry.com" },
     );
 
     expect(response.status).toBe(200);
@@ -63,7 +64,7 @@ describe("PLUGIN1 remote MCP", () => {
 
     expect(result.isError).toBe(false);
     expect(result.structuredContent.hook_url).toMatch(
-      /^https:\/\/mcp\.hooktry\.com\/hook\/hk_[A-Za-z0-9_-]{32}$/,
+      /^https:\/\/hooktry\.com\/hook\/hk_[A-Za-z0-9_-]{32}$/,
     );
 
     const serialized = JSON.stringify(result);

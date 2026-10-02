@@ -60,8 +60,15 @@
   "workers_dev": true,
   "routes": [
     {
+      "pattern": "hooktry.com",
+      "custom_domain": true
+    },
+    {
       "pattern": "mcp.hooktry.com",
       "custom_domain": true
     }
-  ]
+  ],
+  "vars": {
+    "HOOKTRY_PUBLIC_ORIGIN": "https://hooktry.com"
+  }
 }
