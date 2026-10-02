@@ -132,6 +132,7 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `DOGFOOD_PROOF.md` - end-to-end buggy/fixed temporal probe acceptance and its evidence limits
 - `LIVE_INTEGRATION_PROOF.md` - real approval-outbox webhook workflow protected by Scenario exact-count/idempotency/settle semantics
 - `CROSS_PROJECT_PROOF.md` - Operational consumes a pinned Hooktry executable across repository/process/HTTP boundaries
+- `EPHEMERAL_HOOK_PROOF.md` - manual production proof of anonymous Hook ingest -> persistence -> live WEB1 inspection
 - `usage-evidence.yaml` - structured self-dogfood, first-party portfolio, and future external-customer usage evidence
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
