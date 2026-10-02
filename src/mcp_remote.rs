@@ -106,7 +106,7 @@ fn tools() -> Vec<Value> {
     vec![json!({
         "name": "create_webhook_endpoint",
         "title": "Create webhook endpoint",
-        "description": "Create a temporary Hooktry webhook URL when the user needs an endpoint to receive test webhook or integration traffic. The endpoint expires automatically. This tool does not expose captured request data, viewer capabilities, or claim capabilities.",
+        "description": "Create a temporary Hooktry webhook endpoint for integration testing. Returns the send URL and a separate private viewer URL for the same temporary endpoint. The endpoint expires automatically. Claim and account capabilities are not returned.",
         "inputSchema": {
             "type": "object",
             "properties": {},
@@ -121,6 +121,10 @@ fn tools() -> Vec<Value> {
                     "format": "uuid"
                 },
                 "hook_url": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "view_url": {
                     "type": "string",
                     "format": "uri"
                 },
@@ -140,6 +144,7 @@ fn tools() -> Vec<Value> {
             "required": [
                 "exposure_id",
                 "hook_url",
+                "view_url",
                 "expires_at_unix_seconds",
                 "request_limit",
                 "max_body_bytes",
@@ -196,8 +201,9 @@ async fn call_tool(state: &HostedRelayState, params: Value) -> Result<Value, Str
                 "content": [{
                     "type": "text",
                     "text": format!(
-                        "Created a temporary Hooktry webhook endpoint: {}",
-                        structured["hook_url"].as_str().unwrap_or_default()
+                        "Created a temporary Hooktry webhook endpoint. Send: {} View: {}",
+                        structured["hook_url"].as_str().unwrap_or_default(),
+                        structured["view_url"].as_str().unwrap_or_default()
                     )
                 }],
                 "structuredContent": structured,
