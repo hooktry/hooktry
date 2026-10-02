@@ -136,7 +136,7 @@ function tools(): Array<Record<string, unknown>> {
       name: "create_webhook_endpoint",
       title: "Create webhook endpoint",
       description:
-        "Create a temporary Hooktry webhook endpoint for integration testing. Returns the send URL and a separate private viewer URL for the same temporary endpoint. The endpoint expires automatically. Claim and account capabilities are not returned.",
+        "Create a temporary Hooktry webhook endpoint for integration testing. Returns the send URL, a separate private viewer URL, and a short-lived one-time browser handoff URL for owner actions. The endpoint expires automatically. Claim and account capabilities are not returned.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -158,6 +158,13 @@ function tools(): Array<Record<string, unknown>> {
             type: "string",
             format: "uri",
           },
+          handoff_url: {
+            type: "string",
+            format: "uri",
+          },
+          handoff_expires_at_unix_seconds: {
+            type: "integer",
+          },
           expires_at_unix_seconds: {
             type: ["integer", "null"],
           },
@@ -175,6 +182,8 @@ function tools(): Array<Record<string, unknown>> {
           "exposure_id",
           "hook_url",
           "view_url",
+          "handoff_url",
+          "handoff_expires_at_unix_seconds",
           "expires_at_unix_seconds",
           "request_limit",
           "max_body_bytes",
@@ -225,6 +234,9 @@ async function callTool(
     exposure_id: provision.exposure_id,
     hook_url: provision.hook_url,
     view_url: provision.view_url,
+    handoff_url: provision.handoff_url,
+    handoff_expires_at_unix_seconds:
+      provision.handoff_expires_at_unix_seconds,
     expires_at_unix_seconds: provision.expires_at_unix_seconds ?? null,
     request_limit: provision.request_limit,
     max_body_bytes: provision.max_body_bytes,
@@ -235,7 +247,7 @@ async function callTool(
     content: [
       {
         type: "text",
-        text: `Created a temporary Hooktry webhook endpoint. Send: ${provision.hook_url} View: ${provision.view_url}`,
+        text: `Created a temporary Hooktry webhook endpoint. Send: ${provision.hook_url} View: ${provision.view_url} Open in browser: ${provision.handoff_url}`,
       },
     ],
     structuredContent,

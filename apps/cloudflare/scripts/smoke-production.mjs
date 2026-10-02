@@ -16,6 +16,7 @@ const expectGitHubAuth = process.env.HOOKTRY_EXPECT_GITHUB_AUTH === "1";
 const usageIngestToken = process.env.HOOKTRY_USAGE_INGEST_TOKEN?.trim() || null;
 
 let provision;
+let ownerProvision;
 let oauthStateDigest = null;
 let usageEventId = null;
 const interactions = [];
@@ -79,6 +80,75 @@ try {
     provision.claim_url?.startsWith(`${publicOrigin}/claim/`),
     "claim_url does not use canonical public origin",
   );
+  assert(
+    provision.handoff_url?.startsWith(`${publicOrigin}/open#ho_`),
+    "handoff_url does not use canonical public origin",
+  );
+  assert(
+    provision.handoff_expires_at_unix_seconds <
+      provision.expires_at_unix_seconds,
+    "handoff lifetime is not shorter than Hook lifetime",
+  );
+
+  const handoffLanding = await fetch(`${publicOrigin}/open`, {
+    headers: { accept: "text/html" },
+  });
+  assert(
+    handoffLanding.ok,
+    `handoff SPA failed: ${handoffLanding.status}`,
+  );
+  assert(
+    handoffLanding.headers.get("referrer-policy") === "no-referrer",
+    "handoff landing does not suppress referrers",
+  );
+  assert(
+    handoffLanding.headers.get("cache-control") === "no-store",
+    "handoff landing is cacheable",
+  );
+
+  const handoffToken = new URL(provision.handoff_url).hash.slice(1);
+  const handoffExchange = await fetch(
+    `${publicOrigin}/api/v1/handoffs/exchange`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ handoff_token: handoffToken }),
+    },
+  );
+  assert(
+    handoffExchange.ok,
+    `handoff exchange failed: ${handoffExchange.status}`,
+  );
+  ownerProvision = await handoffExchange.json();
+  assert(
+    ownerProvision.hook_url === provision.hook_url,
+    "handoff Hook capability mismatch",
+  );
+  assert(
+    ownerProvision.view_url === provision.view_url,
+    "handoff View capability mismatch",
+  );
+  assert(
+    ownerProvision.claim_url === provision.claim_url,
+    "handoff Claim capability mismatch",
+  );
+  assert(
+    ownerProvision.anonymous_principal === undefined,
+    "handoff leaked anonymous principal",
+  );
+
+  const handoffReplay = await fetch(
+    `${publicOrigin}/api/v1/handoffs/exchange`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ handoff_token: handoffToken }),
+    },
+  );
+  assert(
+    handoffReplay.status === 410,
+    `handoff capability was reusable: ${handoffReplay.status}`,
+  );
 
   const inbox = websocketInbox(provision.view_websocket_url);
   await inbox.opened;
@@ -98,7 +168,7 @@ try {
   assert(firstInteraction.interaction.sequence === 1, "unexpected first Interaction sequence");
   assert(firstInteraction.interaction.path === "/deploy1", "unexpected captured path");
 
-  const claim = await fetch(provision.claim_url, {
+  const claim = await fetch(ownerProvision.claim_url, {
     method: "POST",
     headers: {
       authorization: `Bearer ${claimToken}`,
@@ -234,8 +304,22 @@ async function verifyMcp() {
           createWebhook.outputSchema?.required?.includes("view_url"),
           "MCP create_webhook_endpoint view_url is not required",
         );
+        assert(
+          createWebhook.outputSchema?.properties?.handoff_url?.format === "uri",
+          "MCP create_webhook_endpoint handoff_url output missing",
+        );
+        assert(
+          createWebhook.outputSchema?.required?.includes("handoff_url"),
+          "MCP create_webhook_endpoint handoff_url is not required",
+        );
+        assert(
+          createWebhook.outputSchema?.required?.includes(
+            "handoff_expires_at_unix_seconds",
+          ),
+          "MCP handoff expiry output is not required",
+        );
         console.log(
-          "PLUGIN2 VIEW1 acceptance passed: mcp.hooktry.com -> tools/list includes view_url",
+          "HANDOFF1 acceptance passed: mcp.hooktry.com advertises View + one-time browser handoff",
         );
         return;
       }

@@ -106,7 +106,7 @@ export function randomPrincipal(): string {
   return `hooktry_ap_${hex(bytes)}`;
 }
 
-export function randomCapability(prefix: "hk_" | "vw_" | "cl_"): string {
+export function randomCapability(prefix: "hk_" | "vw_" | "cl_" | "ho_"): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return prefix + hex(bytes);
 }

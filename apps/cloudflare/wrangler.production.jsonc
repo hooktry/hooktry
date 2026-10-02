@@ -53,6 +53,7 @@
       "/hook/*",
       "/view/*",
       "/claim/*",
+      "/open",
       "/healthz",
       "/mcp"
     ]

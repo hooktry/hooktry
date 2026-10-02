@@ -10,6 +10,7 @@ import {
 } from "./core";
 import { ExposureRuntime, INTERNAL_EXPOSURE_HEADER } from "./exposure-runtime";
 import { provisionAnonymousHook } from "./anonymous-service";
+import { exchangeHandoff } from "./handoff";
 import { handleMcp } from "./mcp";
 import {
   finishGitHubOAuth,
@@ -58,6 +59,20 @@ export default {
         url.pathname === "/api/v1/hooks"
       ) {
         return await createHook(request, env);
+      }
+
+      if (
+        request.method === "POST" &&
+        url.pathname === "/api/v1/handoffs/exchange"
+      ) {
+        return await exchangeOwnerHandoff(request, env);
+      }
+
+      if (
+        request.method === "GET" &&
+        url.pathname === "/open"
+      ) {
+        return await handoffLanding(request, env);
       }
 
       if (
@@ -136,6 +151,51 @@ async function createHook(request: Request, env: Env): Promise<Response> {
   );
   response.headers.set("cache-control", "no-store");
   return response;
+}
+
+async function exchangeOwnerHandoff(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  let payload: { handoff_token?: unknown };
+  try {
+    payload = (await request.json()) as { handoff_token?: unknown };
+  } catch {
+    throw new AdapterError(400, "invalid_json");
+  }
+
+  const token =
+    typeof payload.handoff_token === "string"
+      ? payload.handoff_token
+      : "";
+  if (!/^ho_[0-9a-f]{32}$/.test(token)) {
+    throw new AdapterError(400, "invalid_handoff");
+  }
+
+  const provision = await exchangeHandoff(
+    env,
+    token,
+    Math.floor(Date.now() / 1000),
+  );
+  const response = json(provision);
+  response.headers.set("cache-control", "no-store");
+  return response;
+}
+
+async function handoffLanding(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const asset = await env.ASSETS.fetch(request);
+  const headers = new Headers(asset.headers);
+  headers.set("cache-control", "no-store");
+  headers.set("referrer-policy", "no-referrer");
+  headers.set("x-robots-tag", "noindex, nofollow");
+  return new Response(asset.body, {
+    status: asset.status,
+    statusText: asset.statusText,
+    headers,
+  });
 }
 
 async function routeHook(

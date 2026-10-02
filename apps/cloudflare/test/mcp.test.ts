@@ -36,6 +36,11 @@ describe("PLUGIN1 remote MCP", () => {
       format: "uri",
     });
     expect(body.result.tools[0].outputSchema.required).toContain("view_url");
+    expect(body.result.tools[0].outputSchema.properties.handoff_url).toEqual({
+      type: "string",
+      format: "uri",
+    });
+    expect(body.result.tools[0].outputSchema.required).toContain("handoff_url");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
@@ -74,6 +79,12 @@ describe("PLUGIN1 remote MCP", () => {
     expect(result.structuredContent.view_url).toMatch(
       /^https:\/\/hooktry\.com\/view\/vw_[0-9a-f]{32}$/,
     );
+    expect(result.structuredContent.handoff_url).toMatch(
+      /^https:\/\/hooktry\.com\/open#ho_[0-9a-f]{32}$/,
+    );
+    expect(
+      result.structuredContent.handoff_expires_at_unix_seconds,
+    ).toBeTypeOf("number");
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [
@@ -100,6 +111,33 @@ describe("PLUGIN1 remote MCP", () => {
     );
     expect(viewer.status).toBe(200);
     expect(await viewer.text()).toContain('<div id="root"></div>');
+
+    const handoffToken = new URL(
+      result.structuredContent.handoff_url,
+    ).hash.slice(1);
+    const exchange = await fetchWorker(
+      new Request("https://hooktry.com/api/v1/handoffs/exchange", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handoff_token: handoffToken }),
+      }),
+    );
+    expect(exchange.status).toBe(200);
+    const owner = await exchange.json() as any;
+    expect(owner.hook_url).toBe(result.structuredContent.hook_url);
+    expect(owner.view_url).toBe(result.structuredContent.view_url);
+    expect(owner.claim_url).toMatch(
+      /^https:\/\/hooktry\.com\/claim\/cl_[0-9a-f]{32}$/,
+    );
+
+    const replay = await fetchWorker(
+      new Request("https://hooktry.com/api/v1/handoffs/exchange", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handoff_token: handoffToken }),
+      }),
+    );
+    expect(replay.status).toBe(410);
   });
 
   it("accepts initialization notifications without a response body", async () => {

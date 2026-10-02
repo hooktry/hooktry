@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatBytes,
+  handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
   prettyBody,
@@ -32,6 +33,20 @@ describe("WEB1 model", () => {
     ).toBe("vw_12345678901234567890123456789012");
     expect(viewCapabilityFromPath("/hook/hk_123")).toBeNull();
     expect(viewCapabilityFromPath("/view/vw_short")).toBeNull();
+  });
+
+  it("recognizes only canonical fragment handoff capabilities", () => {
+    expect(
+      handoffCapabilityFromHash(
+        "#ho_1234567890abcdef1234567890abcdef",
+      ),
+    ).toBe("ho_1234567890abcdef1234567890abcdef");
+    expect(handoffCapabilityFromHash("#ho_short")).toBeNull();
+    expect(
+      handoffCapabilityFromHash(
+        "#hk_1234567890abcdef1234567890abcdef",
+      ),
+    ).toBeNull();
   });
 
   it("formats retained sizes densely", () => {

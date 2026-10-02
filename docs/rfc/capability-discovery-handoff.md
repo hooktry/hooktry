@@ -189,7 +189,7 @@ Viewer
   https://hooktry.com/view/vw_...
 
 Open in browser
-  https://hooktry.com/open/ho_...
+  https://hooktry.com/open#ho_...
 
 Send test
   curl ...
@@ -204,6 +204,8 @@ ho_...
 ~~~
 
 The handoff capability is not hk_, vw_, or cl_.
+
+The token is placed in the URL fragment, not the request path. Browser fragments are not sent in the HTTP request for `/open`, so the raw handoff capability does not appear in ordinary Worker request paths, access logs, cache keys, or Referer headers. The Hooktry SPA reads the fragment locally and exchanges it through a same-origin POST.
 
 ### Handoff semantics
 
@@ -235,7 +237,7 @@ Hooktry
               v
        laptop browser
               |
-       GET /open/ho_...
+       GET /open#ho_...
               |
         atomic exchange
               |
@@ -244,6 +246,10 @@ Hooktry
 ~~~
 
 After successful exchange the browser receives the owner-side provision needed to manage that anonymous Hook locally.
+
+The managed-cloud implementation uses a 30-minute handoff lifetime. The handoff row stores only a digest of `ho_` plus an AES-GCM encrypted owner provision. The encryption key is derived from the raw handoff capability, so a database-only reader does not gain the underlying Hook/View/Claim capabilities. Successful exchange atomically invalidates the handoff and erases the encrypted bundle from the Exposure row.
+
+The browser persists the recovered owner provision in its local capability wallet and immediately replaces the `/open#ho_...` URL with the View URL so the handoff token does not remain in browser navigation state.
 
 The ho_ token must not remain a reusable permanent owner URL.
 
@@ -378,7 +384,7 @@ Machine-readable example:
   "hook_url": "https://hooktry.com/hook/hk_...",
   "view_url": "https://hooktry.com/view/vw_...",
   "claim_url": "https://hooktry.com/claim/cl_...",
-  "handoff_url": "https://hooktry.com/open/ho_...",
+  "handoff_url": "https://hooktry.com/open#ho_...",
   "expires_at_unix_seconds": 0
 }
 ~~~
@@ -445,9 +451,11 @@ DISC1.1 - Browser Local Capability Wallet / Recent Hooks
 
 DISC1.2 - Owner viewer URL + copy/open UX
 
-DISC1.3 - One-time ho_ handoff capability
+DISC1.3 - One-time ho_ handoff capability (managed-cloud implementation)
 
-DISC1.4 - CLI/MCP create output includes handoff_url
+DISC1.4 - MCP create output includes handoff_url (managed-cloud implementation)
+
+DISC1.4b - CLI create output includes handoff_url
 
 DISC1.5 - Authenticated Workspace Hook Inventory
 ~~~

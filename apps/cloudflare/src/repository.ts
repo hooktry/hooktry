@@ -67,6 +67,8 @@ export async function getExposureById(
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
     `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
+            handoff_capability_digest, handoff_payload_ciphertext, handoff_payload_nonce,
+            handoff_expires_at, handoff_consumed_at,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
      WHERE exposure_id = ?`,
@@ -81,6 +83,8 @@ export async function findExposureByIngressCapability(
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
     `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
+            handoff_capability_digest, handoff_payload_ciphertext, handoff_payload_nonce,
+            handoff_expires_at, handoff_consumed_at,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
      WHERE ingress_capability_digest = ?`,
@@ -95,6 +99,8 @@ export async function findExposureByViewCapability(
 ): Promise<AnonymousExposureRow | null> {
   return env.DB.prepare(
     `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
+            handoff_capability_digest, handoff_payload_ciphertext, handoff_payload_nonce,
+            handoff_expires_at, handoff_consumed_at,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
      WHERE view_capability_digest = ?`,
@@ -111,6 +117,8 @@ export async function claimExposure(
 ): Promise<AnonymousExposureSummary> {
   const row = await env.DB.prepare(
     `SELECT exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
+            handoff_capability_digest, handoff_payload_ciphertext, handoff_payload_nonce,
+            handoff_expires_at, handoff_consumed_at,
             workspace_id, created_at, expires_at, claimed_at, request_count, retained_bytes
      FROM anonymous_exposures
      WHERE claim_capability_digest = ?`,
@@ -124,13 +132,20 @@ export async function claimExposure(
 
   const result = await env.DB.prepare(
     `UPDATE anonymous_exposures
-     SET workspace_id = ?, claim_capability_digest = NULL, claimed_at = ?
+     SET workspace_id = ?,
+         claim_capability_digest = NULL,
+         claimed_at = ?,
+         handoff_capability_digest = NULL,
+         handoff_payload_ciphertext = NULL,
+         handoff_payload_nonce = NULL,
+         handoff_expires_at = NULL,
+         handoff_consumed_at = COALESCE(handoff_consumed_at, ?)
      WHERE exposure_id = ?
        AND claim_capability_digest = ?
        AND workspace_id IS NULL
        AND expires_at > ?`,
   )
-    .bind(workspaceId, now, row.exposure_id, claimCapabilityDigest, now)
+    .bind(workspaceId, now, now, row.exposure_id, claimCapabilityDigest, now)
     .run();
 
   if (result.meta.changes !== 1) {
@@ -142,6 +157,107 @@ export async function claimExposure(
     throw new AdapterError(500, "storage_error");
   }
   return summaryFromRow(claimed, now);
+}
+
+export async function installHandoff(
+  env: Env,
+  input: {
+    exposureId: string;
+    capabilityDigest: string;
+    ciphertext: string;
+    nonce: string;
+    expiresAt: number;
+    now: number;
+  },
+): Promise<void> {
+  const result = await env.DB.prepare(
+    `UPDATE anonymous_exposures
+     SET handoff_capability_digest = ?,
+         handoff_payload_ciphertext = ?,
+         handoff_payload_nonce = ?,
+         handoff_expires_at = ?,
+         handoff_consumed_at = NULL
+     WHERE exposure_id = ?
+       AND workspace_id IS NULL
+       AND expires_at > ?`,
+  )
+    .bind(
+      input.capabilityDigest,
+      input.ciphertext,
+      input.nonce,
+      input.expiresAt,
+      input.exposureId,
+      input.now,
+    )
+    .run();
+
+  if (result.meta.changes !== 1) {
+    throw new AdapterError(410, "invalid_handoff");
+  }
+}
+
+export async function readHandoff(
+  env: Env,
+  capabilityDigest: string,
+  now: number,
+): Promise<{
+  exposure_id: string;
+  handoff_payload_ciphertext: string;
+  handoff_payload_nonce: string;
+} | null> {
+  return env.DB.prepare(
+    `SELECT exposure_id, handoff_payload_ciphertext, handoff_payload_nonce
+     FROM anonymous_exposures
+     WHERE handoff_capability_digest = ?
+       AND handoff_payload_ciphertext IS NOT NULL
+       AND handoff_payload_nonce IS NOT NULL
+       AND handoff_consumed_at IS NULL
+       AND handoff_expires_at > ?
+       AND workspace_id IS NULL
+       AND expires_at > ?`,
+  )
+    .bind(capabilityDigest, now, now)
+    .first<{
+      exposure_id: string;
+      handoff_payload_ciphertext: string;
+      handoff_payload_nonce: string;
+    }>();
+}
+
+export async function consumeHandoff(
+  env: Env,
+  input: {
+    exposureId: string;
+    capabilityDigest: string;
+    now: number;
+  },
+): Promise<void> {
+  const result = await env.DB.prepare(
+    `UPDATE anonymous_exposures
+     SET handoff_capability_digest = NULL,
+         handoff_payload_ciphertext = NULL,
+         handoff_payload_nonce = NULL,
+         handoff_expires_at = NULL,
+         handoff_consumed_at = ?
+     WHERE exposure_id = ?
+       AND handoff_capability_digest = ?
+       AND handoff_consumed_at IS NULL
+       AND handoff_expires_at > ?
+       AND workspace_id IS NULL
+       AND expires_at > ?`,
+  )
+    .bind(
+      input.now,
+      input.exposureId,
+      input.capabilityDigest,
+      input.now,
+      input.now,
+    )
+    .run();
+
+  if (result.meta.changes !== 1) {
+    throw new AdapterError(410, "invalid_handoff");
+  }
 }
 
 export async function listInteractions(

@@ -109,6 +109,8 @@ Example response:
   "view_url": "https://hooktry.com/views/view_a8m...",
   "view_websocket_url": "wss://hooktry.com/views/view_a8m...",
   "claim_url": "https://hooktry.com/claims/claim_2kp...",
+  "handoff_url": "https://hooktry.com/open#ho_...",
+  "handoff_expires_at_unix_seconds": 0,
   "anonymous_principal": "hooktry_ap_..."
 }
 ```
@@ -210,7 +212,7 @@ Capability separation intentionally means that a Hook cannot be rediscovered fro
 Anonymous discovery is therefore explicit:
 
 - same-browser resources may be retained in a local capability wallet
-- CLI/MCP/remote-devbox resources may be transferred to a browser through a distinct one-time handoff capability
+- CLI/MCP/remote-devbox resources may be transferred to a browser through a distinct one-time handoff capability; public MCP returns handoff authority instead of exposing claim authority directly
 - authenticated resources are discovered through Workspace Inventory
 
 Ingress responses must never reveal view, claim, or handoff capabilities. IP addresses, User-Agent strings, cookies, and network proximity are not ownership authority.
@@ -272,6 +274,7 @@ The current hosted server implements:
 - current legacy `/hook/hk_<token>/*path` capture routes, with migration to canonical `/hooks/hook_<token>/*path`
 - current legacy `GET /view/vw_<token>`, with migration to canonical `GET /views/view_<token>` over HTTPS and WebSocket
 - current legacy `POST /claim/cl_<token>`, with migration to canonical `POST /claims/claim_<token>`
+- `GET /open#ho_<token>` browser landing plus same-origin one-time handoff exchange; the fragment token is not sent in the landing request
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
 - SHA-256 digests only for hook/view/claim capabilities at rest
 - atomic request-count and retained-byte quota enforcement

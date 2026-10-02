@@ -17,6 +17,11 @@ export interface AnonymousExposureRow {
   ingress_capability_digest: string;
   view_capability_digest: string;
   claim_capability_digest: string | null;
+  handoff_capability_digest: string | null;
+  handoff_payload_ciphertext: string | null;
+  handoff_payload_nonce: string | null;
+  handoff_expires_at: number | null;
+  handoff_consumed_at: number | null;
   workspace_id: string | null;
   created_at: number;
   expires_at: number;
@@ -52,11 +57,16 @@ export interface AnonymousExposureSummary {
   claimed: boolean;
 }
 
-export interface AnonymousProvision extends AnonymousExposureSummary {
+export interface AnonymousOwnerProvision extends AnonymousExposureSummary {
   hook_url: string;
   view_url: string;
   view_websocket_url: string;
   claim_url: string;
+}
+
+export interface AnonymousProvision extends AnonymousOwnerProvision {
+  handoff_url: string;
+  handoff_expires_at_unix_seconds: number;
   anonymous_principal: string;
 }
 

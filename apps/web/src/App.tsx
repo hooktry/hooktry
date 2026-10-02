@@ -9,12 +9,14 @@ import {
   authSession,
   claimHook,
   createHook,
+  exchangeHandoff,
   githubSignInUrl,
   websocketUrl,
 } from "./api";
 import {
   formatBytes,
   formatTimestamp,
+  handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
   prettyBody,
@@ -49,11 +51,16 @@ export function App() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<InspectorTab>("body");
   const [creating, setCreating] = useState(false);
+  const [openingHandoff, setOpeningHandoff] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   const viewCapability = viewCapabilityFromPath(pathname);
+  const handoffCapability =
+    pathname === "/open"
+      ? handoffCapabilityFromHash(window.location.hash)
+      : null;
   const viewing = Boolean(viewCapability || provision);
   const owner = Boolean(provision);
   const activeSummary = summary ?? provision;
@@ -79,6 +86,48 @@ export function App() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  useEffect(() => {
+    if (!handoffCapability) return;
+
+    let cancelled = false;
+    setOpeningHandoff(true);
+    setError(null);
+
+    void exchangeHandoff(handoffCapability)
+      .then((ownerProvision) => {
+        if (cancelled) return;
+
+        saveOwnerProvision(ownerProvision);
+        const viewPath = new URL(
+          ownerProvision.view_url,
+          window.location.href,
+        ).pathname;
+        window.history.replaceState({}, "", viewPath);
+        setPathname(viewPath);
+        setProvision(ownerProvision);
+        setSummary(ownerProvision);
+        setInteractions([]);
+        setSelectedId(null);
+        setSearch("");
+        setTab("body");
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Unable to open this Hook handoff.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setOpeningHandoff(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handoffCapability]);
 
   useEffect(() => {
     if (!viewWebSocketUrl) {
@@ -288,7 +337,9 @@ export function App() {
       <main className="main">
         <Topbar connection={connection} viewing={viewing} owner={owner} />
 
-        {!viewing ? (
+        {handoffCapability ? (
+          <HandoffLanding opening={openingHandoff} error={error} />
+        ) : !viewing ? (
           <Landing creating={creating} error={error} onCreate={handleCreate} />
         ) : (
           <section className="workspace">
@@ -408,6 +459,31 @@ function Topbar({
         )}
       </div>
     </header>
+  );
+}
+
+function HandoffLanding({
+  opening,
+  error,
+}: {
+  opening: boolean;
+  error: string | null;
+}) {
+  return (
+    <section className="landing">
+      <div className="landing-card">
+        <div className="eyebrow">OWNER HANDOFF</div>
+        <h1>{opening ? "Opening your Hook…" : "Unable to open this Hook"}</h1>
+        <p>
+          {opening
+            ? "Hooktry is exchanging a one-time owner handoff for this browser."
+            : error ?? "This handoff may have expired or already been used."}
+        </p>
+        <div className="landing-footnote">
+          Handoff links are single-use and do not grant webhook senders ownership.
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -1,9 +1,14 @@
 import type { Interaction } from "./types";
 
 const VIEW_PATH = /^\/view\/(vw_[A-Za-z0-9_-]{32})\/?$/;
+const HANDOFF_HASH = /^#(ho_[0-9a-f]{32})$/;
 
 export function viewCapabilityFromPath(pathname: string): string | null {
   return pathname.match(VIEW_PATH)?.[1] ?? null;
+}
+
+export function handoffCapabilityFromHash(hash: string): string | null {
+  return hash.match(HANDOFF_HASH)?.[1] ?? null;
 }
 
 export function viewSessionKey(capability: string): string {
