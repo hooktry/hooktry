@@ -361,7 +361,7 @@ export function App() {
     <div className="app-shell">
       <Sidebar viewing={viewing} onNewHook={handleNewHook} />
       <main className="main">
-        <Topbar connection={connection} viewing={viewing} owner={owner} />
+        <Topbar viewing={viewing} owner={owner} />
 
         {handoffCapability ? (
           <HandoffLanding opening={openingHandoff} error={error} />
@@ -467,11 +467,9 @@ function Sidebar({
 }
 
 function Topbar({
-  connection,
   viewing,
   owner,
 }: {
-  connection: ConnectionState;
   viewing: boolean;
   owner: boolean;
 }) {
@@ -484,13 +482,7 @@ function Topbar({
       </div>
       <div className="topbar-actions">
         {viewing ? (
-          <>
-            <span className={`connection ${connection}`}>
-              <span className="dot" />
-              {connectionLabel(connection)}
-            </span>
-            <span className="badge">{owner ? "owner session" : "read-only capability"}</span>
-          </>
+          <span className="badge">{owner ? "owner session" : "read-only capability"}</span>
         ) : (
           <span className="badge">no account required</span>
         )}
@@ -668,12 +660,16 @@ function HookHeader({
           </div>
         ) : null}
 
-        <div className="viewer-url-group">
-          <div className="url-box viewer-url-box">
-            <div className="url-label">Viewer URL</div>
+        <div className="viewer-capability">
+          <div className="viewer-capability-head">
+            <span className="viewer-capability-label">Viewer URL</span>
+            {!provision ? <span className="viewer-capability-badge">read-only</span> : null}
+          </div>
+
+          <div className="viewer-capability-row">
             <code>{viewUrl}</code>
             <button
-              className="copy-button"
+              className="viewer-copy-button"
               type="button"
               onClick={() => onCopy(viewUrl, "view")}
             >
@@ -682,11 +678,8 @@ function HookHeader({
           </div>
 
           {!provision ? (
-            <div className="readonly-note">
-              <span className="readonly-icon" aria-hidden="true">i</span>
-              <span>
-                <strong>Read-only capability.</strong> Hook and claim capabilities cannot be derived from this URL.
-              </span>
+            <div className="viewer-capability-note">
+              Hook and claim capabilities cannot be derived from this URL.
             </div>
           ) : null}
         </div>

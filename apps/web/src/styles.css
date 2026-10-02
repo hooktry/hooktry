@@ -544,8 +544,87 @@ kbd,
   font-size: 8px;
 }
 
-.viewer-url-group {
-  width: min(100%, 980px);
+.viewer-capability {
+  width: min(100%, 760px);
+  margin-top: 16px;
+}
+
+.viewer-capability-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.viewer-capability-label {
+  color: #7d8794;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.viewer-capability-badge {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid #303743;
+  border-radius: 999px;
+  background: #12161b;
+  color: #7e8794;
+  font-size: 9px;
+}
+
+.viewer-capability-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  min-height: 40px;
+  border: 1px solid #303640;
+  border-radius: 7px;
+  background: #101318;
+  overflow: hidden;
+}
+
+.viewer-capability-row code {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  overflow: hidden;
+  color: #dde1e6;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-copy-button {
+  min-width: 64px;
+  border: 0;
+  border-left: 1px solid #2b3139;
+  padding: 0 14px;
+  background: #191e25;
+  color: #a3acb8;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.viewer-copy-button:hover {
+  background: #20262e;
+  color: #eef1f4;
+}
+
+.viewer-copy-button:focus-visible {
+  outline: 2px solid rgba(217, 255, 100, 0.7);
+  outline-offset: -3px;
+}
+
+.viewer-capability-note {
+  margin-top: 7px;
+  color: #606a77;
+  font-size: 9px;
+  line-height: 1.45;
 }
 
 .url-box {
@@ -594,38 +673,6 @@ kbd,
 .copy-button:hover {
   background: #20262e;
   color: #eef1f4;
-}
-
-.readonly-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 8px;
-  padding: 0 2px;
-  color: #697380;
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-.readonly-note strong {
-  color: #8f99a6;
-  font-weight: 600;
-}
-
-.readonly-icon {
-  width: 16px;
-  height: 16px;
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid #343b46;
-  border-radius: 50%;
-  color: #8993a0;
-  font-family: "SFMono-Regular", Menlo, monospace;
-  font-size: 9px;
-  line-height: 1;
 }
 
 .metrics {
@@ -1327,11 +1374,16 @@ kbd,
     white-space: nowrap;
   }
 
-  .readonly-note {
+  .viewer-capability {
     width: 100%;
-    margin-top: 8px;
-    padding: 0 2px;
-    line-height: 1.5;
+    margin-top: 14px;
+  }
+
+  .viewer-capability-row code {
+    padding-inline: 10px;
+  }
+
+  .viewer-capability-note {
     overflow-wrap: anywhere;
   }
 
