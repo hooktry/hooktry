@@ -901,7 +901,12 @@ function Inspector({
             </span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
-            <span className="request-sequence">#{interaction.sequence}</span>
+            <span
+              className="request-sequence"
+              title={`Interaction ID: ${interaction.interaction_id}`}
+            >
+              #{interaction.sequence}
+            </span>
           </div>
         </div>
         <button
