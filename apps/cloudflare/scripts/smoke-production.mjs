@@ -342,7 +342,7 @@ async function cleanup(exposureId, captured) {
     );
 
     const listed = await cf(
-      `/accounts/${accountId}/r2/buckets/hooktry-payloads/objects?prefix=${encodeURIComponent(key)}`,
+      `/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects?prefix=${encodeURIComponent(key)}`,
     );
     assert(
       !(listed.result ?? []).some((object) => object.key === key),
