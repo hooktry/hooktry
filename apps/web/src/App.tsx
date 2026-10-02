@@ -35,7 +35,7 @@ import type {
 } from "./types";
 
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
-type InspectorTab = "body" | "headers" | "metadata";
+type InspectorTab = "body" | "query" | "headers" | "metadata";
 
 export function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname);
@@ -812,7 +812,7 @@ function InteractionList({
           <strong>Interactions</strong>
           <span className="count">{total}</span>
         </div>
-        <span className="live-hint">live stream</span>
+        <span className="live-hint">as received</span>
       </div>
       <div className="search-row">
         <input
@@ -890,6 +890,38 @@ function Inspector({
   }
 
   const body = prettyBody(interaction);
+  const queryEntries = interaction.query
+    ? Array.from(new URLSearchParams(interaction.query).entries())
+    : [];
+
+  const copyTarget =
+    tab === "body"
+      ? { label: "body", value: body }
+      : tab === "query"
+        ? {
+            label: "query",
+            value: queryEntries.map(([name, value]) => `${name}=${value}`).join("\n"),
+          }
+        : tab === "headers"
+          ? {
+              label: "headers",
+              value: interaction.headers.map(([name, value]) => `${name}: ${value}`).join("\n"),
+            }
+          : {
+              label: "metadata",
+              value: JSON.stringify(
+                {
+                  interaction_id: interaction.interaction_id,
+                  exposure_id: interaction.exposure_id,
+                  sequence: interaction.sequence,
+                  received_at: new Date(interaction.received_at_unix_ms).toISOString(),
+                  body_bytes: interaction.body_bytes,
+                  body_encoding: interaction.body_encoding,
+                },
+                null,
+                2,
+              ),
+            };
 
   return (
     <section className="panel inspector-panel inspector-panel-selected">
@@ -911,11 +943,11 @@ function Inspector({
         <button
           className="button secondary compact inspector-copy-button"
           type="button"
-          onClick={() => onCopy(body, "body")}
-          disabled={!body}
-          title={body ? "Copy request body" : "No body to copy"}
+          onClick={() => onCopy(copyTarget.value, copyTarget.label)}
+          disabled={!copyTarget.value}
+          title={copyTarget.value ? `Copy ${copyTarget.label}` : `No ${copyTarget.label} to copy`}
         >
-          {copied === "body" ? "Copied" : "Copy body"}
+          {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
         </button>
       </div>
 
@@ -923,6 +955,11 @@ function Inspector({
         <Tab active={tab === "body"} onClick={() => onTab("body")}>
           Body
         </Tab>
+        {interaction.query ? (
+          <Tab active={tab === "query"} onClick={() => onTab("query")}>
+            Query <span>{queryEntries.length}</span>
+          </Tab>
+        ) : null}
         <Tab active={tab === "headers"} onClick={() => onTab("headers")}>
           Headers <span>{interaction.headers.length}</span>
         </Tab>
@@ -943,6 +980,17 @@ function Inspector({
               <span>0 bytes received</span>
             </div>
           )
+        ) : null}
+
+        {tab === "query" ? (
+          <div className="kv-table">
+            {queryEntries.map(([name, value], index) => (
+              <div className="kv-row" key={`${name}-${index}`}>
+                <code>{name}</code>
+                <code>{value}</code>
+              </div>
+            ))}
+          </div>
         ) : null}
 
         {tab === "headers" ? (
