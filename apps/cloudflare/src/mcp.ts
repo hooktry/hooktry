@@ -197,10 +197,10 @@ async function callTool(
   env: Env,
 ): Promise<Record<string, unknown>> {
   const params = asRecord(paramsValue);
-  const name = params && typeof params.name === "string" ? params.name : null;
-  if (!name) {
+  if (!params || typeof params.name !== "string") {
     return toolError("tools/call requires a tool name");
   }
+  const name = params.name;
 
   if (name !== "create_webhook_endpoint") {
     return toolError(`unknown tool: ${name}`);
