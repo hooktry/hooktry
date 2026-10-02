@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- apps/web/package-lock.json apps/cloudflare/package-lock.json; then
+          if [[ -z "$(git status --porcelain -- apps/web/package-lock.json apps/cloudflare/package-lock.json)" ]]; then
             echo "Lockfiles already current."
             exit 0
           fi
