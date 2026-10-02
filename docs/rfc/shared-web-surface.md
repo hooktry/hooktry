@@ -147,6 +147,14 @@ After authentication, durable cross-device discovery comes from Workspace Invent
 
 See [DISC1 - Anonymous Capability Discovery and Cross-device Handoff](capability-discovery-handoff.md).
 
+## First Interaction onboarding
+
+The next browser slice should optimize the already-proven Hook flow rather than add a parallel demo path.
+
+Near Public ingress, expose ready-to-run cURL/HTTPie actions and a Send test action. Send test must traverse the real public ingress and return through normal persistence + realtime delivery so onboarding itself exercises the production path.
+
+See [WEB2 - First Interaction Onboarding](first-interaction-onboarding.md).
+
 ## State model
 
 Server-side durable history remains authoritative.
