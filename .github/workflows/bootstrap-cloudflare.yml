@@ -54,14 +54,14 @@ jobs:
 
       - name: Install web dependencies
         working-directory: apps/web
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Build shared web assets
         working-directory: apps/web
         run: npm run check
 
       - name: Install Cloudflare dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Verify Cloudflare adapter
         run: npm run check
