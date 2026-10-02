@@ -54,4 +54,5 @@ fn remote_onboarding_skill_describes_only_the_shipped_surface() {
     assert!(skill.contains("a short-lived one-time browser handoff URL"));
     assert!(skill.contains("does not return the claim capability"));
     assert!(skill.contains("Open in browser"));
+    assert!(skill.contains("Do not label it **Handoff**"));
 }
