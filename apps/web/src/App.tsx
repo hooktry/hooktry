@@ -236,7 +236,7 @@ export function App() {
     try {
       const session = await authSession();
       if (!session.authenticated) {
-        throw new Error("GitHub sign-in did not create an Hooktry session.");
+        throw new Error("GitHub sign-in did not create a Hooktry session.");
       }
       await claimCurrent(current);
     } catch (cause) {
@@ -338,7 +338,7 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">O</span>
+        <span className="brand-mark">H</span>
         <span>Hooktry</span>
       </div>
 
