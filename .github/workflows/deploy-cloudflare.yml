@@ -1,13 +1,15 @@
 name: Deploy Cloudflare
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-cloudflare-production
@@ -15,6 +17,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: deploy production
     environment: production
     runs-on: ubuntu-latest
@@ -23,6 +26,7 @@ jobs:
       run:
         working-directory: apps/cloudflare
     env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
@@ -30,9 +34,27 @@ jobs:
       HOOKTRY_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
 
     steps:
-      - name: Checkout
+      - name: Verify manual deploy source
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::Manual production deploys are main-only."
+            exit 1
+          fi
+          successful="$(gh api             "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${RELEASE_SHA}&status=success&per_page=1"             --jq '.total_count')"
+          if [[ "${successful}" -lt 1 ]]; then
+            echo "::error::No successful CI run exists for ${RELEASE_SHA}."
+            exit 1
+          fi
+
+      - name: Checkout proven release
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ env.RELEASE_SHA }}
           persist-credentials: false
 
       - name: Install Node
@@ -56,7 +78,7 @@ jobs:
 
       - name: Install web dependencies
         working-directory: apps/web
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Resolve source PR
         shell: bash
@@ -73,15 +95,12 @@ jobs:
       - name: Build shared web assets
         working-directory: apps/web
         env:
-          VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_SHA: ${{ env.RELEASE_SHA }}
           VITE_BUILD_PR: ${{ env.VITE_BUILD_PR }}
-        run: npm run check
+        run: npm run build
 
       - name: Install Cloudflare dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Verify Cloudflare adapter
-        run: npm run check
+        run: npm ci --no-audit --no-fund
 
       - name: Apply D1 migrations
         run: >
@@ -96,7 +115,7 @@ jobs:
           args=(
             npx wrangler deploy
             --config wrangler.production.jsonc
-            --var "HOOKTRY_RELEASE_SHA:${GITHUB_SHA}"
+            --var "HOOKTRY_RELEASE_SHA:${RELEASE_SHA}"
             --var "HOOKTRY_PUBLIC_ORIGIN:https://hooktry.com"
           )
           if [[ -n "${GITHUB_CLIENT_ID:-}" ]]; then
@@ -122,7 +141,7 @@ jobs:
           HOOKTRY_R2_BUCKET: ortyo-payloads
           HOOKTRY_MCP_URL: https://mcp.hooktry.com/mcp
           HOOKTRY_PUBLIC_ORIGIN: https://hooktry.com
-          HOOKTRY_EXPECTED_RELEASE_SHA: ${{ github.sha }}
+          HOOKTRY_EXPECTED_RELEASE_SHA: ${{ env.RELEASE_SHA }}
           HOOKTRY_EXPECT_GITHUB_AUTH: ${{ vars.GITHUB_CLIENT_ID != '' && '1' || '0' }}
           HOOKTRY_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}
         run: node scripts/smoke-production.mjs
