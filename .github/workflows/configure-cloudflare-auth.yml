@@ -51,7 +51,7 @@ jobs:
           exit "$missing"
 
       - name: Install Cloudflare dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Install GitHub OAuth client secret
         shell: bash
