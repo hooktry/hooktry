@@ -638,9 +638,10 @@ function HookHeader({
         <div className="hook-title-row">
           <div className="hook-identity">
             <div className="hook-kicker-row">
-              <div className="eyebrow">
+              <span className="hook-type-label">TYPE:</span>
+              <span className="hook-kind">
                 {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
-              </div>
+              </span>
               <span className={`hook-status hook-status-${connection}`}>
                 <span className="dot" />
                 {connectionLabel(connection)}
@@ -649,14 +650,15 @@ function HookHeader({
 
             {summary ? (
               <div className="hook-id-row">
-                <h1 className="hook-id" aria-label={summary.exposure_id}>
+                <span className="hook-id-label">Hook ID</span>
+                <code className="hook-id" aria-label={summary.exposure_id}>
                   <span className="hook-id-full" aria-hidden="true">
                     {summary.exposure_id}
                   </span>
                   <span className="hook-id-short" aria-hidden="true">
                     {shortId(summary.exposure_id)}
                   </span>
-                </h1>
+                </code>
                 <button
                   className="icon-button hook-id-copy"
                   type="button"
@@ -675,7 +677,7 @@ function HookHeader({
                 </button>
               </div>
             ) : (
-              <h1>Loading viewer…</h1>
+              <div className="hook-loading">Loading viewer…</div>
             )}
           </div>
 
