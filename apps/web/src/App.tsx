@@ -185,6 +185,15 @@ export function App() {
             return;
           }
 
+          if (frame.type === "snapshot") {
+            const next = frame.interactions
+              .slice()
+              .sort((a, b) => b.sequence - a.sequence);
+            setInteractions(next);
+            setSelectedId((current) => current ?? next[0]?.interaction_id ?? null);
+            return;
+          }
+
           if (frame.type === "interaction") {
             setInteractions((current) =>
               mergeInteraction(current, frame.interaction),
@@ -933,9 +942,9 @@ function Inspector({
             <span className={`method method-${interaction.method.toLowerCase()}`}>
               {interaction.method}
             </span>
+            <span className="request-sequence">#{interaction.sequence}</span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
-            <span className="request-sequence">#{interaction.sequence}</span>
           </div>
           <div className="interaction-id-row">
             <span className="interaction-id-label">INTERACTION ID</span>

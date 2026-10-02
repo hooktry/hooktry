@@ -212,6 +212,45 @@ describe("CF1 ephemeral Hook conformance", () => {
     35_000,
   );
 
+  it("boots an existing viewer with one interaction snapshot", async () => {
+    const provision = await createHook();
+
+    for (const body of ["one", "two", "three"]) {
+      const response = await fetchWorker(
+        new Request(provision.hook_url, {
+          method: "POST",
+          body,
+        }),
+      );
+      expect(response.status).toBe(200);
+    }
+
+    const viewerResponse = await fetchWorker(
+      new Request(provision.view_url, {
+        headers: { Upgrade: "websocket" },
+      }),
+    );
+    expect(viewerResponse.status).toBe(101);
+    const socket = viewerResponse.webSocket;
+    if (!socket) {
+      throw new Error("expected WebSocket response");
+    }
+
+    const inbox = jsonInbox(socket);
+    socket.accept();
+
+    const ready = await inbox.next();
+    expect(ready.type).toBe("ready");
+    expect(ready.exposure.request_count).toBe(3);
+
+    const snapshot = await inbox.next();
+    expect(snapshot.type).toBe("snapshot");
+    expect(snapshot.interactions).toHaveLength(3);
+    expect(snapshot.interactions.map((item: any) => item.sequence)).toEqual([1, 2, 3]);
+
+    socket.close(1000, "done");
+  });
+
   it("keeps a hibernatable viewer connected across Durable Object eviction", async () => {
     const provision = await createHook();
     const stub = bindings.EXPOSURES.getByName(provision.exposure_id);

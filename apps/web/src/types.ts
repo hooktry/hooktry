@@ -37,6 +37,7 @@ export interface Interaction {
 
 export type StreamFrame =
   | { type: "ready"; exposure: ExposureSummary }
+  | { type: "snapshot"; interactions: Interaction[] }
   | { type: "interaction"; interaction: Interaction }
   | { type: "resync_required" };
 
