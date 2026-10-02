@@ -6,7 +6,8 @@ import {
   sha256Hex,
   uuidV7,
 } from "./core";
-import { createExposure } from "./repository";
+import { deleteExposure, createExposure } from "./repository";
+import { storeHandoff } from "./handoff";
 import type { AnonymousProvision, Env } from "./types";
 
 export async function provisionAnonymousHook(
@@ -17,6 +18,7 @@ export async function provisionAnonymousHook(
   const hook = randomCapability("hk_");
   const view = randomCapability("vw_");
   const claim = randomCapability("cl_");
+  const handoff = randomCapability("ho_");
   const exposureId = uuidV7();
   const now = Math.floor(Date.now() / 1000);
   const expiresAt = now + ANONYMOUS_TTL_SECONDS;
@@ -53,12 +55,30 @@ export async function provisionAnonymousHook(
       ? `wss://${publicUrl.host}`
       : `ws://${publicUrl.host}`;
 
-  return {
+  const ownerProvision = {
     ...exposure,
     hook_url: `${base}/hook/${hook}`,
     view_url: `${base}/view/${view}`,
     view_websocket_url: `${websocketBase}/view/${view}`,
     claim_url: `${base}/claim/${claim}`,
-    anonymous_principal: principal,
   };
+
+  try {
+    const handoffExpiresAt = await storeHandoff(env, {
+      exposureId,
+      token: handoff,
+      provision: ownerProvision,
+      now,
+    });
+
+    return {
+      ...ownerProvision,
+      handoff_url: `${base}/open#${handoff}`,
+      handoff_expires_at_unix_seconds: handoffExpiresAt,
+      anonymous_principal: principal,
+    };
+  } catch (error) {
+    await deleteExposure(env, exposureId).catch(() => undefined);
+    throw error;
+  }
 }
