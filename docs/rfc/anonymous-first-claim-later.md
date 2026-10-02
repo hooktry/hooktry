@@ -105,10 +105,10 @@ Example response:
   "max_body_bytes": 5242880,
   "max_retained_bytes": 52428800,
   "claimed": false,
-  "hook_url": "https://hooktry.com/hook/hk_4e91f63b8ab44ad79553e1eae3fbdf21",
-  "view_url": "https://hooktry.com/view/vw_a318d58c93b94dd59457f68e83c6e839",
-  "view_websocket_url": "wss://hooktry.com/view/vw_a318d58c93b94dd59457f68e83c6e839",
-  "claim_url": "https://hooktry.com/claim/cl_8ec73fc471b64a1583d1ea343fac5be2",
+  "hook_url": "https://hooktry.com/hooks/hook_7j3...",
+  "view_url": "https://hooktry.com/views/view_a8m...",
+  "view_websocket_url": "wss://hooktry.com/views/view_a8m...",
+  "claim_url": "https://hooktry.com/claims/claim_2kp...",
   "anonymous_principal": "hooktry_ap_..."
 }
 ```
@@ -127,7 +127,9 @@ Keep vocabulary aligned with the layer:
 - generic Exposure authority: ingress capability, view capability, claim capability
 - persistence: `ingress_capability_digest`, `view_capability_digest`, `claim_capability_digest`
 
-The `hk_` Hook token therefore resolves to the Exposure's ingress capability. Do not rename generic Exposure authority to `hook_*`, because future Exposure kinds may not be webhooks. Conversely, do not expose `ingress_*` or `viewer_*` as Hook API field names. `viewer` is reserved for a UI/runtime participant, while the authority is the view capability.
+The public Hook capability therefore uses the readable `hook_` token prefix while it resolves internally to the Exposure's ingress capability. Do not rename generic Exposure authority to `hook_*`, because future Exposure kinds may not be webhooks. Conversely, do not expose `ingress_*` or `viewer_*` as Hook API field names. `viewer` is reserved for a UI/runtime participant, while the authority is the view capability.
+
+The public token vocabulary is `hook_`, `view_`, and `claim_`. See [ADR-0001](../adr/0001-typed-resource-ids-and-capability-secrets.md) for the identity-versus-authority distinction, Crockford Base32 encoding rule, and URL namespace decision.
 
 ## Cloudflare shape
 
@@ -138,15 +140,17 @@ Anonymous Exposures must be data, not infrastructure objects.
 Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one shared origin with capability-specific paths:
 
 ```text
-https://hooktry.com/hook/hk_<32-char-lowercase-hex>
-https://hooktry.com/view/vw_<32-char-lowercase-hex>
-wss://hooktry.com/view/vw_<32-char-lowercase-hex>
-https://hooktry.com/claim/cl_<32-char-lowercase-hex>
+https://hooktry.com/hooks/hook_<26-char-lowercase-crockford-base32>
+https://hooktry.com/views/view_<26-char-lowercase-crockford-base32>
+wss://hooktry.com/views/view_<26-char-lowercase-crockford-base32>
+https://hooktry.com/claims/claim_<26-char-lowercase-crockford-base32>
 ```
 
-There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each newly generated capability contains 16 cryptographically random bytes (128 bits) encoded as 32 lowercase hexadecimal characters. The punctuation-free suffix is deliberate: capability IDs are frequently copied from terminals, logs, and chat, and should remain easy to select as one word. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
+There are still only three capabilities. The view capability has two transports over the same `view_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each newly generated capability contains 16 cryptographically random bytes (128 bits) encoded as a fixed-width 26-character lowercase Crockford Base32 suffix. The punctuation-free suffix is deliberate: capability secrets are frequently copied from terminals, logs, and chat, and should remain easy to select as one word. The readable prefix identifies the capability kind when the token appears outside its URL. These are bearer capability secrets, not resource IDs, hashes, UUIDs, or database identifiers.
 
-The format is inspired by the typed-opaque-ID ergonomics used by systems such as ChatGPT, but Hooktry does not depend on another provider's undocumented ID generator. Existing Base64URL capability tokens remain valid until normal expiry or claim because lookup hashes the complete token and does not parse the suffix.
+Resource identity is separate. Exposure and other durable entities should move toward TypeID-rendered UUIDv7 IDs such as `exp_01k...`, while Hook/View/Claim authority remains fully random. See [ADR-0001](../adr/0001-typed-resource-ids-and-capability-secrets.md).
+
+Compatibility is parse-wide and generate-narrow: existing Base64URL and lowercase-hex capability tokens plus the legacy singular routes remain resolvable for their valid lifetime, while new issuance moves to the canonical expanded form.
 
 Hook, view, and claim capabilities are deliberately different. Giving a webhook sender the hook URL must not grant read or claim authority. Resolve each capability digest to the same Exposure record.
 
@@ -265,9 +269,9 @@ The current hosted server implements:
 
 - `POST /api/v1/hooks` without authentication
 - an anonymous-principal cookie/header used only for the three-active-Exposure quota
-- `/hook/hk_<token>/*path` for capture
-- `GET /view/vw_<token>` as a browser viewer over HTTPS and, with WebSocket upgrade, as backlog + live stream
-- `POST /claim/cl_<token>` with either an authenticated managed-cloud browser session or workspace `exposures:create` authority in the native hosted profile
+- current legacy `/hook/hk_<token>/*path` capture routes, with migration to canonical `/hooks/hook_<token>/*path`
+- current legacy `GET /view/vw_<token>`, with migration to canonical `GET /views/view_<token>` over HTTPS and WebSocket
+- current legacy `POST /claim/cl_<token>`, with migration to canonical `POST /claims/claim_<token>`
 - SQLite and Postgres persistence for Exposure metadata and captured interactions
 - SHA-256 digests only for hook/view/claim capabilities at rest
 - atomic request-count and retained-byte quota enforcement
