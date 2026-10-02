@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hooktry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create temporary webhook endpoints and test integration boundaries with Hooktry.",
   "author": {
     "name": "Hooktry"
@@ -20,7 +20,11 @@
         "defaultPrompt": [
           "Create a temporary webhook endpoint for testing.",
           "Give me a webhook URL I can use for an integration test."
-        ]
+        ],
+        "logo": "./assets/hooktry-mark-light.svg",
+        "logoDark": "./assets/hooktry-mark-dark.svg",
+        "composerIcon": "./assets/hooktry-mark-light.svg",
+        "composerIconDark": "./assets/hooktry-mark-dark.svg"
       },
       "onboardingSkill": "./skills/get-started/SKILL.md"
     }
