@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatBytes,
+  formatExpiry,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -53,6 +54,17 @@ describe("WEB1 model", () => {
     expect(formatBytes(18)).toBe("18 B");
     expect(formatBytes(2048)).toBe("2.0 KiB");
     expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MiB");
+  });
+
+  it("counts expiry down from days to hours to minutes", () => {
+    const now = 1_800_000_000_000;
+    expect(formatExpiry((now + 5 * 86_400_000) / 1000, now)).toBe("in 5d");
+    expect(formatExpiry((now + 4 * 86_400_000) / 1000, now)).toBe("in 4d");
+    expect(formatExpiry((now + 18 * 3_600_000) / 1000, now)).toBe("in 18h");
+    expect(formatExpiry((now + 5 * 3_600_000) / 1000, now)).toBe("in 5h");
+    expect(formatExpiry((now + 30 * 60_000) / 1000, now)).toBe("in 30m");
+    expect(formatExpiry((now + 15 * 60_000) / 1000, now)).toBe("in 15m");
+    expect(formatExpiry((now - 1) / 1000, now)).toBe("expired");
   });
 
   it("pretty-prints JSON and searches canonical evidence", () => {

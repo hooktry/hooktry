@@ -22,6 +22,28 @@ export function formatBytes(bytes: number): string {
   return `${trim(kib / 1024)} MiB`;
 }
 
+export function formatExpiry(
+  unixSeconds: number | undefined,
+  nowMs = Date.now(),
+): string {
+  if (!unixSeconds) return "—";
+
+  const remaining = unixSeconds * 1000 - nowMs;
+  if (remaining <= 0) return "expired";
+
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (remaining <= hour) {
+    return `in ${Math.max(1, Math.ceil(remaining / minute))}m`;
+  }
+  if (remaining <= day) {
+    return `in ${Math.ceil(remaining / hour)}h`;
+  }
+  return `in ${Math.ceil(remaining / day)}d`;
+}
+
 export function formatTimestamp(unixMs: number): string {
   return new Intl.DateTimeFormat(undefined, {
     hour: "2-digit",

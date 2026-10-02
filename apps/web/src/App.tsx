@@ -15,6 +15,7 @@ import {
 } from "./api";
 import {
   formatBytes,
+  formatExpiry,
   formatTimestamp,
   handoffCapabilityFromHash,
   interactionMatches,
@@ -23,7 +24,6 @@ import {
   viewCapabilityFromPath,
 } from "./model";
 import {
-  clearOwnerProvision,
   loadOwnerProvision,
   saveOwnerProvision,
 } from "./session";
@@ -51,6 +51,8 @@ export function App() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<InspectorTab>("body");
   const [creating, setCreating] = useState(false);
+  const [newHookOpen, setNewHookOpen] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [openingHandoff, setOpeningHandoff] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,31 @@ export function App() {
     if (!viewCapability) return null;
     return websocketUrl(window.location.href);
   }, [provision, viewCapability]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!newHookOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !creating) {
+        setNewHookOpen(false);
+        setError(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [newHookOpen, creating]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -244,6 +271,7 @@ export function App() {
       setSelectedId(null);
       setSearch("");
       setTab("body");
+      setNewHookOpen(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create Hook.");
     } finally {
@@ -309,15 +337,13 @@ export function App() {
   }
 
   function handleNewHook() {
-    clearOwnerProvision(provision);
-    window.history.pushState({}, "", "/");
-    setPathname("/");
-    setProvision(null);
-    setSummary(null);
-    setInteractions([]);
-    setSelectedId(null);
-    setConnection("idle");
-    setSearch("");
+    setError(null);
+    setNewHookOpen(true);
+  }
+
+  function closeNewHook() {
+    if (creating) return;
+    setNewHookOpen(false);
     setError(null);
   }
 
@@ -352,6 +378,7 @@ export function App() {
               onClaim={handleClaim}
               onCopy={copy}
               onNewHook={handleNewHook}
+              nowMs={nowMs}
             />
 
             {error ? <div className="error-banner">{error}</div> : null}
@@ -376,6 +403,15 @@ export function App() {
           </section>
         )}
       </main>
+
+      {newHookOpen ? (
+        <NewHookModal
+          creating={creating}
+          error={error}
+          onClose={closeNewHook}
+          onCreate={handleCreate}
+        />
+      ) : null}
     </div>
   );
 }
@@ -546,6 +582,7 @@ function HookHeader({
   onClaim,
   onCopy,
   onNewHook,
+  nowMs,
 }: {
   provision: HookProvision | null;
   summary: ExposureSummary | null;
@@ -555,6 +592,7 @@ function HookHeader({
   onClaim: () => void;
   onCopy: (value: string, key: string) => void;
   onNewHook: () => void;
+  nowMs: number;
 }) {
   return (
     <div className="hook-header">
@@ -563,19 +601,20 @@ function HookHeader({
           <div className="eyebrow">
             {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
           </div>
-          <h1>{summary ? shortId(summary.exposure_id) : "Loading viewer…"}</h1>
+          {summary ? (
+            <h1 className="hook-id" aria-label={summary.exposure_id}>
+              <span className="hook-id-full" aria-hidden="true">
+                {summary.exposure_id}
+              </span>
+              <span className="hook-id-short" aria-hidden="true">
+                {shortId(summary.exposure_id)}
+              </span>
+            </h1>
+          ) : (
+            <h1>Loading viewer…</h1>
+          )}
         </div>
         <div className="header-actions">
-          {provision && !summary?.claimed ? (
-            <button
-              className="button secondary"
-              type="button"
-              onClick={onClaim}
-              disabled={claiming}
-            >
-              {claiming ? "Claiming…" : "Claim · sign in with GitHub"}
-            </button>
-          ) : null}
           {summary?.claimed ? (
             <span className="badge claimed-badge">claimed · persistent</span>
           ) : null}
@@ -633,18 +672,46 @@ function HookHeader({
         />
         <Metric
           label="Expires"
-          value={summary?.claimed ? "persistent" : expiryLabel(summary?.expires_at_unix_seconds)}
+          value={
+            summary?.claimed
+              ? "persistent"
+              : formatExpiry(summary?.expires_at_unix_seconds, nowMs)
+          }
+          action={
+            provision && !summary?.claimed ? (
+              <button
+                className="button secondary compact claim-metric"
+                type="button"
+                title="Keep this Hook by claiming it into a workspace"
+                onClick={onClaim}
+                disabled={claiming}
+              >
+                {claiming ? "Claiming…" : "Claim"}
+              </button>
+            ) : null
+          }
         />
       </div>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  action,
+}: {
+  label: string;
+  value: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="metric">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <div className="metric-value">
+        <strong>{value}</strong>
+        {action}
+      </div>
     </div>
   );
 }
@@ -846,6 +913,79 @@ function KeyValue({ label, value }: { label: string; value: string }) {
   );
 }
 
+function NewHookModal({
+  creating,
+  error,
+  onClose,
+  onCreate,
+}: {
+  creating: boolean;
+  error: string | null;
+  onClose: () => void;
+  onCreate: () => void;
+}) {
+  return (
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="landing-card new-hook-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-hook-title"
+      >
+        <button
+          className="modal-close"
+          type="button"
+          aria-label="Close new Hook dialog"
+          onClick={onClose}
+          disabled={creating}
+        >
+          ×
+        </button>
+
+        <div className="eyebrow">NEW EPHEMERAL HOOK</div>
+        <h1 id="new-hook-title">Create another webhook endpoint.</h1>
+        <p>
+          Your current Hook stays open until the new one has been created successfully.
+        </p>
+
+        <div className="policy-grid">
+          <Policy value="5 days" label="ephemeral lifetime" />
+          <Policy value="100" label="requests per Hook" />
+          <Policy value="5 MiB" label="per request" />
+          <Policy value="50 MiB" label="retained bodies" />
+        </div>
+
+        <div className="modal-actions">
+          <button
+            className="button ghost"
+            type="button"
+            onClick={onClose}
+            disabled={creating}
+          >
+            Cancel
+          </button>
+          <button
+            className="button primary create"
+            type="button"
+            onClick={onCreate}
+            disabled={creating}
+          >
+            {creating ? "Creating…" : "Create ephemeral Hook"}
+          </button>
+        </div>
+
+        {error ? <div className="error-inline">{error}</div> : null}
+      </section>
+    </div>
+  );
+}
+
 function connectionLabel(state: ConnectionState): string {
   switch (state) {
     case "live":
@@ -859,15 +999,6 @@ function connectionLabel(state: ConnectionState): string {
     default:
       return "Idle";
   }
-}
-
-function expiryLabel(unixSeconds?: number): string {
-  if (!unixSeconds) return "—";
-  const remaining = unixSeconds * 1000 - Date.now();
-  if (remaining <= 0) return "expired";
-  const hours = Math.ceil(remaining / 3_600_000);
-  if (hours < 24) return `in ${hours}h`;
-  return `in ${Math.ceil(hours / 24)}d`;
 }
 
 function shortId(value: string): string {
