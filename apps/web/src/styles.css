@@ -1076,6 +1076,23 @@ kbd,
     min-width: 0;
   }
 
+  .inspector-head .request-line {
+    display: none;
+  }
+
+  .inspector-head {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+
+  .inspector-head > div {
+    flex: 1 1 auto;
+  }
+
+  .inspector-sub {
+    margin-top: 0;
+  }
+
   .request-line strong {
     max-width: 100%;
   }
