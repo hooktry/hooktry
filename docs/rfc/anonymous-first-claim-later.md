@@ -5,7 +5,7 @@ Checked: 2026-10-01
 
 ## Context
 
-Ortyo should let a human or an agent obtain a usable public HTTP endpoint before authentication or workspace setup.
+Hooktry should let a human or an agent obtain a usable public HTTP endpoint before authentication or workspace setup.
 
 Product principle:
 
@@ -56,7 +56,7 @@ The quotas are product policy, not schema invariants. They should be configurabl
 ## Human flow
 
 ```text
-visit ortyo
+visit hooktry
     |
     +-- Exposure already ready
     |
@@ -97,11 +97,11 @@ Example response:
   "max_body_bytes": 5242880,
   "max_retained_bytes": 52428800,
   "claimed": false,
-  "hook_url": "https://ortyo.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
-  "view_url": "https://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "view_websocket_url": "wss://ortyo.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
-  "claim_url": "https://ortyo.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
-  "anonymous_principal": "ortyo_ap_..."
+  "hook_url": "https://hooktry.com/hook/hk_Qm8Yp4K2xV7nR3cF1zLt9AbCdEfGhIjK",
+  "view_url": "https://hooktry.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "view_websocket_url": "wss://hooktry.com/view/vw_N6dT2rX9kP4mJ8sW5qBc7GhJkLmNpQrS",
+  "claim_url": "https://hooktry.com/claim/cl_H3fZ8pR1yK6vM2tQ9xDn4SaBcDeFgHiJ",
+  "anonymous_principal": "hooktry_ap_..."
 }
 ```
 
@@ -123,17 +123,17 @@ The `hk_` Hook token therefore resolves to the Exposure's ingress capability. Do
 
 ## Cloudflare shape
 
-Cloudflare is the first managed-cloud deployment target, not an ORTYO domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.
+Cloudflare is the first managed-cloud deployment target, not an HOOKTRY domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.
 
 Anonymous Exposures must be data, not infrastructure objects.
 
 Do not create one Worker, route, Durable Object class, or DNS record per Exposure. Use one shared origin with capability-specific paths:
 
 ```text
-https://ortyo.com/hook/hk_<32-char-base64url>
-https://ortyo.com/view/vw_<32-char-base64url>
-wss://ortyo.com/view/vw_<32-char-base64url>
-https://ortyo.com/claim/cl_<32-char-base64url>
+https://hooktry.com/hook/hk_<32-char-base64url>
+https://hooktry.com/view/vw_<32-char-base64url>
+wss://hooktry.com/view/vw_<32-char-base64url>
+https://hooktry.com/claim/cl_<32-char-base64url>
 ```
 
 There are still only three capabilities. The view capability has two transports over the same `vw_` token: HTTPS serves the human browser viewer and WSS serves backlog + live push. Each capability contains 24 cryptographically random bytes (192 bits) encoded as 32 unpadded Base64URL characters. The short prefix identifies the capability kind when the token appears outside its URL. These are bearer capability tokens, not hashes and not database identifiers. The Exposure itself keeps a separate UUIDv7 identity.
@@ -206,7 +206,7 @@ Required invariants:
 9. hook, view, and claim tokens are distinct capabilities
 10. viewer reconnect is backlog + live push, never database polling
 
-## Relationship to existing Ortyo primitives
+## Relationship to existing Hooktry primitives
 
 The anonymous lifecycle should preserve the existing model:
 
@@ -224,7 +224,7 @@ Claim changes authority and retention. It does not create a parallel webhook sub
 
 Cloudflare's temporary preview accounts use the same broad lifecycle for agent-first deployment: create and use before authentication, return a bearer claim URL, delete unclaimed temporary resources after expiry, and preserve supported resources after claim. See https://developers.cloudflare.com/workers/platform/claim-deployments/.
 
-This validates the product pattern without requiring Ortyo to copy Cloudflare's resource model or 60-minute claim window.
+This validates the product pattern without requiring Hooktry to copy Cloudflare's resource model or 60-minute claim window.
 
 ## Non-goals
 
@@ -260,6 +260,6 @@ Anonymous ingress returns a fixed success response after durable capture. It doe
 
 The managed Cloudflare profile now has the first human claim authority.
 
-GitHub OAuth establishes an Ortyo session and idempotent personal workspace; the owner browser then spends the existing one-shot `cl_` capability against that authenticated workspace. GitHub access tokens are not retained. OAuth state and Ortyo sessions are persisted only as SHA-256 digests, and the authorization-code exchange is bound with PKCE.
+GitHub OAuth establishes an Hooktry session and idempotent personal workspace; the owner browser then spends the existing one-shot `cl_` capability against that authenticated workspace. GitHub access tokens are not retained. OAuth state and Hooktry sessions are persisted only as SHA-256 digests, and the authorization-code exchange is bound with PKCE.
 
 This does not alter the portable claim invariant or the native hosted workspace-token flow. See [AUTH1](github-auth-claim.md).

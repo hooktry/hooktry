@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use ortyo::{
+use hooktry::{
     domain::{Direction, Interaction, Origin, Protocol},
     store::InteractionStore,
 };
@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 #[test]
 fn interaction_survives_database_reopen() {
-    let path = std::env::temp_dir().join(format!("ortyo-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-{}.db", Uuid::now_v7()));
     let session_id = Uuid::now_v7();
     let interaction_id = Uuid::now_v7();
 
@@ -45,7 +45,7 @@ fn interaction_survives_database_reopen() {
 
 #[test]
 fn persistence_order_is_durable_and_independent_from_interaction_timestamps() {
-    let path = std::env::temp_dir().join(format!("ortyo-order-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-order-{}.db", Uuid::now_v7()));
     let session_id = Uuid::now_v7();
     let later_clock = Utc::now();
     let earlier_clock = later_clock - Duration::seconds(10);
@@ -107,7 +107,7 @@ fn persistence_order_is_durable_and_independent_from_interaction_timestamps() {
 
 #[test]
 fn legacy_interaction_payload_is_backfilled_with_observed_sequence_on_read() {
-    let path = std::env::temp_dir().join(format!("ortyo-legacy-order-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-legacy-order-{}.db", Uuid::now_v7()));
     let interaction_id = Uuid::now_v7();
     let session_id = Uuid::now_v7();
     let started_at = Utc::now();

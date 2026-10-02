@@ -18,9 +18,9 @@ import type {
   SessionView,
 } from "./types";
 
-const OAUTH_STATE_COOKIE = "ortyo_oauth_state";
-const OAUTH_PKCE_COOKIE = "ortyo_oauth_pkce";
-const SESSION_COOKIE = "ortyo_session";
+const OAUTH_STATE_COOKIE = "hooktry_oauth_state";
+const OAUTH_PKCE_COOKIE = "hooktry_oauth_pkce";
+const SESSION_COOKIE = "hooktry_session";
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
@@ -245,7 +245,7 @@ export async function githubIdentity(
     headers: {
       accept: "application/vnd.github+json",
       authorization: `Bearer ${tokenPayload.access_token}`,
-      "user-agent": "ortyo-auth",
+      "user-agent": "hooktry-auth",
     },
   });
 
@@ -272,7 +272,7 @@ export async function githubIdentity(
 }
 
 export function safeReturnTo(value: string): string {
-  const base = new URL("https://ortyo.invalid/");
+  const base = new URL("https://hooktry.invalid/");
   const parsed = new URL(value, base);
   if (
     parsed.origin !== base.origin ||

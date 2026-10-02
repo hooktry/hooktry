@@ -1,7 +1,7 @@
 use std::{collections::HashSet, process::Command, sync::Arc};
 
 use axum::{Router, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
     scenario_run::ScenarioRunReport,
@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
-    if std::env::var("ORTYO_DOGFOOD_CHILD").as_deref() == Ok("1") {
+    if std::env::var("HOOKTRY_DOGFOOD_CHILD").as_deref() == Ok("1") {
         return;
     }
 
@@ -26,16 +26,16 @@ async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let ortyo_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let ortyo_port = ortyo_listener.local_addr().unwrap().port();
-    let base_url = format!("http://127.0.0.1:{ortyo_port}");
+    let hooktry_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let hooktry_port = hooktry_listener.local_addr().unwrap().port();
+    let base_url = format!("http://127.0.0.1:{hooktry_port}");
     let exposures = ExposureService::with_providers(
         Arc::new(LocalExposureProvider::new(&base_url)),
-        Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
     );
     tokio::spawn(async move {
         axum::serve(
-            ortyo_listener,
+            hooktry_listener,
             app(AppState {
                 exposures,
                 ..AppState::default()
@@ -45,7 +45,7 @@ async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
         .unwrap();
     });
 
-    let temp = std::env::temp_dir().join(format!("ortyo-dogfood-{}", Uuid::now_v7()));
+    let temp = std::env::temp_dir().join(format!("hooktry-dogfood-{}", Uuid::now_v7()));
     std::fs::create_dir_all(&temp).unwrap();
     let usage_path = temp.join("usage.jsonl");
 
@@ -139,20 +139,20 @@ async fn temporal_probes_catch_buggy_behavior_and_accept_fixed_behavior() {
 
 #[tokio::test]
 async fn dogfood_child_helper() {
-    if std::env::var("ORTYO_DOGFOOD_CHILD").as_deref() != Ok("1") {
+    if std::env::var("HOOKTRY_DOGFOOD_CHILD").as_deref() != Ok("1") {
         return;
     }
 
     for key in [
-        "ORTYO_USAGE_LOG",
-        "ORTYO_USAGE_ENDPOINT",
-        "ORTYO_USAGE_TOKEN",
+        "HOOKTRY_USAGE_LOG",
+        "HOOKTRY_USAGE_ENDPOINT",
+        "HOOKTRY_USAGE_TOKEN",
     ] {
         assert!(std::env::var_os(key).is_none(), "{key} leaked into child");
     }
 
-    let exposure_url = std::env::var("ORTYO_EXPOSURE_URL").unwrap();
-    let mode = std::env::var("ORTYO_DOGFOOD_MODE").unwrap();
+    let exposure_url = std::env::var("HOOKTRY_EXPOSURE_URL").unwrap();
+    let mode = std::env::var("HOOKTRY_DOGFOOD_MODE").unwrap();
 
     match mode.as_str() {
         "duplicate_bug" => {
@@ -189,7 +189,7 @@ fn run_probe(
     expected_exit: i32,
 ) -> ScenarioRunReport {
     let helper = std::env::current_exe().unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_ortyo"))
+    let output = Command::new(env!("CARGO_BIN_EXE_hooktry"))
         .arg("--base-url")
         .arg(base_url)
         .arg("scenario")
@@ -200,11 +200,11 @@ fn run_probe(
         .arg("--exact")
         .arg("dogfood_child_helper")
         .arg("--nocapture")
-        .env("ORTYO_DOGFOOD_CHILD", "1")
-        .env("ORTYO_DOGFOOD_MODE", mode)
-        .env("ORTYO_USAGE_LOG", usage_path)
-        .env("ORTYO_USAGE_TOKEN", "must-not-reach-child")
-        .env_remove("ORTYO_USAGE_ENDPOINT")
+        .env("HOOKTRY_DOGFOOD_CHILD", "1")
+        .env("HOOKTRY_DOGFOOD_MODE", mode)
+        .env("HOOKTRY_USAGE_LOG", usage_path)
+        .env("HOOKTRY_USAGE_TOKEN", "must-not-reach-child")
+        .env_remove("HOOKTRY_USAGE_ENDPOINT")
         .output()
         .unwrap();
 

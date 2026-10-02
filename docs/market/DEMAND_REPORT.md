@@ -1,11 +1,11 @@
-# Ortyo MCIF demand report
+# Hooktry MCIF demand report
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.3 DEMAND
+DWC: MCIF/HOOKTRY.3 DEMAND
 
 This pass asks a different question from the competitor matrix:
 
-> Do developers show evidence of wanting the jobs Ortyo is trying to solve, and which parts of the verification-first thesis are directly supported versus inferred?
+> Do developers show evidence of wanting the jobs Hooktry is trying to solve, and which parts of the verification-first thesis are directly supported versus inferred?
 
 Competitor presence is not counted as demand. Signals remain separated into direct demand, demand proxies, and market motion.
 
@@ -25,13 +25,13 @@ receive real event
   -> repeat
 ```
 
-This is not unique to Ortyo. It is a validated market job and therefore table stakes.
+This is not unique to Hooktry. It is a validated market job and therefore table stakes.
 
 ### Headless/API access - SUPPORTED
 
 Public QA discussion explicitly asks for a webhook testing service whose captured requests can be pulled through an API.
 
-This reinforces Ortyo's choice to keep HTTP/CLI/MCP surfaces over the same model rather than treating the browser UI as the product authority.
+This reinforces Hooktry's choice to keep HTTP/CLI/MCP surfaces over the same model rather than treating the browser UI as the product authority.
 
 ### Signature fidelity and provider-aware cases - SUPPORTED
 
@@ -43,7 +43,7 @@ This supports provider adapters/templates and signature helpers, but it does **n
 
 One explicit counter-signal against a proposed hosted webhook-testing product said the behavior was useful but dependence on another remote service was unacceptable; a local proxy/tool was preferred.
 
-This matches Ortyo's architecture well:
+This matches Hooktry's architecture well:
 
 ```text
 local / OSS core
@@ -65,7 +65,7 @@ There is credible support for:
 - waiting for evidence or outcome
 - machine-readable failure when the expected event never arrives
 
-What remains unproven is the stronger Ortyo-specific primitive: waiting beyond the first match for a **quiet/settle period** to prove that no later duplicate or extra event invalidates the expectation.
+What remains unproven is the stronger Hooktry-specific primitive: waiting beyond the first match for a **quiet/settle period** to prove that no later duplicate or extra event invalidates the expectation.
 
 So the hard-horizon problem is validated; quiet-period demand is still a hypothesis.
 
@@ -83,9 +83,9 @@ Recent public production bug reports independently show:
 
 Provider documentation independently confirms the same underlying realities: Shopify warns that duplicate deliveries can occur and provides a stable webhook ID for deduplication, while Shopify and GitHub both document that webhook order/timing is not guaranteed.
 
-This strongly supports the **failure classes** behind Ortyo cardinality, ordering, and correlation/idempotency context.
+This strongly supports the **failure classes** behind Hooktry cardinality, ordering, and correlation/idempotency context.
 
-It still does **not prove** demand for Ortyo's exact abstractions such as ranged cardinality syntax, durable-order predicates, quiet/settle windows, or a Contract/Scenario DSL.
+It still does **not prove** demand for Hooktry's exact abstractions such as ranged cardinality syntax, durable-order predicates, quiet/settle windows, or a Contract/Scenario DSL.
 
 That distinction remains explicit.
 
@@ -101,7 +101,7 @@ webhook traffic -> evidence -> deterministic CI result
 
 has credible support.
 
-But public evidence currently supports the **outcome**, not specifically Ortyo's full implementation shape.
+But public evidence currently supports the **outcome**, not specifically Hooktry's full implementation shape.
 
 ## What is not directly validated yet
 
@@ -125,7 +125,7 @@ Feedback on a Stripe-focused webhook testing idea challenged the value propositi
 
 Implication:
 
-> Ortyo should not try to beat every provider's native CLI at provider-specific event generation.
+> Hooktry should not try to beat every provider's native CLI at provider-specific event generation.
 
 Its advantage must come from a **cross-provider, persistent, evidence-backed workflow** that remains useful when the provider has no good sandbox or CLI.
 
@@ -147,7 +147,7 @@ webhook.site / provider CLI / tunnel
   + curl/test fixture
 ```
 
-That is healthy competitive pressure. Ortyo must earn its extra complexity by making verification measurably easier and more deterministic.
+That is healthy competitive pressure. Hooktry must earn its extra complexity by making verification measurably easier and more deterministic.
 
 ## Verification-first thesis: current status
 
@@ -165,7 +165,7 @@ That is healthy competitive pressure. Ortyo must earn its extra complexity by ma
 
 - users will prefer one integrated evidence/Contract/Scenario model over simpler scripts and provider CLIs
 - cardinality + ordering assertions are compelling enough to drive adoption
-- the same users will carry Ortyo from development into production delivery
+- the same users will carry Hooktry from development into production delivery
 - agent approval/control belongs inside the same product rather than as an optional integration
 
 ## Product implication
@@ -177,7 +177,7 @@ FIRST
   make the primary webhook loop excellent
 
 THEN
-  expose Ortyo verification primitives exactly where they remove known pain
+  expose Hooktry verification primitives exactly where they remove known pain
 
 ONLY THEN
   deepen optional vectors when direct usage creates a trigger
@@ -211,4 +211,4 @@ We need product-generated evidence, not more desk research, for:
 - requests for retries/DLQ/production reliability
 - explicit requests for approval-controlled actions
 
-These should become Ortyo's first-party demand proxies once dogfooding/public usage exists.
+These should become Hooktry's first-party demand proxies once dogfooding/public usage exists.

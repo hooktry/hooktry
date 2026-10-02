@@ -1,4 +1,4 @@
-# Research: Cloudflare Computer as an ORTYO execution substrate
+# Research: Cloudflare Computer as an HOOKTRY execution substrate
 
 Status: Research note  
 Date: 2026-09-30  
@@ -7,17 +7,17 @@ Commitment: None
 
 ## Question
 
-Can `@cloudflare/computer` provide a useful execution substrate for ORTYO without turning ORTYO into a Cloudflare-specific devbox or weakening the existing boundary/evidence model?
+Can `@cloudflare/computer` provide a useful execution substrate for HOOKTRY without turning HOOKTRY into a Cloudflare-specific devbox or weakening the existing boundary/evidence model?
 
 ## Short answer
 
-Yes, as an experimental provider behind an ORTYO-owned abstraction.
+Yes, as an experimental provider behind an HOOKTRY-owned abstraction.
 
-No, as a replacement for ORTYO's domain model or as a production dependency today.
+No, as a replacement for HOOKTRY's domain model or as a production dependency today.
 
-`@cloudflare/computer` is a strong candidate for agent-scale workspaces because it combines a durable virtual filesystem with multiple execution backends. It also aligns with the provider-neutral direction already recorded in `EXEC1`. However, it is explicitly preview software, its API is unstable, its container path has important lifecycle and I/O limitations, and its `Workspace` abstraction is broader than ORTYO's current bounded HTTP execution contract.
+`@cloudflare/computer` is a strong candidate for agent-scale workspaces because it combines a durable virtual filesystem with multiple execution backends. It also aligns with the provider-neutral direction already recorded in `EXEC1`. However, it is explicitly preview software, its API is unstable, its container path has important lifecycle and I/O limitations, and its `Workspace` abstraction is broader than HOOKTRY's current bounded HTTP execution contract.
 
-The integration should therefore be treated as a provider experiment, not as a new ORTYO primitive.
+The integration should therefore be treated as a provider experiment, not as a new HOOKTRY primitive.
 
 ## What Cloudflare Computer is today
 
@@ -46,11 +46,11 @@ The repository is unusually explicit that the project is preview-only:
 - It is not recommended for production use yet.
 - Parts of the design documentation describe intended future behavior rather than shipped behavior.
 
-That distinction matters for ORTYO. We should integrate only against behavior we verify in a vertical slice, not against design documents alone.
+That distinction matters for HOOKTRY. We should integrate only against behavior we verify in a vertical slice, not against design documents alone.
 
-## Fit with ORTYO
+## Fit with HOOKTRY
 
-ORTYO's core remains:
+HOOKTRY's core remains:
 
 ```text
 Observe -> Control -> Replay -> Assert
@@ -61,7 +61,7 @@ Cloudflare Computer belongs below that lifecycle as optional compute.
 A useful layering is:
 
 ```text
-ORTYO domain
+HOOKTRY domain
   Boundary
   Session
   Interaction
@@ -70,7 +70,7 @@ ORTYO domain
   Scenario
        |
        v
-ORTYO execution abstractions
+HOOKTRY execution abstractions
   HttpExecutionProvider       <- EXEC1 today
   SandboxRuntimeProvider      <- possible future abstraction
        |
@@ -80,7 +80,7 @@ ORTYO execution abstractions
        +-- future providers
 ```
 
-The important point is that `@cloudflare/computer` should not become ORTYO's `Workspace` type and should not leak into canonical evidence contracts.
+The important point is that `@cloudflare/computer` should not become HOOKTRY's `Workspace` type and should not leak into canonical evidence contracts.
 
 ## Do not overload EXEC1
 
@@ -96,7 +96,7 @@ It includes strict HTTP-specific safety semantics such as destination validation
 
 Those are not the same authority.
 
-If ORTYO adopts sandbox execution, it should introduce a separate provider boundary rather than silently expanding the meaning of the existing `ExecutionProvider`.
+If HOOKTRY adopts sandbox execution, it should introduce a separate provider boundary rather than silently expanding the meaning of the existing `ExecutionProvider`.
 
 A future shape could be:
 
@@ -112,7 +112,7 @@ SandboxRuntimeProvider
 
 Persistence/snapshot semantics should remain capability-driven because not every provider will implement them the same way.
 
-## Where Computer is especially interesting for ORTYO
+## Where Computer is especially interesting for HOOKTRY
 
 ### 1. One durable workspace across cheap and heavy execution
 
@@ -126,7 +126,7 @@ The Computer repository includes an egress example that applies matching `none`,
 
 Cloudflare Containers also support outbound interception, allow/deny host gates, and default-deny behavior.
 
-This is directly relevant to ORTYO because a sandbox must not become an unrestricted proxy. A useful future experiment is to route selected outbound traffic through an ORTYO Boundary so execution itself produces canonical Interaction evidence.
+This is directly relevant to HOOKTRY because a sandbox must not become an unrestricted proxy. A useful future experiment is to route selected outbound traffic through an HOOKTRY Boundary so execution itself produces canonical Interaction evidence.
 
 ### 3. Git-native agent workspace
 
@@ -134,9 +134,9 @@ The package includes a typed Git interface and a shell `git` command backed by t
 
 ### 4. Evidence-friendly supervision
 
-Cloudflare's architecture separates durable state in the Durable Object from replaceable execution in the container. That is compatible with ORTYO's preference for durable evidence outside the thing being executed.
+Cloudflare's architecture separates durable state in the Durable Object from replaceable execution in the container. That is compatible with HOOKTRY's preference for durable evidence outside the thing being executed.
 
-The container can fail or be replaced while ORTYO records execution/session evidence independently.
+The container can fail or be replaced while HOOKTRY records execution/session evidence independently.
 
 ## Important distinction: Computer filesystem versus Container snapshots
 
@@ -157,7 +157,7 @@ Computer Workspace
   -> durable task/repository/user file state
 ```
 
-But the current Computer documentation does not establish native Container snapshots as part of its persistence model. We should not design ORTYO as if that integration already exists.
+But the current Computer documentation does not establish native Container snapshots as part of its persistence model. We should not design HOOKTRY as if that integration already exists.
 
 ## Current limitations that matter to us
 
@@ -199,17 +199,17 @@ The documented lifecycle says reconnect/reconciliation is designed around revisi
 
 ### Language/runtime coupling
 
-ORTYO is currently Rust-first. `@cloudflare/computer` is a TypeScript/Workers library.
+HOOKTRY is currently Rust-first. `@cloudflare/computer` is a TypeScript/Workers library.
 
-A production integration should therefore live behind a service/provider boundary rather than forcing Cloudflare-specific TypeScript concepts into ORTYO core crates.
+A production integration should therefore live behind a service/provider boundary rather than forcing Cloudflare-specific TypeScript concepts into HOOKTRY core crates.
 
 ## Scope risk
 
-Computer makes it tempting to turn ORTYO into a generic cloud IDE, coding-agent host, or Daytona-style workspace platform.
+Computer makes it tempting to turn HOOKTRY into a generic cloud IDE, coding-agent host, or Daytona-style workspace platform.
 
 That would be scope drift.
 
-A sandbox belongs in ORTYO only when it strengthens the same lifecycle:
+A sandbox belongs in HOOKTRY only when it strengthens the same lifecycle:
 
 ```text
 run isolated software
@@ -219,7 +219,7 @@ run isolated software
   -> assert Contracts/Scenarios
 ```
 
-If a feature is useful only as a generic remote shell, it does not automatically belong in ORTYO.
+If a feature is useful only as a generic remote shell, it does not automatically belong in HOOKTRY.
 
 ## Proposed vertical slice
 
@@ -235,18 +235,18 @@ Build one narrow proof outside the core domain:
 5. prove both backends observe the same workspace state
 6. enforce default-deny egress, then allow one explicit destination
 7. restart/reconnect the container and prove committed workspace files survive
-8. route one permitted HTTP call through an ORTYO Boundary
+8. route one permitted HTTP call through an HOOKTRY Boundary
 9. prove the call becomes canonical Interaction evidence
 10. record latency, CPU/memory, filesystem size, and I/O timings
 ```
 
-The experiment is successful only if ORTYO remains the authority for policy/evidence while Computer remains replaceable execution infrastructure.
+The experiment is successful only if HOOKTRY remains the authority for policy/evidence while Computer remains replaceable execution infrastructure.
 
 ## Adoption gates
 
 Before creating a production `CloudflareComputerProvider`, require evidence for all of these:
 
-- provider-neutral ORTYO API with no Cloudflare types in canonical domain objects
+- provider-neutral HOOKTRY API with no Cloudflare types in canonical domain objects
 - explicit separation from the existing HTTP-only `ExecutionProvider`
 - default-deny network policy
 - secret injection without exposing raw values to model-visible evidence
@@ -254,19 +254,19 @@ Before creating a production `CloudflareComputerProvider`, require evidence for 
 - recovery after container restart or dropped backend session
 - bounded filesystem/resource consumption
 - acceptable dependency-install and test performance for our target repositories
-- ability to correlate execution with ORTYO Session / Interaction evidence
+- ability to correlate execution with HOOKTRY Session / Interaction evidence
 - documented behavior when Computer preview APIs change
 
 ## Current conclusion
 
-`@cloudflare/computer` is one of the best current candidates for an ORTYO sandbox runtime experiment because it already separates durable workspace state from interchangeable execution backends and exposes controls that align with agent workloads.
+`@cloudflare/computer` is one of the best current candidates for an HOOKTRY sandbox runtime experiment because it already separates durable workspace state from interchangeable execution backends and exposes controls that align with agent workloads.
 
 It should remain:
 
 ```text
-candidate provider, not ORTYO primitive
+candidate provider, not HOOKTRY primitive
 experimental, not production dependency
-execution substrate, not source of truth for ORTYO evidence
+execution substrate, not source of truth for HOOKTRY evidence
 ```
 
 The next useful step is the vertical slice above. A successful slice can justify an RFC for a provider-neutral `SandboxRuntimeProvider`. A failed slice costs us only an experiment and does not disturb `EXEC1` or the canonical model.

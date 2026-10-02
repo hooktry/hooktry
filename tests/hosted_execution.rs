@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use axum::{Json, Router, routing::post};
-use ortyo::{
+use hooktry::{
     execution::{
         ExecutionError, ExecutionOutcome, ExecutionProviderKind, HttpExecutionProvider,
         HttpExecutionRequest, SecretCapture, SecretHeaderBinding,
@@ -24,7 +24,7 @@ async fn captures_secret_and_redacts_evidence() {
                 post(|| async {
                     Json(json!({
                         "workspace_id": "workspace-visible",
-                        "credential": {"token": "ortyo_super_secret"}
+                        "credential": {"token": "hooktry_super_secret"}
                     }))
                 }),
             ),
@@ -59,7 +59,7 @@ async fn captures_secret_and_redacts_evidence() {
     assert_eq!(result.body["credential"]["token"], "[REDACTED]");
     assert_eq!(
         result.captured_secrets[0].secret_ref,
-        "ortyo://secrets/default-api-token"
+        "hooktry://secrets/default-api-token"
     );
     assert_eq!(
         result.captured_secrets[0].allowed_origin,
@@ -70,12 +70,12 @@ async fn captures_secret_and_redacts_evidence() {
             .secret_store()
             .resolve(workspace_id, "default-api-token")
             .unwrap(),
-        "ortyo_super_secret"
+        "hooktry_super_secret"
     );
     assert!(
         !serde_json::to_string(&result)
             .unwrap()
-            .contains("ortyo_super_secret")
+            .contains("hooktry_super_secret")
     );
 }
 
@@ -189,7 +189,7 @@ async fn chains_secret_ref_into_bearer_header_without_exposing_value() {
     secret_headers.insert(
         "authorization".to_owned(),
         SecretHeaderBinding::SecretRef {
-            secret_ref: "ortyo://secrets/default-api-token".to_owned(),
+            secret_ref: "hooktry://secrets/default-api-token".to_owned(),
             prefix: "Bearer ".to_owned(),
             suffix: String::new(),
         },
@@ -269,7 +269,7 @@ async fn secret_ref_resolution_is_workspace_scoped() {
     secret_headers.insert(
         "authorization".to_owned(),
         SecretHeaderBinding::SecretRef {
-            secret_ref: "ortyo://secrets/default-api-token".to_owned(),
+            secret_ref: "hooktry://secrets/default-api-token".to_owned(),
             prefix: "Bearer ".to_owned(),
             suffix: String::new(),
         },
@@ -311,7 +311,7 @@ async fn typed_secret_ref_denies_a_different_origin_before_sending() {
     secret_headers.insert(
         "authorization".to_owned(),
         SecretHeaderBinding::SecretRef {
-            secret_ref: "ortyo://secrets/api-token".to_owned(),
+            secret_ref: "hooktry://secrets/api-token".to_owned(),
             prefix: "Bearer ".to_owned(),
             suffix: String::new(),
         },

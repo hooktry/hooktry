@@ -1,5 +1,5 @@
 use chrono::Utc;
-use ortyo::{
+use hooktry::{
     domain::{ScenarioCheckOutcome, ScenarioOutcome},
     scenario::{CreateScenario, ScenarioManifest, outcome_exit_code},
 };
@@ -38,7 +38,7 @@ fn portable_manifest_maps_to_canonical_create_scenario_request() {
     assert_eq!(request.observation.settle_ms, 500);
     assert_eq!(
         request.ordering,
-        Some(ortyo::domain::ScenarioOrdering::Declared)
+        Some(hooktry::domain::ScenarioOrdering::Declared)
     );
     assert_eq!(request.contracts.len(), 1);
     assert_eq!(request.contracts[0].operation, "POST /webhook");

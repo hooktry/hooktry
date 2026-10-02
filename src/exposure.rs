@@ -102,7 +102,7 @@ impl Default for ExposureService {
     fn default() -> Self {
         Self::with_providers(
             Arc::new(LocalExposureProvider::new("http://127.0.0.1:7777")),
-            Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+            Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
         )
     }
 }

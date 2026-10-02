@@ -1,7 +1,7 @@
-# Ortyo MCIF live integration proof
+# Hooktry MCIF live integration proof
 
 Checked: 2026-10-02  
-DWC: MCIF/ORTYO.15 LIVE-INTEGRATION-PROOF
+DWC: MCIF/HOOKTRY.15 LIVE-INTEGRATION-PROOF
 
 ## Question
 
@@ -9,7 +9,7 @@ DOGFOOD-PROOF proved that synthetic duplicate and ordering probes work.
 
 LIVE-INTEGRATION-PROOF asks a stronger product question:
 
-> Does an Ortyo temporal primitive naturally improve a real integration workflow that exists independently of the proof itself?
+> Does an Hooktry temporal primitive naturally improve a real integration workflow that exists independently of the proof itself?
 
 The selected workflow is the existing approval notification path:
 
@@ -44,7 +44,7 @@ The Scenario sits around the receiver boundary and asserts:
 - bounded observation horizon
 - quiet/settle window
 
-This means cardinality, idempotency context, and settle semantics are now used as a regression guard for a real Ortyo webhook workflow.
+This means cardinality, idempotency context, and settle semantics are now used as a regression guard for a real Hooktry webhook workflow.
 
 ## Acceptance path
 
@@ -124,7 +124,7 @@ next_evidence: first_party_usage
 
 but reinterpret the remaining evidence gap:
 
-- exact-count/idempotency/settle: first live Ortyo integration proof now exists
+- exact-count/idempotency/settle: first live Hooktry integration proof now exists
 - ordering: still needs independent live use
 - DSL depth: still needs repeated use, modification pressure, or external feedback
 
@@ -135,7 +135,7 @@ The next valuable step is **not** to add more synthetic variants. It is to leave
 A future promotion should require at least one of:
 
 - the live regression catches a real accidental duplicate during normal development
-- another independent Ortyo workflow adopts the same primitive
+- another independent Hooktry workflow adopts the same primitive
 - another project/user adopts the recipe repeatedly
 - a developer changes the thin syntax because the existing primitive is insufficient
 

@@ -1,5 +1,5 @@
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{AssertionResult, Exposure, Interaction, Origin, Recording},
     http::{AppState, app},
     mcp::handle,
@@ -23,14 +23,14 @@ async fn agent_drives_exposure_evidence_replay_and_assertion_through_mcp() {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let ortyo_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let ortyo_port = ortyo_listener.local_addr().unwrap().port();
+    let hooktry_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let hooktry_port = hooktry_listener.local_addr().unwrap().port();
     tokio::spawn(async move {
-        axum::serve(ortyo_listener, app(AppState::default()))
+        axum::serve(hooktry_listener, app(AppState::default()))
             .await
             .unwrap();
     });
-    let base_url = format!("http://127.0.0.1:{ortyo_port}");
+    let base_url = format!("http://127.0.0.1:{hooktry_port}");
 
     let exposure_value = mcp_call(
         &base_url,

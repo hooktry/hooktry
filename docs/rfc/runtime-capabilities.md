@@ -16,7 +16,7 @@ control plane
     |
     | issue(exposure_id, ttl)
     v
-ortyo_rt_<opaque>
+hooktry_rt_<opaque>
     |
     | private runtime registration channel
     v
@@ -39,7 +39,7 @@ Properties:
 
 ## Public ingress remains public by design
 
-A public webhook exposure exists specifically so Stripe, GitHub, Twilio, or another external system can call it without knowing an ORTYO runtime credential.
+A public webhook exposure exists specifically so Stripe, GitHub, Twilio, or another external system can call it without knowing an HOOKTRY runtime credential.
 
 The sensitive action is not calling a public exposure. The sensitive action is claiming the runtime side of that exposure and receiving its traffic.
 

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs};
 
-use ortyo::{
+use hooktry::{
     approval::{
         ApprovalDecision, ApprovalError, ApprovalNotificationEvent, ApprovalState, ApprovalStore,
         KEYED_FINGERPRINT_PREFIX, derive_digest_key, derive_digest_keyring,
@@ -23,7 +23,7 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
     secret_headers.insert(
         "authorization".to_owned(),
         SecretHeaderBinding::SecretRef {
-            secret_ref: "ortyo://secrets/provider-token".to_owned(),
+            secret_ref: "hooktry://secrets/provider-token".to_owned(),
             prefix: "Bearer ".to_owned(),
             suffix: String::new(),
         },
@@ -101,7 +101,7 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
 #[test]
 fn keyed_approval_survives_master_key_rotation() {
     let path =
-        std::env::temp_dir().join(format!("ortyo-approval-key-rotation-{}.db", Uuid::now_v7()));
+        std::env::temp_dir().join(format!("hooktry-approval-key-rotation-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
@@ -195,7 +195,7 @@ fn keyed_approval_survives_master_key_rotation() {
 #[test]
 fn digest1_unversioned_keyed_digest_is_treated_as_key_version_one() {
     let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-digest1-compat-{}.db",
+        "hooktry-approval-digest1-compat-{}.db",
         Uuid::now_v7()
     ));
     let workspace_id = Uuid::now_v7();
@@ -250,7 +250,7 @@ fn digest1_unversioned_keyed_digest_is_treated_as_key_version_one() {
 #[test]
 fn legacy_unkeyed_request_digest_remains_consumable_after_keyed_upgrade() {
     let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-legacy-digest-{}.db",
+        "hooktry-approval-legacy-digest-{}.db",
         Uuid::now_v7()
     ));
     let workspace_id = Uuid::now_v7();
@@ -298,7 +298,7 @@ fn legacy_unkeyed_request_digest_remains_consumable_after_keyed_upgrade() {
 
 #[test]
 fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
-    let path = std::env::temp_dir().join(format!("ortyo-approval-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-approval-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
@@ -412,7 +412,7 @@ fn approved_request_is_one_shot_and_survives_sqlite_reopen_without_payloads() {
 
 #[test]
 fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
-    let path = std::env::temp_dir().join(format!("ortyo-approval-outbox-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-approval-outbox-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let other_workspace_id = Uuid::now_v7();
     let request = http_request("https://api.example.com/v1/run", "body");
@@ -482,7 +482,7 @@ fn notification_outbox_survives_reopen_and_delivery_mark_is_idempotent() {
 #[test]
 fn approval_and_notification_intent_share_one_sqlite_transaction() {
     let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-outbox-rollback-{}.db",
+        "hooktry-approval-outbox-rollback-{}.db",
         Uuid::now_v7()
     ));
     let workspace_id = Uuid::now_v7();
@@ -520,7 +520,7 @@ fn approval_and_notification_intent_share_one_sqlite_transaction() {
 #[test]
 fn pending_approval_without_notification_is_backfilled_on_reopen() {
     let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-outbox-backfill-{}.db",
+        "hooktry-approval-outbox-backfill-{}.db",
         Uuid::now_v7()
     ));
     let workspace_id = Uuid::now_v7();
@@ -657,7 +657,7 @@ fn deciding_approval_atomically_cancels_undelivered_notification() {
 
 #[test]
 fn pending_inbox_survives_sqlite_reopen_and_excludes_decided_or_other_workspace() {
-    let path = std::env::temp_dir().join(format!("ortyo-approval-inbox-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-approval-inbox-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let other_workspace_id = Uuid::now_v7();
     let requester_id = Uuid::now_v7();

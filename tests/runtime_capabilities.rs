@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ortyo::{
+use hooktry::{
     relay::RelayBroker,
     relay_auth::{CapabilityError, CapabilityStore},
     relay_transport::{RelayFrame, serve_connection},
@@ -19,8 +19,8 @@ fn capability_is_scoped_expires_and_can_be_revoked() {
 
     let capability = store.issue(first, Duration::from_secs(60)).unwrap();
     let second_capability = store.issue(first, Duration::from_secs(60)).unwrap();
-    assert!(capability.token.starts_with("ortyo_rt_"));
-    assert_eq!(capability.token.len(), "ortyo_rt_".len() + 64);
+    assert!(capability.token.starts_with("hooktry_rt_"));
+    assert_eq!(capability.token.len(), "hooktry_rt_".len() + 64);
     assert_ne!(capability.token, second_capability.token);
     assert_eq!(store.authorize(first, &capability.token), Ok(()));
     assert_eq!(
@@ -76,7 +76,7 @@ async fn relay_rejects_registration_without_valid_capability() {
     let mut stream = TcpStream::connect(addr).await.unwrap();
     let frame = RelayFrame::Register {
         exposure_id,
-        capability: "ortyo_rt_invalid".to_owned(),
+        capability: "hooktry_rt_invalid".to_owned(),
     };
     let mut payload = serde_json::to_vec(&frame).unwrap();
     payload.push(b'\n');

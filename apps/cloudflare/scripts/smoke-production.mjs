@@ -1,14 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 
-const baseUrl = required("ORTYO_BASE_URL").replace(/\/$/, "");
-const claimToken = required("ORTYO_CLAIM_INTERNAL_TOKEN");
+const baseUrl = required("HOOKTRY_BASE_URL").replace(/\/$/, "");
+const claimToken = required("HOOKTRY_CLAIM_INTERNAL_TOKEN");
 const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
-const databaseId = required("ORTYO_D1_DATABASE_ID");
+const databaseId = required("HOOKTRY_D1_DATABASE_ID");
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
-const expectedReleaseSha = process.env.ORTYO_EXPECTED_RELEASE_SHA?.trim() || null;
-const expectGitHubAuth = process.env.ORTYO_EXPECT_GITHUB_AUTH === "1";
-const usageIngestToken = process.env.ORTYO_USAGE_INGEST_TOKEN?.trim() || null;
+const expectedReleaseSha = process.env.HOOKTRY_EXPECTED_RELEASE_SHA?.trim() || null;
+const expectGitHubAuth = process.env.HOOKTRY_EXPECT_GITHUB_AUTH === "1";
+const usageIngestToken = process.env.HOOKTRY_USAGE_INGEST_TOKEN?.trim() || null;
 
 let provision;
 let oauthStateDigest = null;
@@ -75,7 +75,7 @@ try {
     method: "POST",
     headers: {
       authorization: `Bearer ${claimToken}`,
-      "x-ortyo-workspace-id": workspaceId,
+      "x-hooktry-workspace-id": workspaceId,
     },
   });
   if (!claim.ok) {
@@ -99,7 +99,7 @@ try {
     method: "POST",
     headers: {
       authorization: `Bearer ${claimToken}`,
-      "x-ortyo-workspace-id": workspaceId,
+      "x-hooktry-workspace-id": workspaceId,
     },
   });
   assert(secondClaim.status === 410, `claim capability was not single-use: ${secondClaim.status}`);
@@ -286,13 +286,13 @@ async function cleanup(exposureId, captured) {
     const objectPath = key.split("/").map(encodeURIComponent).join("/");
 
     await cf(
-      `/accounts/${accountId}/r2/buckets/ortyo-payloads/objects/${objectPath}`,
+      `/accounts/${accountId}/r2/buckets/hooktry-payloads/objects/${objectPath}`,
       { method: "DELETE" },
       true,
     );
 
     const listed = await cf(
-      `/accounts/${accountId}/r2/buckets/ortyo-payloads/objects?prefix=${encodeURIComponent(key)}`,
+      `/accounts/${accountId}/r2/buckets/hooktry-payloads/objects?prefix=${encodeURIComponent(key)}`,
     );
     assert(
       !(listed.result ?? []).some((object) => object.key === key),

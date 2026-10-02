@@ -1,5 +1,5 @@
 use chrono::Utc;
-use ortyo::{
+use hooktry::{
     domain::{ScenarioCheckOutcome, ScenarioOutcome, ScenarioRun, ScenarioRunState},
     scenario_run::{environment, exit_code, report},
 };
@@ -9,15 +9,15 @@ use uuid::Uuid;
 fn child_environment_exposes_scenario_identity_and_boundary() {
     let run = run();
 
-    let env = environment("http://ortyo.test", &run)
+    let env = environment("http://hooktry.test", &run)
         .into_iter()
         .collect::<std::collections::HashMap<_, _>>();
 
-    assert_eq!(env["ORTYO_BASE_URL"], "http://ortyo.test");
-    assert_eq!(env["ORTYO_SCENARIO_ID"], run.scenario_id.to_string());
-    assert_eq!(env["ORTYO_SCENARIO_RUN_ID"], run.id.to_string());
-    assert_eq!(env["ORTYO_EXPOSURE_ID"], run.exposure_id.to_string());
-    assert_eq!(env["ORTYO_EXPOSURE_URL"], run.exposure_url);
+    assert_eq!(env["HOOKTRY_BASE_URL"], "http://hooktry.test");
+    assert_eq!(env["HOOKTRY_SCENARIO_ID"], run.scenario_id.to_string());
+    assert_eq!(env["HOOKTRY_SCENARIO_RUN_ID"], run.id.to_string());
+    assert_eq!(env["HOOKTRY_EXPOSURE_ID"], run.exposure_id.to_string());
+    assert_eq!(env["HOOKTRY_EXPOSURE_URL"], run.exposure_url);
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn run() -> ScenarioRun {
         id: Uuid::now_v7(),
         scenario_id: Uuid::now_v7(),
         exposure_id: Uuid::now_v7(),
-        exposure_url: "http://ortyo.test/exposed/example".into(),
+        exposure_url: "http://hooktry.test/exposed/example".into(),
         state: ScenarioRunState::AwaitingEvidence,
         started_at: Utc::now(),
     }

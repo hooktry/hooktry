@@ -1,7 +1,7 @@
-# Ortyo MCIF demand proof: temporal and causal failures
+# Hooktry MCIF demand proof: temporal and causal failures
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.12 DEMAND-PROOF
+DWC: MCIF/HOOKTRY.12 DEMAND-PROOF
 
 ## Question
 
@@ -16,7 +16,7 @@ Temporal-depth research found a narrow capability gap around:
 
 This pass asks a different question:
 
-> Are duplicate, ordering, and identity failures painful enough in real systems to justify continued product validation, or is the remaining Ortyo moat only technically elegant?
+> Are duplicate, ordering, and identity failures painful enough in real systems to justify continued product validation, or is the remaining Hooktry moat only technically elegant?
 
 ## Direct production evidence
 
@@ -65,7 +65,7 @@ provider delivery identity
 + causation / request context
 ```
 
-That is much closer to Ortyo's `correlation-context` primitive than generic logging is.
+That is much closer to Hooktry's `correlation-context` primitive than generic logging is.
 
 ## Provider-level demand proxies
 
@@ -114,7 +114,7 @@ Reason:
 
 - problem evidence is now direct and repeated
 - provider behavior independently supports the same failure classes
-- exact Ortyo abstraction demand remains unproven
+- exact Hooktry abstraction demand remains unproven
 
 This is intentionally **not** a roadmap promotion to `next`.
 
@@ -149,11 +149,11 @@ The central v1 event intentionally has no user/install identity, so it measures 
 
 The target question changes from:
 
-> "Can Ortyo model this elegantly?"
+> "Can Hooktry model this elegantly?"
 
 to:
 
-> "Do developers repeatedly use Ortyo to catch these failures before production?"
+> "Do developers repeatedly use Hooktry to catch these failures before production?"
 
 ## Stop condition
 
@@ -164,5 +164,5 @@ Desk research can now stop for the **existence of the problem**.
 Further research should focus on either:
 
 - evidence that another product already solves the remaining job deeply, invalidating differentiation
-- first-party Ortyo usage that validates the product abstraction
+- first-party Hooktry usage that validates the product abstraction
 

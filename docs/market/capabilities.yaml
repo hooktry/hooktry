@@ -3,190 +3,190 @@ capabilities:
     name: Instant public webhook endpoint
     description: "Create a public HTTP endpoint suitable for receiving webhook traffic with minimal setup."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: no-signup-ephemeral-start
     name: No-signup ephemeral start
     description: "Begin testing before creating an account, with optional later claim."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: persistent-endpoint
     name: Persistent or stable endpoint
     description: "Keep a webhook URL stable across development sessions or pilot usage."
     disposition: should
-    ortyo_status: partial
+    hooktry_status: partial
   - id: request-inspection
     name: Structured request inspection
     description: "Inspect method, path, headers, body, timing and metadata for received requests."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: request-history
     name: Request history and retention
     description: "Retain received events/interactions for later inspection."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: search-filter
     name: Search and filter history
     description: "Find interactions by structured fields, payloads, status, time, provider or metadata."
     disposition: must
-    ortyo_status: partial
+    hooktry_status: partial
   - id: custom-response
     name: Configurable sender response
     description: "Control status, headers, body and optionally delay returned to the webhook sender."
     disposition: must
-    ortyo_status: partial
+    hooktry_status: partial
   - id: failure-simulation
     name: Failure and latency simulation
     description: "Return errors, delays or controlled failure behavior for sender testing."
     disposition: should
-    ortyo_status: partial
+    hooktry_status: partial
   - id: replay
     name: Replay captured interaction
     description: "Re-send captured traffic for debugging or verification."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: portable-recording
     name: Portable recording
     description: "Persist captured evidence in a reusable recording independent of one UI session."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: local-forwarding
     name: Forward webhooks to localhost
     description: "Deliver remote webhook traffic to a developer's local service."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: public-tunnel
     name: Full local service exposure
     description: "Expose a local/private HTTP service through a public URL."
     disposition: watch
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: fanout
     name: Multi-destination fan-out
     description: "Deliver one received event to multiple destinations."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: filtering-routing
     name: Event filtering and routing
     description: "Route or drop events based on request metadata or payload content."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: transformation
     name: Request transformation
     description: "Modify payloads, headers, method or path before delivery."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: durable-retries
     name: Durable retry delivery
     description: "Persist failed deliveries and retry them according to a policy."
     disposition: watch
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: dlq
     name: Dead-letter handling
     description: "Retain exhausted deliveries and allow later replay/recovery."
     disposition: watch
-    ortyo_status: absent
+    hooktry_status: absent
   - id: signature-verification
     name: Provider signature verification
     description: "Verify webhook signatures against provider-specific schemes or supplied secrets."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: outbound-signing
     name: Sign forwarded/test webhooks
     description: "Generate valid signatures for deliveries or provider-shaped test events."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: provider-templates
     name: Provider test templates
     description: "Generate realistic provider-specific webhook payloads and metadata."
     disposition: should
-    ortyo_status: absent
+    hooktry_status: absent
   - id: api
     name: Management and testing API
     description: "Programmatically create endpoints, inspect traffic, replay and configure behavior."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: cli
     name: CLI
     description: "Operate webhook development workflows from scripts and terminals."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: mcp-agent
     name: MCP and agent control surface
     description: "Expose structured webhook/test operations to coding agents."
     disposition: covered
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: wait-for-event
     name: Async wait primitive
     description: "Wait deterministically for an expected event/delivery instead of ad-hoc polling."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: contracts
     name: Interaction contracts
     description: "Declare structured expectations over webhook request/response evidence."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: scenario-runs
     name: Reusable scenario runs
     description: "Package setup, isolated exposure, evidence, replay and assertions into a repeatable run."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: cardinality
     name: Cardinality assertions
     description: "Assert exactly/at-least/at-most N matching webhook interactions."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: ordering
     name: Ordering assertions
     description: "Assert durable observed order between matching integration events."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: observation-window
     name: Observation windows
     description: "Model hard horizons and quiet/settle periods for asynchronous integration behavior."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: deterministic-ci
     name: Deterministic CI semantics
     description: "Provide machine-readable reports and stable exit semantics for behavior mismatch versus infrastructure/tool failure."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: correlation-context
     name: Correlation and idempotency context
     description: "Normalize correlation, causation, request, message, trace and idempotency identifiers for matching."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: request-diff
     name: Structured interaction comparison
     description: "Compare captured attempts or baseline/candidate behavior structurally."
     disposition: should
-    ortyo_status: unknown
+    hooktry_status: unknown
   - id: api-mocking
     name: API mocking and dynamic responses
     description: "Match requests and emulate dependency responses for development/service virtualization."
     disposition: watch
-    ortyo_status: partial
+    hooktry_status: partial
   - id: team-collaboration
     name: Team/workspace collaboration
     description: "Share endpoints, evidence and operational state safely across a team."
     disposition: should
-    ortyo_status: partial
+    hooktry_status: partial
   - id: self-host
     name: Self-hosted/local runtime
     description: "Run the core product locally or on user-controlled infrastructure."
     disposition: must
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: approval-gate
     name: Approval-gated external action
     description: "Bind an approval to an exact action before an agent performs a side effect."
     disposition: differentiation
-    ortyo_status: implemented
+    hooktry_status: implemented
   - id: multi-protocol
     name: Multi-protocol integration boundaries
     description: "Apply the evidence lifecycle beyond HTTP/webhooks."
     disposition: watch
-    ortyo_status: planned
+    hooktry_status: planned
 
   - id: managed-compute
     name: Managed execution compute
-    description: "Provision or use managed sandbox/container/VM compute to execute integration workloads under Ortyo control."
+    description: "Provision or use managed sandbox/container/VM compute to execute integration workloads under Hooktry control."
     disposition: out_of_scope
-    ortyo_status: planned
+    hooktry_status: planned

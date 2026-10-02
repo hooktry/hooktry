@@ -5,7 +5,7 @@ Checked: 2026-10-01
 
 ## Decision
 
-ORTYO is a domain/application system with multiple deployment profiles. Cloudflare, Render, self-hosted infrastructure, and local execution are adapters, not product semantics.
+HOOKTRY is a domain/application system with multiple deployment profiles. Cloudflare, Render, self-hosted infrastructure, and local execution are adapters, not product semantics.
 
 The portability boundary is capability-oriented:
 
@@ -24,7 +24,7 @@ Adapters
 
 A deployment provider must not become a domain primitive.
 
-Deployment orchestration follows the same separation one level above runtime. GitHub Actions is the canonical ORTYO CI/release/deployment orchestrator; Cloudflare, Namespace, container, self-hosted, and future targets are deployment providers/adapters. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
+Deployment orchestration follows the same separation one level above runtime. GitHub Actions is the canonical HOOKTRY CI/release/deployment orchestrator; Cloudflare, Namespace, container, self-hosted, and future targets are deployment providers/adapters. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
 
 ## Portable invariants
 
@@ -37,7 +37,7 @@ Domain and application semantics must not depend on:
 - Axum routing
 - Redis, NATS, S3, or any future infrastructure product
 
-Provider-specific code may implement a port, compose adapters, expose transport endpoints, and translate provider events into canonical ORTYO commands/events.
+Provider-specific code may implement a port, compose adapters, expose transport endpoints, and translate provider events into canonical HOOKTRY commands/events.
 
 ## First executable seam
 
@@ -91,14 +91,14 @@ Anonymous Exposure application contract
 
 Cloudflare-specific APIs must stay below the port boundary.
 
-The Cloudflare adapter may be TypeScript. Portable deterministic Rust logic may later be compiled to WebAssembly selectively when reuse is worth the boundary cost, but ORTYO does not require the full native binary to run inside Workers.
+The Cloudflare adapter may be TypeScript. Portable deterministic Rust logic may later be compiled to WebAssembly selectively when reuse is worth the boundary cost, but HOOKTRY does not require the full native binary to run inside Workers.
 
 ## Deployment profiles
 
 ### Local Community
 
 \`\`\`text
-ortyo binary
+hooktry binary
   CLI + MCP + local API + local Web UI
   SQLite
   native realtime
@@ -109,7 +109,7 @@ Optional managed relay provides public reachability with zero persistent cloud p
 ### Managed Cloud
 
 \`\`\`text
-ortyo.com
+hooktry.com
   anonymous -> claim -> authenticated workspace
   managed metadata, payload retention, realtime, teams, policy
 \`\`\`
@@ -119,7 +119,7 @@ The first implementation may use Cloudflare adapters.
 ### Self-hosted
 
 \`\`\`text
-ORTYO server
+HOOKTRY server
 PostgreSQL
 S3/MinIO or another blob adapter
 native/Redis/NATS realtime adapter
@@ -130,7 +130,7 @@ The API and lifecycle semantics remain the same.
 
 ### BYOC
 
-ORTYO Cloud may remain the control plane while execution/compute runs on enrolled customer infrastructure. Compute placement is a separate port from webhook ingress/storage.
+HOOKTRY Cloud may remain the control plane while execution/compute runs on enrolled customer infrastructure. Compute placement is a separate port from webhook ingress/storage.
 
 ## Future ports
 
@@ -149,7 +149,7 @@ Likely seams:
 
 ## Conformance rule
 
-A provider is an ORTYO implementation only if it preserves canonical behavior.
+A provider is an HOOKTRY implementation only if it preserves canonical behavior.
 
 For anonymous Exposure this includes at minimum:
 

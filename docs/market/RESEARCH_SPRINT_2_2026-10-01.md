@@ -1,7 +1,7 @@
-# Ortyo MCIF research sprint 2
+# Hooktry MCIF research sprint 2
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.10 RESEARCH-2
+DWC: MCIF/HOOKTRY.10 RESEARCH-2
 
 ## Goal
 
@@ -34,7 +34,7 @@ Resolved:
 
 Hookdeck has explicit CI authentication and non-interactive webhook forwarding/listening through its CLI.
 
-That is useful CI automation, but the researched official surfaces do not establish Ortyo-like machine-readable assertion reports plus stable exit semantics that distinguish behavior mismatch from infrastructure/tool failure.
+That is useful CI automation, but the researched official surfaces do not establish Hooktry-like machine-readable assertion reports plus stable exit semantics that distinguish behavior mismatch from infrastructure/tool failure.
 
 ### Webhook Relay
 
@@ -73,7 +73,7 @@ The researched official material exposes inspection, transformed requests, repla
 
 No disposition changed.
 
-No Ortyo implementation status changed.
+No Hooktry implementation status changed.
 
 No explicit market-motion signal was added.
 
@@ -84,7 +84,7 @@ The sprint produced four research resolutions:
 - atomic observations: 80 -> 84
 - matrix research resolutions: 4
 - observed external state changes: 0
-- Ortyo motion: 0
+- Hooktry motion: 0
 
 ## Differentiation impact
 
@@ -92,7 +92,7 @@ The evidence narrows the claim further:
 
 > CI integration, non-interactive execution, bounded waits, reproducible environments, and structured request evidence are competitive capabilities. They are not sufficient differentiation.
 
-The stronger Ortyo hypothesis remains the combination of:
+The stronger Hooktry hypothesis remains the combination of:
 
 - deterministic behavior-vs-infrastructure outcome semantics
 - contracts over canonical interaction evidence
@@ -105,7 +105,7 @@ The stronger Ortyo hypothesis remains the combination of:
 
 The next useful research question is no longer "do competitors work in CI?" It is:
 
-> Do competitors expose temporal and causal assertion semantics deep enough to invalidate this narrower Ortyo differentiation thesis?
+> Do competitors expose temporal and causal assertion semantics deep enough to invalidate this narrower Hooktry differentiation thesis?
 
 ## Next research slice
 
@@ -114,6 +114,6 @@ Prioritize:
 1. temporal/cardinality/ordering semantics in webhooks.cc and Hooklistener
 2. correlation/idempotency-aware matching in primary competitors
 3. request-diff depth beyond OpenAPI contract drift
-4. first-party Ortyo usage evidence before expanding the verification DSL
+4. first-party Hooktry usage evidence before expanding the verification DSL
 
 Do not spend another sprint trying to prove absence for the four unresolved P0/P1 cells unless a product decision depends on them.

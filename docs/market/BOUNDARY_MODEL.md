@@ -2,24 +2,24 @@
 
 Checked: 2026-10-01
 
-This document refines Ortyo's product topology without changing the primary cohort.
+This document refines Hooktry's product topology without changing the primary cohort.
 
 The primary cohort remains **webhook product development, testing, and pilot**. The model below describes how current and possible future capabilities relate to the same boundary primitive.
 
 ## Product hypothesis
 
-Ortyo is not defined as a generic mock server, tunnel, event gateway, or compute platform.
+Hooktry is not defined as a generic mock server, tunnel, event gateway, or compute platform.
 
 The working hypothesis is:
 
-> Ortyo is a programmable interaction boundary that can receive, respond, forward, emulate, observe, and prove interactions while preserving one canonical Interaction/evidence model.
+> Hooktry is a programmable interaction boundary that can receive, respond, forward, emulate, observe, and prove interactions while preserving one canonical Interaction/evidence model.
 
 The current public product wedge is the webhook-specific **Hook**. Hook remains a specialized form of the broader **Exposure** primitive.
 
 ## Capability topology
 
 ```text
-ORTYO
+HOOKTRY
 |
 |-- RECEIVE
 |   |-- ephemeral HTTP endpoint
@@ -83,7 +83,7 @@ Its documented model combines:
 - controlled latency and failure simulation
 - multiple API protocols and contract-shaped endpoints
 
-This is evidence that RESPOND, FORWARD, EMULATE, and OBSERVE can form one coherent developer workflow. It is not, by itself, evidence that Ortyo should immediately expand into full API virtualization.
+This is evidence that RESPOND, FORWARD, EMULATE, and OBSERVE can form one coherent developer workflow. It is not, by itself, evidence that Hooktry should immediately expand into full API virtualization.
 
 ### Vercel Labs emulate as an adjacent specialist
 
@@ -91,13 +91,13 @@ Vercel Labs `emulate` focuses on local/stateful substitutes for third-party APIs
 
 It is useful evidence for the **shape** of the API-virtualization vector, but it is not a primary webhook substitute.
 
-## Ortyo differentiation hypothesis
+## Hooktry differentiation hypothesis
 
 The market already demonstrates RECEIVE, RESPOND, FORWARD, EMULATE, and OBSERVE in many combinations.
 
-Ortyo should not assume that combining those verbs is sufficient differentiation.
+Hooktry should not assume that combining those verbs is sufficient differentiation.
 
-The stronger hypothesis is that Ortyo can make the boundary **provable**:
+The stronger hypothesis is that Hooktry can make the boundary **provable**:
 
 ```text
 capture reality
@@ -121,7 +121,7 @@ Use this rule:
 4. Promote the vector only when first-party usage or direct demand satisfies its `deepen_if` / `expand_if` trigger.
 5. If the capability does not preserve the vector invariant, keep it as an integration, replaceable substrate, or separate product.
 
-For Ortyo today:
+For Hooktry today:
 
 - deterministic verification is the strongest depth vector
 - reliable delivery is a later depth vector

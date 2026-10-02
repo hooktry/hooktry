@@ -4,12 +4,12 @@ market:
   primary_job: "Create a reachable webhook endpoint, observe real events, iterate on a receiver, replay or reproduce behavior, and prove the integration works."
   primary_stage: development_testing_pilot
   vector_invariant: "Every expansion must strengthen receive/capture -> inspect -> respond/relay/replay -> verify for webhook/integration development while preserving canonical Interaction/evidence semantics; otherwise it remains an integration, substrate, or separate product."
-  stopping_rule: "Research all material products that can substitute for Ortyo in the primary job; continue discovery until new primary products no longer add material capabilities, then sample depth/adjacent/substrate cohorts only enough to model expansion vectors."
+  stopping_rule: "Research all material products that can substitute for Hooktry in the primary job; continue discovery until new primary products no longer add material capabilities, then sample depth/adjacent/substrate cohorts only enough to model expansion vectors."
 
 cohorts:
   - id: primary
     type: primary
-    definition: "Products a developer could reasonably choose instead of Ortyo for webhook development, testing, or an early pilot."
+    definition: "Products a developer could reasonably choose instead of Hooktry for webhook development, testing, or an early pilot."
   - id: deterministic-verification
     type: depth
     definition: "Same development/testing job taken deeper into contracts, scenarios, deterministic CI, structured evidence, and repeatability."
@@ -30,11 +30,11 @@ cohorts:
     definition: "Approval-controlled actions and execution for agents working on integrations."
   - id: managed-compute
     type: substrate
-    definition: "Sandbox, VM, container, or workspace infrastructure used underneath Ortyo rather than competing for the primary job."
+    definition: "Sandbox, VM, container, or workspace infrastructure used underneath Hooktry rather than competing for the primary job."
 
 products:
-  - id: ortyo
-    name: Ortyo
+  - id: hooktry
+    name: Hooktry
     roles: [self]
     cohorts: [primary, deterministic-verification, reachability, agent-control]
     inclusion_reason: "Product being evaluated."
@@ -97,7 +97,7 @@ products:
     name: ngrok
     roles: [capability_substitute]
     cohorts: [reachability]
-    inclusion_reason: "Substitutes for public reachability/local exposure, not for Ortyo's full primary job."
+    inclusion_reason: "Substitutes for public reachability/local exposure, not for Hooktry's full primary job."
   - id: tailscale-funnel
     name: Tailscale Funnel
     roles: [capability_substitute]

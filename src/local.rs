@@ -25,7 +25,7 @@ impl Default for LocalServerConfig {
     fn default() -> Self {
         Self {
             bind: "127.0.0.1:7777".to_owned(),
-            db_path: PathBuf::from("ortyo.db"),
+            db_path: PathBuf::from("hooktry.db"),
             open_browser: false,
         }
     }
@@ -39,10 +39,10 @@ struct LocalRuntime {
 pub async fn run_local_server(config: LocalServerConfig) -> Result<(), String> {
     let listener = tokio::net::TcpListener::bind(&config.bind)
         .await
-        .map_err(|error| format!("bind ORTYO local server: {error}"))?;
+        .map_err(|error| format!("bind HOOKTRY local server: {error}"))?;
     let socket = listener
         .local_addr()
-        .map_err(|error| format!("read ORTYO local socket: {error}"))?;
+        .map_err(|error| format!("read HOOKTRY local socket: {error}"))?;
     let public_base_url = local_public_base_url(socket);
     let runtime = local_runtime(&config.db_path, &public_base_url)?;
 
@@ -51,29 +51,29 @@ pub async fn run_local_server(config: LocalServerConfig) -> Result<(), String> {
         loop {
             tokio::time::sleep(Duration::from_secs(60 * 60)).await;
             if let Err(error) = cleanup.purge_expired().await {
-                eprintln!("ortyo: anonymous expiry cleanup failed: {error:?}");
+                eprintln!("hooktry: anonymous expiry cleanup failed: {error:?}");
             }
         }
     });
 
-    println!("ORTYO local UI: {public_base_url}");
-    println!("ORTYO local API: {public_base_url}/api/v1/hooks");
-    println!("ORTYO local data: {}", config.db_path.display());
+    println!("HOOKTRY local UI: {public_base_url}");
+    println!("HOOKTRY local API: {public_base_url}/api/v1/hooks");
+    println!("HOOKTRY local data: {}", config.db_path.display());
 
     if config.open_browser {
         let url = public_base_url.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(120)).await;
             if let Err(error) = open_browser(&url) {
-                eprintln!("ortyo: could not open browser: {error}");
-                eprintln!("ortyo: open {url}");
+                eprintln!("hooktry: could not open browser: {error}");
+                eprintln!("hooktry: open {url}");
             }
         });
     }
 
     axum::serve(listener, runtime.router)
         .await
-        .map_err(|error| format!("serve ORTYO local server: {error}"))
+        .map_err(|error| format!("serve HOOKTRY local server: {error}"))
 }
 
 pub fn local_app(db_path: &Path, public_base_url: &str) -> Result<Router, String> {
@@ -83,11 +83,11 @@ pub fn local_app(db_path: &Path, public_base_url: &str) -> Result<Router, String
 fn local_runtime(db_path: &Path, public_base_url: &str) -> Result<LocalRuntime, String> {
     let state = AppState {
         store: InteractionStore::open(db_path)
-            .map_err(|error| format!("open ORTYO evidence database: {error}"))?,
+            .map_err(|error| format!("open HOOKTRY evidence database: {error}"))?,
         ..AppState::default()
     };
     let anonymous_store = AnonymousExposureStore::open(db_path)
-        .map_err(|error| format!("open ORTYO anonymous Hook database: {error:?}"))?;
+        .map_err(|error| format!("open HOOKTRY anonymous Hook database: {error:?}"))?;
     let anonymous = AnonymousExposureService::new(anonymous_store, public_base_url);
     let router = api_app(state)
         .merge(anonymous_app(
@@ -103,7 +103,7 @@ fn local_runtime(db_path: &Path, public_base_url: &str) -> Result<LocalRuntime, 
 async fn health() -> Json<serde_json::Value> {
     Json(json!({
         "ok": true,
-        "service": "ortyo-local"
+        "service": "hooktry-local"
     }))
 }
 
@@ -164,7 +164,7 @@ mod tests {
 
     #[tokio::test]
     async fn local_app_serves_embedded_web_and_canonical_hook_flow() {
-        let path = std::env::temp_dir().join(format!("ortyo-local-{}.db", Uuid::now_v7()));
+        let path = std::env::temp_dir().join(format!("hooktry-local-{}.db", Uuid::now_v7()));
         let app = local_app(&path, "http://127.0.0.1:7777").unwrap();
 
         let root = app

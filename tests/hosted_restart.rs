@@ -4,7 +4,7 @@ use std::{
 };
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, ExposureTarget},
     exposure::CreateExposure,
     hosted::{HostedRelayState, hosted_relay_app},
@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
-    let db_path = std::env::temp_dir().join(format!("ortyo-hosted-{}.db", Uuid::now_v7()));
+    let db_path = std::env::temp_dir().join(format!("hooktry-hosted-{}.db", Uuid::now_v7()));
     let exposure_id = Uuid::now_v7();
 
     let first_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -41,7 +41,7 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
         name: "restart-proof".to_owned(),
         target_port: 1,
         public_url: format!("http://{first_addr}/e/{exposure_id}"),
-        runtime_url: format!("ws://{first_addr}/_ortyo/runtime/{exposure_id}"),
+        runtime_url: format!("ws://{first_addr}/_hooktry/runtime/{exposure_id}"),
         capability_expires_at_unix_seconds: expires_at,
         revoked: false,
     };
@@ -153,7 +153,7 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
     let reopened_exposures = HostedExposureStore::open(&db_path).unwrap();
     assert_eq!(
         reopened_capabilities.authorize(exposure_id, &capability.token),
-        Err(ortyo::relay_auth::CapabilityError::Revoked)
+        Err(hooktry::relay_auth::CapabilityError::Revoked)
     );
     assert!(
         reopened_exposures
@@ -179,7 +179,7 @@ async fn hosted_state_survives_restart_and_revocation_survives_next_restart() {
     });
 
     let reconnect = run_websocket_runtime(
-        &format!("ws://{second_addr}/_ortyo/runtime/{exposure_id}"),
+        &format!("ws://{second_addr}/_hooktry/runtime/{exposure_id}"),
         exposure_id,
         &capability.token,
         AppState::default(),

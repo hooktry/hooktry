@@ -5,7 +5,7 @@ use axum::{
     routing::post,
 };
 use http_body_util::BodyExt;
-use ortyo::{
+use hooktry::{
     domain::{Exposure, ExposureState, Interaction, Origin},
     http::{AppState, app},
 };
@@ -41,7 +41,7 @@ async fn local_exposure_proxies_http_and_records_interaction_evidence() {
     let response = router
         .clone()
         .oneshot(
-            Request::post("/_ortyo/exposures")
+            Request::post("/_hooktry/exposures")
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({"name": "stripe", "port": target_port}).to_string(),
@@ -78,7 +78,7 @@ async fn local_exposure_proxies_http_and_records_interaction_evidence() {
     let response = router
         .clone()
         .oneshot(
-            Request::get("/_ortyo/interactions")
+            Request::get("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -106,7 +106,7 @@ async fn local_exposure_proxies_http_and_records_interaction_evidence() {
     let response = router
         .clone()
         .oneshot(
-            Request::delete(format!("/_ortyo/exposures/{}", exposure.id))
+            Request::delete(format!("/_hooktry/exposures/{}", exposure.id))
                 .body(Body::empty())
                 .unwrap(),
         )

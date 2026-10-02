@@ -1,5 +1,5 @@
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, Origin},
     http::{AppState, proxy_relay_request},
     relay::{RelayBroker, RelayError, RelayRequest},
@@ -36,9 +36,9 @@ async fn relay_round_trip_reaches_local_target_and_records_evidence() {
         .exposures
         .create_with(
             state.session.id,
-            ortyo::exposure::CreateExposure {
+            hooktry::exposure::CreateExposure {
                 name: "stripe".to_owned(),
-                target: ortyo::domain::ExposureTarget {
+                target: hooktry::domain::ExposureTarget {
                     host: "127.0.0.1".to_owned(),
                     port: target_port,
                 },
@@ -52,7 +52,7 @@ async fn relay_round_trip_reaches_local_target_and_records_evidence() {
     assert_eq!(exposure.access, ExposureAccess::Public);
     assert_eq!(
         exposure.url,
-        format!("https://relay.ortyo.test/e/{}", exposure.id)
+        format!("https://relay.hooktry.test/e/{}", exposure.id)
     );
 
     let broker = RelayBroker::default();

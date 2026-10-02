@@ -6,7 +6,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     routing::post,
 };
-use ortyo::{
+use hooktry::{
     approval_webhook::{ensure_webhook_secret, process_one_for_test},
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
     execution::HttpExecutionRequest,
@@ -31,7 +31,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
     let hosted = HostedRelayState::websocket_only(
         RelayBroker::default(),
         CapabilityStore::default(),
-        "http://ortyo.example",
+        "http://hooktry.example",
         "control-token",
     );
 
@@ -73,7 +73,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
     let base_url = format!("http://{scenario_addr}");
     let exposures = ExposureService::with_providers(
         Arc::new(LocalExposureProvider::new(&base_url)),
-        Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
     );
     tokio::spawn(async move {
         axum::serve(
@@ -89,7 +89,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
 
     let client = reqwest::Client::new();
     let scenario: Scenario = client
-        .post(format!("{base_url}/_ortyo/scenarios"))
+        .post(format!("{base_url}/_hooktry/scenarios"))
         .json(&json!({
             "name": "approval webhook exactly once",
             "port": receiver_port,
@@ -119,7 +119,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
         .unwrap();
 
     let run: ScenarioRun = client
-        .post(format!("{base_url}/_ortyo/scenarios/{}/start", scenario.id))
+        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
         .send()
         .await
         .unwrap()
@@ -145,7 +145,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
 
     let outcome: ScenarioOutcome = client
         .post(format!(
-            "{base_url}/_ortyo/scenario-runs/{}/complete",
+            "{base_url}/_hooktry/scenario-runs/{}/complete",
             run.id
         ))
         .send()
@@ -175,7 +175,7 @@ async fn approval_webhook_uses_scenario_as_a_live_exactly_once_idempotency_guard
         headers["idempotency-key"].to_str().unwrap(),
         notification.notification_id.to_string()
     );
-    assert_eq!(headers["x-ortyo-event"], "approval_requested");
+    assert_eq!(headers["x-hooktry-event"], "approval_requested");
     assert_eq!(payload["event"], "approval_requested");
     assert_eq!(
         payload["notification_id"],

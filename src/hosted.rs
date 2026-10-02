@@ -286,43 +286,43 @@ pub fn hosted_relay_app(state: HostedRelayState) -> Router {
     Router::new()
         .route("/llms.txt", get(agent_surface::llms_txt))
         .route("/llms-full.txt", get(agent_surface::llms_full_txt))
-        .route("/skills/ortyo/SKILL.md", get(agent_surface::skill_md))
-        .route("/_ortyo/health", get(health))
+        .route("/skills/hooktry/SKILL.md", get(agent_surface::skill_md))
+        .route("/_hooktry/health", get(health))
         .route("/healthz", get(health))
-        .route("/_ortyo/bootstrap", post(bootstrap_first_workspace))
-        .route("/_ortyo/admin/workspaces", post(create_workspace))
+        .route("/_hooktry/bootstrap", post(bootstrap_first_workspace))
+        .route("/_hooktry/admin/workspaces", post(create_workspace))
         .route(
-            "/_ortyo/admin/workspaces/{workspace_id}/credentials",
+            "/_hooktry/admin/workspaces/{workspace_id}/credentials",
             post(issue_credential),
         )
-        .route("/_ortyo/hosted/execute", post(execute_http))
+        .route("/_hooktry/hosted/execute", post(execute_http))
         .route(
-            "/_ortyo/hosted/executions/{execution_id}",
+            "/_hooktry/hosted/executions/{execution_id}",
             get(get_execution),
         )
         .route(
-            "/_ortyo/hosted/approvals",
+            "/_hooktry/hosted/approvals",
             get(list_pending_approvals).post(create_approval),
         )
-        .route("/_ortyo/hosted/approvals/{approval_id}", get(get_approval))
+        .route("/_hooktry/hosted/approvals/{approval_id}", get(get_approval))
         .route(
-            "/_ortyo/hosted/approvals/{approval_id}/decision",
+            "/_hooktry/hosted/approvals/{approval_id}/decision",
             post(decide_approval),
         )
         .route(
-            "/_ortyo/hosted/approvals/{approval_id}/execute",
+            "/_hooktry/hosted/approvals/{approval_id}/execute",
             post(execute_approved),
         )
         .route(
-            "/_ortyo/hosted/exposures",
+            "/_hooktry/hosted/exposures",
             get(list_hosted_exposures).post(provision_exposure),
         )
         .route(
-            "/_ortyo/hosted/exposures/{exposure_id}",
+            "/_hooktry/hosted/exposures/{exposure_id}",
             get(get_hosted_exposure).delete(revoke_hosted_exposure),
         )
         .route(
-            "/_ortyo/runtime/{exposure_id}",
+            "/_hooktry/runtime/{exposure_id}",
             get(runtime_websocket).delete(revoke_runtime),
         )
         .with_state(state)
@@ -653,7 +653,7 @@ async fn provision_exposure(
         .as_secs();
 
     let public_url = format!("{}/e/{exposure_id}", state.public_base_url);
-    let runtime_url = format!("{}/_ortyo/runtime/{exposure_id}", state.runtime_ws_base_url);
+    let runtime_url = format!("{}/_hooktry/runtime/{exposure_id}", state.runtime_ws_base_url);
 
     if state
         .exposures

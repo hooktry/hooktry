@@ -348,7 +348,7 @@ impl HttpExecutionProvider {
             redact_pointer(&mut body, &capture.json_pointer)?;
             captured_secrets.push(CapturedSecret {
                 name: capture.secret_name,
-                secret_ref: format!("ortyo://secrets/{}", secret_ref.name),
+                secret_ref: format!("hooktry://secrets/{}", secret_ref.name),
                 allowed_origin: request_origin.clone(),
             });
         }
@@ -428,7 +428,7 @@ async fn resolve_secret_header(
 
 fn secret_name_from_ref(secret_ref: &str) -> Result<&str, ExecutionError> {
     let name = secret_ref
-        .strip_prefix("ortyo://secrets/")
+        .strip_prefix("hooktry://secrets/")
         .ok_or(ExecutionError::InvalidRequest)?;
     if name.is_empty() || name.trim() != name {
         return Err(ExecutionError::InvalidRequest);

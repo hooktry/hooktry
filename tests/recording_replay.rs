@@ -1,6 +1,6 @@
 use axum::{body::Body, http::Request};
 use http_body_util::BodyExt;
-use ortyo::{
+use hooktry::{
     domain::{Interaction, Origin, Recording},
     http::{AppState, app},
 };
@@ -30,7 +30,7 @@ async fn recording_replays_captured_interactions_with_provenance() {
     let response = router
         .clone()
         .oneshot(
-            Request::post("/_ortyo/recordings")
+            Request::post("/_hooktry/recordings")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -45,7 +45,7 @@ async fn recording_replays_captured_interactions_with_provenance() {
     let response = router
         .clone()
         .oneshot(
-            Request::get("/_ortyo/interactions")
+            Request::get("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -58,7 +58,7 @@ async fn recording_replays_captured_interactions_with_provenance() {
 
     let response = router
         .oneshot(
-            Request::post(format!("/_ortyo/recordings/{}/replay", recording.id))
+            Request::post(format!("/_hooktry/recordings/{}/replay", recording.id))
                 .body(Body::empty())
                 .unwrap(),
         )

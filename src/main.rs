@@ -1,4 +1,4 @@
-use ortyo::{
+use hooktry::{
     approval::ApprovalDecision,
     cli::{Cli, Command, usage},
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
@@ -31,17 +31,17 @@ async fn main() {
         Command::Serve => local(false).await.map(|_| 0),
         Command::Ui => local(true).await.map(|_| 0),
         Command::Hosted => hosted().await.map(|_| 0),
-        Command::Interactions => get_json(&format!("{}/_ortyo/interactions", cli.base_url))
+        Command::Interactions => get_json(&format!("{}/_hooktry/interactions", cli.base_url))
             .await
             .map(|_| 0),
-        Command::Exposures => get_json(&format!("{}/_ortyo/exposures", cli.base_url))
+        Command::Exposures => get_json(&format!("{}/_hooktry/exposures", cli.base_url))
             .await
             .map(|_| 0),
-        Command::ExposureGet { id } => get_json(&format!("{}/_ortyo/exposures/{id}", cli.base_url))
+        Command::ExposureGet { id } => get_json(&format!("{}/_hooktry/exposures/{id}", cli.base_url))
             .await
             .map(|_| 0),
         Command::ExposureRevoke { id } => {
-            delete_json(&format!("{}/_ortyo/exposures/{id}", cli.base_url))
+            delete_json(&format!("{}/_hooktry/exposures/{id}", cli.base_url))
                 .await
                 .map(|_| 0)
         }
@@ -75,20 +75,20 @@ async fn main() {
                 expose(&cli.base_url, &name, port, verify).await.map(|_| 0)
             }
         }
-        Command::Mcp => ortyo::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
+        Command::Mcp => hooktry::mcp::run_stdio(&cli.base_url).await.map(|_| 0),
         Command::ScenarioCreate { path } => scenario_create(&cli.base_url, &path).await.map(|_| 0),
         Command::ScenarioRun { path, command } => scenario_run(&cli.base_url, &path, command).await,
-        Command::ScenarioGet { id } => get_json(&format!("{}/_ortyo/scenarios/{id}", cli.base_url))
+        Command::ScenarioGet { id } => get_json(&format!("{}/_hooktry/scenarios/{id}", cli.base_url))
             .await
             .map(|_| 0),
         Command::ScenarioStart { id } => {
-            post_json(&format!("{}/_ortyo/scenarios/{id}/start", cli.base_url))
+            post_json(&format!("{}/_hooktry/scenarios/{id}/start", cli.base_url))
                 .await
                 .map(|_| 0)
         }
         Command::ScenarioComplete { id } => scenario_complete(&cli.base_url, id).await,
         Command::ScenarioOutcome { id } => get_json(&format!(
-            "{}/_ortyo/scenario-runs/{id}/outcome",
+            "{}/_hooktry/scenario-runs/{id}/outcome",
             cli.base_url
         ))
         .await
@@ -103,7 +103,7 @@ async fn main() {
         Ok(code) if code != 0 => std::process::exit(code),
         Ok(_) => {}
         Err(error) => {
-            eprintln!("ortyo: {error}");
+            eprintln!("hooktry: {error}");
             eprintln!("{}", usage());
             std::process::exit(2);
         }
@@ -155,7 +155,7 @@ async fn get_json(url: &str) -> Result<(), String> {
 
 async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(), String> {
     let response = reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/exposures"))
+        .post(format!("{base_url}/_hooktry/exposures"))
         .json(&serde_json::json!({
             "name": name,
             "port": port,
@@ -179,7 +179,7 @@ async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(
         .as_str()
         .ok_or_else(|| "exposure response is missing url".to_owned())?;
     let verified = if verify {
-        reqwest::get(format!("{url}/_ortyo_verify"))
+        reqwest::get(format!("{url}/_hooktry_verify"))
             .await
             .map(|response| response.status().is_success())
             .unwrap_or(false)
@@ -204,17 +204,17 @@ async fn expose(base_url: &str, name: &str, port: u16, verify: bool) -> Result<(
 }
 
 async fn expose_public(base_url: &str, name: &str, port: u16) -> Result<(), String> {
-    let hosted_url = std::env::var("ORTYO_HOSTED_URL")
-        .unwrap_or_else(|_| "https://ortyo.onrender.com".to_owned())
+    let hosted_url = std::env::var("HOOKTRY_HOSTED_URL")
+        .unwrap_or_else(|_| "https://hooktry.onrender.com".to_owned())
         .trim_end_matches('/')
         .to_owned();
-    let api_token = std::env::var("ORTYO_TOKEN")
+    let api_token = std::env::var("HOOKTRY_TOKEN")
         .ok()
         .filter(|token| !token.trim().is_empty())
-        .ok_or_else(|| "ORTYO_TOKEN is required for --public".to_owned())?;
+        .ok_or_else(|| "HOOKTRY_TOKEN is required for --public".to_owned())?;
 
     let provision_response = reqwest::Client::new()
-        .post(format!("{hosted_url}/_ortyo/hosted/exposures"))
+        .post(format!("{hosted_url}/_hooktry/hosted/exposures"))
         .bearer_auth(api_token)
         .json(&serde_json::json!({
             "name": name,
@@ -228,7 +228,7 @@ async fn expose_public(base_url: &str, name: &str, port: u16) -> Result<(), Stri
         .map_err(|error| format!("invalid hosted provisioning response: {error}"))?;
 
     let attach_response = reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/hosted-runtimes"))
+        .post(format!("{base_url}/_hooktry/hosted-runtimes"))
         .json(&provision)
         .send()
         .await
@@ -309,7 +309,7 @@ async fn scenario_create_from_request(
     request: &CreateScenario,
 ) -> Result<Scenario, String> {
     let response = reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/scenarios"))
+        .post(format!("{base_url}/_hooktry/scenarios"))
         .json(request)
         .send()
         .await
@@ -320,7 +320,7 @@ async fn scenario_create_from_request(
 
 async fn scenario_start_request(base_url: &str, id: uuid::Uuid) -> Result<ScenarioRun, String> {
     let response = reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/scenarios/{id}/start"))
+        .post(format!("{base_url}/_hooktry/scenarios/{id}/start"))
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -333,7 +333,7 @@ async fn scenario_complete_request(
     id: uuid::Uuid,
 ) -> Result<ScenarioOutcome, String> {
     let response = reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/scenario-runs/{id}/complete"))
+        .post(format!("{base_url}/_hooktry/scenario-runs/{id}/complete"))
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -368,9 +368,9 @@ async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Resul
     let output = std::process::Command::new(program)
         .args(&command[1..])
         .envs(scenario_environment(base_url, &run))
-        .env_remove("ORTYO_USAGE_LOG")
-        .env_remove("ORTYO_USAGE_ENDPOINT")
-        .env_remove("ORTYO_USAGE_TOKEN")
+        .env_remove("HOOKTRY_USAGE_LOG")
+        .env_remove("HOOKTRY_USAGE_ENDPOINT")
+        .env_remove("HOOKTRY_USAGE_TOKEN")
         .output();
 
     let output = match output {
@@ -399,7 +399,7 @@ async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Resul
     let report = scenario_run_report(&run, command, output.status.code(), outcome);
     let usage_event = ScenarioUsageEvent::completed(usage_features, &report);
     if let Err(error) = emit_usage_event(&usage_event).await {
-        eprintln!("ortyo: usage evidence: {error}");
+        eprintln!("hooktry: usage evidence: {error}");
     }
 
     let value = serde_json::to_value(&report)
@@ -410,7 +410,7 @@ async fn scenario_run(base_url: &str, path: &str, command: Vec<String>) -> Resul
 
 async fn revoke_exposure(base_url: &str, id: uuid::Uuid) -> Result<(), String> {
     let response = reqwest::Client::new()
-        .delete(format!("{base_url}/_ortyo/exposures/{id}"))
+        .delete(format!("{base_url}/_hooktry/exposures/{id}"))
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -431,7 +431,7 @@ async fn post_assertion(
 ) -> Result<i32, String> {
     let response = reqwest::Client::new()
         .post(format!(
-            "{base_url}/_ortyo/contracts/{contract_id}/assert/{interaction_id}"
+            "{base_url}/_hooktry/contracts/{contract_id}/assert/{interaction_id}"
         ))
         .send()
         .await

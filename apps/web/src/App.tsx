@@ -236,7 +236,7 @@ export function App() {
     try {
       const session = await authSession();
       if (!session.authenticated) {
-        throw new Error("GitHub sign-in did not create an Ortyo session.");
+        throw new Error("GitHub sign-in did not create an Hooktry session.");
       }
       await claimCurrent(current);
     } catch (cause) {
@@ -339,7 +339,7 @@ function Sidebar({
     <aside className="sidebar">
       <div className="brand">
         <span className="brand-mark">O</span>
-        <span>ORTYO</span>
+        <span>HOOKTRY</span>
       </div>
 
       <nav className="nav">

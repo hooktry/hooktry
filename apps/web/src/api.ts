@@ -4,7 +4,7 @@ import type {
   HookProvision,
 } from "./types";
 
-const configuredBase = (import.meta.env.VITE_ORTYO_API_BASE as string | undefined)
+const configuredBase = (import.meta.env.VITE_HOOKTRY_API_BASE as string | undefined)
   ?.trim()
   .replace(/\/$/, "");
 

@@ -18,7 +18,7 @@ import type {
   Env,
 } from "./types";
 
-const INTERNAL_EXPOSURE_HEADER = "x-ortyo-internal-exposure-id";
+const INTERNAL_EXPOSURE_HEADER = "x-hooktry-internal-exposure-id";
 
 export class ExposureRuntime {
   private readonly initializing = new Map<WebSocket, AnonymousInteraction[]>();
@@ -134,7 +134,7 @@ export class ExposureRuntime {
     const path = hook?.[1] ?? "/";
     const query = url.search.length > 1 ? url.search.slice(1) : null;
     const headers = Array.from(request.headers.entries()).filter(
-      ([name]) => !name.startsWith("x-ortyo-internal-"),
+      ([name]) => !name.startsWith("x-hooktry-internal-"),
     );
 
     try {

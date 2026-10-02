@@ -1,4 +1,4 @@
-# Ortyo MCIF trend report
+# Hooktry MCIF trend report
 
 Checked: 2026-10-01
 
@@ -19,8 +19,8 @@ This pass changes the **demand evidence ledger**, not competitor capability stat
 - direct-demand signals added: 6
 - demand-proxy signals added: 3
 - explicit market-motion signals added: 0
-- Ortyo capability-status changes: 0
-- Ortyo matrix changes: 0
+- Hooktry capability-status changes: 0
+- Hooktry matrix changes: 0
 - capability disposition changes: 0
 
 The market matrix remains:
@@ -65,7 +65,7 @@ next_evidence: first_party_usage
 
 This means competitor matrix unknowns for `cardinality`, `ordering`, and `correlation-context` should no longer automatically rise into the top external-research queue merely because direct demand is strong.
 
-The existence of the problem is sufficiently established. The open question is whether Ortyo's abstraction is useful in practice.
+The existence of the problem is sufficiently established. The open question is whether Hooktry's abstraction is useful in practice.
 
 ## Interpretation boundary
 

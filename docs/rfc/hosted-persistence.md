@@ -60,10 +60,10 @@ Revocation is also persisted. After a second restart, an old revoked capability 
 The first durable adapter is SQLite. Configure it with:
 
 ```sh
-ORTYO_HOSTED_DB_PATH=/var/lib/ortyo/hosted.db
+HOOKTRY_HOSTED_DB_PATH=/var/lib/hooktry/hosted.db
 ```
 
-The default is `ortyo-hosted.db`.
+The default is `hooktry-hosted.db`.
 
 SQLite is an implementation adapter, not a domain requirement. A future Postgres/D1/other durable adapter can preserve the same hosted lifecycle semantics.
 

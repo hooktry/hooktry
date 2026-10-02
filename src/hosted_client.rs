@@ -30,15 +30,15 @@ impl HostedClient {
         Self {
             base_url: base_url.into().trim_end_matches('/').to_owned(),
             http: reqwest::Client::new(),
-            execute_token: lookup("ORTYO_TOKEN").filter(|value| !value.trim().is_empty()),
-            approver_token: lookup("ORTYO_APPROVER_TOKEN").filter(|value| !value.trim().is_empty()),
+            execute_token: lookup("HOOKTRY_TOKEN").filter(|value| !value.trim().is_empty()),
+            approver_token: lookup("HOOKTRY_APPROVER_TOKEN").filter(|value| !value.trim().is_empty()),
         }
     }
 
     pub async fn create_approval(&self, request: &HttpExecutionRequest) -> Result<Value, String> {
         self.request_json(
             Method::POST,
-            "/_ortyo/hosted/approvals",
+            "/_hooktry/hosted/approvals",
             CredentialKind::Execute,
             Some(serde_json::to_value(request).map_err(|error| error.to_string())?),
         )
@@ -48,7 +48,7 @@ impl HostedClient {
     pub async fn approval_inbox(&self) -> Result<Value, String> {
         self.request_json(
             Method::GET,
-            "/_ortyo/hosted/approvals",
+            "/_hooktry/hosted/approvals",
             CredentialKind::Approve,
             None,
         )
@@ -58,7 +58,7 @@ impl HostedClient {
     pub async fn get_approval(&self, approval_id: Uuid) -> Result<Value, String> {
         if self.execute_token.is_none() && self.approver_token.is_none() {
             return Err(
-                "ORTYO_TOKEN or ORTYO_APPROVER_TOKEN is required to inspect approvals".to_owned(),
+                "HOOKTRY_TOKEN or HOOKTRY_APPROVER_TOKEN is required to inspect approvals".to_owned(),
             );
         }
         let credential = if self.execute_token.is_some() {
@@ -68,7 +68,7 @@ impl HostedClient {
         };
         self.request_json(
             Method::GET,
-            &format!("/_ortyo/hosted/approvals/{approval_id}"),
+            &format!("/_hooktry/hosted/approvals/{approval_id}"),
             credential,
             None,
         )
@@ -82,7 +82,7 @@ impl HostedClient {
     ) -> Result<Value, String> {
         self.request_json(
             Method::POST,
-            &format!("/_ortyo/hosted/approvals/{approval_id}/decision"),
+            &format!("/_hooktry/hosted/approvals/{approval_id}/decision"),
             CredentialKind::Approve,
             Some(serde_json::json!({"decision": decision})),
         )
@@ -96,7 +96,7 @@ impl HostedClient {
     ) -> Result<Value, String> {
         self.request_json(
             Method::POST,
-            &format!("/_ortyo/hosted/approvals/{approval_id}/execute"),
+            &format!("/_hooktry/hosted/approvals/{approval_id}/execute"),
             CredentialKind::Execute,
             Some(serde_json::to_value(request).map_err(|error| error.to_string())?),
         )
@@ -106,7 +106,7 @@ impl HostedClient {
     pub async fn get_execution(&self, execution_id: Uuid) -> Result<Value, String> {
         self.request_json(
             Method::GET,
-            &format!("/_ortyo/hosted/executions/{execution_id}"),
+            &format!("/_hooktry/hosted/executions/{execution_id}"),
             CredentialKind::Execute,
             None,
         )
@@ -122,10 +122,10 @@ impl HostedClient {
     ) -> Result<Value, String> {
         let token = match credential {
             CredentialKind::Execute => self.execute_token.as_deref().ok_or_else(|| {
-                "ORTYO_TOKEN is required for hosted execution operations".to_owned()
+                "HOOKTRY_TOKEN is required for hosted execution operations".to_owned()
             })?,
             CredentialKind::Approve => self.approver_token.as_deref().ok_or_else(|| {
-                "ORTYO_APPROVER_TOKEN is required for approval decisions".to_owned()
+                "HOOKTRY_APPROVER_TOKEN is required for approval decisions".to_owned()
             })?,
         };
 
@@ -139,10 +139,10 @@ impl HostedClient {
         let body = response.text().await.map_err(|error| error.to_string())?;
 
         if !status.is_success() {
-            return Err(format!("ORTYO hosted API returned HTTP {status}: {body}"));
+            return Err(format!("HOOKTRY hosted API returned HTTP {status}: {body}"));
         }
 
         serde_json::from_str(&body)
-            .map_err(|error| format!("invalid ORTYO hosted API JSON: {error}"))
+            .map_err(|error| format!("invalid HOOKTRY hosted API JSON: {error}"))
     }
 }

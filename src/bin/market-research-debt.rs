@@ -10,7 +10,7 @@ use std::{
 struct Capability {
     id: String,
     disposition: String,
-    ortyo_status: String,
+    hooktry_status: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -50,7 +50,7 @@ struct Candidate {
     tier: String,
     horizon: String,
     disposition: String,
-    ortyo_status: String,
+    hooktry_status: String,
     direct_demand: usize,
     supporting_signals: usize,
     known_external_peers: usize,
@@ -65,7 +65,7 @@ struct CapabilityDebt {
     tier: String,
     horizon: String,
     disposition: String,
-    ortyo_status: String,
+    hooktry_status: String,
     unknown_cells: usize,
     known_external_peers: usize,
     direct_demand: usize,
@@ -179,11 +179,11 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
             .unwrap_or_default();
         let known_external_peers = row
             .iter()
-            .filter(|(product, state)| product.as_str() != "ortyo" && state.as_str() != "unknown")
+            .filter(|(product, state)| product.as_str() != "hooktry" && state.as_str() != "unknown")
             .count();
 
         for product_id in &model.matrix_products {
-            if product_id == "ortyo" || row.get(product_id).map(String::as_str) != Some("unknown") {
+            if product_id == "hooktry" || row.get(product_id).map(String::as_str) != Some("unknown") {
                 continue;
             }
 
@@ -197,7 +197,7 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
             let mut reasons = vec![
                 format!("horizon={}", priority.horizon),
                 format!("disposition={}", capability.disposition),
-                format!("ortyo={}", capability.ortyo_status),
+                format!("hooktry={}", capability.hooktry_status),
                 format!("next_evidence={research_channel}"),
             ];
             if signal.direct_demand > 0 {
@@ -217,7 +217,7 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
                 capability: capability_id.clone(),
                 tier: decision_tier(
                     &priority.horizon,
-                    &capability.ortyo_status,
+                    &capability.hooktry_status,
                     &capability.disposition,
                     signal.direct_demand,
                     supporting_signals,
@@ -225,7 +225,7 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
                 .to_owned(),
                 horizon: priority.horizon.clone(),
                 disposition: capability.disposition.clone(),
-                ortyo_status: capability.ortyo_status.clone(),
+                hooktry_status: capability.hooktry_status.clone(),
                 direct_demand: signal.direct_demand,
                 supporting_signals,
                 known_external_peers,
@@ -269,12 +269,12 @@ fn effective_priority(capability: &Capability, priorities: &[Priority]) -> Prior
 
 fn decision_tier(
     horizon: &str,
-    ortyo_status: &str,
+    hooktry_status: &str,
     disposition: &str,
     direct_demand: usize,
     supporting_signals: usize,
 ) -> &'static str {
-    let open_gap = ortyo_status != "implemented";
+    let open_gap = hooktry_status != "implemented";
 
     if horizon == "now" && open_gap {
         "P0"
@@ -324,7 +324,7 @@ fn signal_rank(candidate: &Candidate) -> usize {
     }
 }
 
-fn ortyo_gap_rank(status: &str) -> usize {
+fn hooktry_gap_rank(status: &str) -> usize {
     match status {
         "absent" | "unknown" | "planned" => 0,
         "partial" => 1,
@@ -349,7 +349,7 @@ fn compare_candidates(left: &Candidate, right: &Candidate) -> Ordering {
     (
         tier_rank(&left.tier),
         signal_rank(left),
-        ortyo_gap_rank(&left.ortyo_status),
+        hooktry_gap_rank(&left.hooktry_status),
         horizon_rank(&left.horizon),
         disposition_rank(&left.disposition),
         left.known_external_peers,
@@ -360,7 +360,7 @@ fn compare_candidates(left: &Candidate, right: &Candidate) -> Ordering {
         .cmp(&(
             tier_rank(&right.tier),
             signal_rank(right),
-            ortyo_gap_rank(&right.ortyo_status),
+            hooktry_gap_rank(&right.hooktry_status),
             horizon_rank(&right.horizon),
             disposition_rank(&right.disposition),
             right.known_external_peers,
@@ -389,7 +389,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             tier: first.tier.clone(),
             horizon: first.horizon.clone(),
             disposition: first.disposition.clone(),
-            ortyo_status: first.ortyo_status.clone(),
+            hooktry_status: first.hooktry_status.clone(),
             unknown_cells: items.len(),
             known_external_peers: first.known_external_peers,
             direct_demand: first.direct_demand,
@@ -405,7 +405,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             tier: left.tier.clone(),
             horizon: left.horizon.clone(),
             disposition: left.disposition.clone(),
-            ortyo_status: left.ortyo_status.clone(),
+            hooktry_status: left.hooktry_status.clone(),
             direct_demand: left.direct_demand,
             supporting_signals: left.supporting_signals,
             known_external_peers: left.known_external_peers,
@@ -419,7 +419,7 @@ fn capability_debt(model: &MarketModel, candidates: &[Candidate]) -> Vec<Capabil
             tier: right.tier.clone(),
             horizon: right.horizon.clone(),
             disposition: right.disposition.clone(),
-            ortyo_status: right.ortyo_status.clone(),
+            hooktry_status: right.hooktry_status.clone(),
             direct_demand: right.direct_demand,
             supporting_signals: right.supporting_signals,
             known_external_peers: right.known_external_peers,
@@ -525,14 +525,14 @@ fn render_text(
     output.push_str("Capability queue\n");
     for item in debt.iter().take(12) {
         output.push_str(&format!(
-            "- {} {}: unknown={} known={} horizon={} disposition={} ortyo={} channel={}{}{}\n",
+            "- {} {}: unknown={} known={} horizon={} disposition={} hooktry={} channel={}{}{}\n",
             item.tier,
             item.capability,
             item.unknown_cells,
             item.known_external_peers,
             item.horizon,
             item.disposition,
-            item.ortyo_status,
+            item.hooktry_status,
             item.research_channel,
             if item.direct_demand > 0 {
                 format!(" direct_demand={}", item.direct_demand)
@@ -560,7 +560,7 @@ fn render_text(
     }
 
     output.push_str(
-        "\nPriority semantics: decision-changing tier -> direct demand -> Ortyo gap -> horizon -> disposition -> supporting signals -> evidence scarcity -> product cohort breadth. No aggregate score is used.\n",
+        "\nPriority semantics: decision-changing tier -> direct demand -> Hooktry gap -> horizon -> disposition -> supporting signals -> evidence scarcity -> product cohort breadth. No aggregate score is used.\n",
     );
     output
 }
@@ -604,14 +604,14 @@ fn render_json(
         .iter()
         .map(|item| {
             format!(
-                "{{\"tier\":\"{}\",\"capability\":\"{}\",\"unknown_cells\":{},\"known_external_peers\":{},\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{}}}",
+                "{{\"tier\":\"{}\",\"capability\":\"{}\",\"unknown_cells\":{},\"known_external_peers\":{},\"horizon\":\"{}\",\"disposition\":\"{}\",\"hooktry_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{}}}",
                 json_escape(&item.tier),
                 json_escape(&item.capability),
                 item.unknown_cells,
                 item.known_external_peers,
                 json_escape(&item.horizon),
                 json_escape(&item.disposition),
-                json_escape(&item.ortyo_status),
+                json_escape(&item.hooktry_status),
                 json_escape(&item.research_channel),
                 item.direct_demand,
                 item.supporting_signals
@@ -624,13 +624,13 @@ fn render_json(
         .iter()
         .map(|candidate| {
             format!(
-                "{{\"tier\":\"{}\",\"product\":\"{}\",\"capability\":\"{}\",\"horizon\":\"{}\",\"disposition\":\"{}\",\"ortyo_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{},\"known_external_peers\":{},\"product_cohorts\":{},\"reasons\":{}}}",
+                "{{\"tier\":\"{}\",\"product\":\"{}\",\"capability\":\"{}\",\"horizon\":\"{}\",\"disposition\":\"{}\",\"hooktry_status\":\"{}\",\"research_channel\":\"{}\",\"direct_demand\":{},\"supporting_signals\":{},\"known_external_peers\":{},\"product_cohorts\":{},\"reasons\":{}}}",
                 json_escape(&candidate.tier),
                 json_escape(&candidate.product),
                 json_escape(&candidate.capability),
                 json_escape(&candidate.horizon),
                 json_escape(&candidate.disposition),
-                json_escape(&candidate.ortyo_status),
+                json_escape(&candidate.hooktry_status),
                 json_escape(&candidate.research_channel),
                 candidate.direct_demand,
                 candidate.supporting_signals,
@@ -664,8 +664,8 @@ fn parse_capabilities(text: &str) -> Vec<Capability> {
         } else if let Some(item) = current.as_mut() {
             if let Some(value) = line.strip_prefix("    disposition: ") {
                 item.disposition = scalar(value);
-            } else if let Some(value) = line.strip_prefix("    ortyo_status: ") {
-                item.ortyo_status = scalar(value);
+            } else if let Some(value) = line.strip_prefix("    hooktry_status: ") {
+                item.hooktry_status = scalar(value);
             }
         }
     }
@@ -882,7 +882,7 @@ mod tests {
             tier: "P0".to_owned(),
             horizon: "now".to_owned(),
             disposition: "must".to_owned(),
-            ortyo_status: "partial".to_owned(),
+            hooktry_status: "partial".to_owned(),
             direct_demand: 0,
             supporting_signals: 0,
             known_external_peers: 5,
@@ -893,7 +893,7 @@ mod tests {
         let completed = Candidate {
             tier: "P4".to_owned(),
             direct_demand: 10,
-            ortyo_status: "implemented".to_owned(),
+            hooktry_status: "implemented".to_owned(),
             ..now.clone()
         };
         assert_eq!(compare_candidates(&now, &completed), Ordering::Less);
@@ -920,7 +920,7 @@ mod tests {
                 tier: "P0".to_owned(),
                 horizon: "now".to_owned(),
                 disposition: "must".to_owned(),
-                ortyo_status: "partial".to_owned(),
+                hooktry_status: "partial".to_owned(),
                 direct_demand: 0,
                 supporting_signals: 0,
                 known_external_peers: 1,
@@ -934,7 +934,7 @@ mod tests {
                 tier: "P0".to_owned(),
                 horizon: "now".to_owned(),
                 disposition: "must".to_owned(),
-                ortyo_status: "partial".to_owned(),
+                hooktry_status: "partial".to_owned(),
                 direct_demand: 0,
                 supporting_signals: 0,
                 known_external_peers: 1,
@@ -948,7 +948,7 @@ mod tests {
                 tier: "P0".to_owned(),
                 horizon: "now".to_owned(),
                 disposition: "must".to_owned(),
-                ortyo_status: "partial".to_owned(),
+                hooktry_status: "partial".to_owned(),
                 direct_demand: 0,
                 supporting_signals: 0,
                 known_external_peers: 1,
@@ -972,7 +972,7 @@ mod tests {
             tier: "P2".to_owned(),
             horizon: "validate".to_owned(),
             disposition: "differentiation".to_owned(),
-            ortyo_status: "implemented".to_owned(),
+            hooktry_status: "implemented".to_owned(),
             direct_demand: 2,
             supporting_signals: 1,
             known_external_peers: 2,
@@ -992,7 +992,7 @@ mod tests {
             tier: "P2".to_owned(),
             horizon: "validate".to_owned(),
             disposition: "differentiation".to_owned(),
-            ortyo_status: "implemented".to_owned(),
+            hooktry_status: "implemented".to_owned(),
             direct_demand: 2,
             supporting_signals: 1,
             known_external_peers: 2,
@@ -1012,7 +1012,7 @@ mod tests {
             tier: "P1".to_owned(),
             horizon: "next".to_owned(),
             disposition: "should".to_owned(),
-            ortyo_status: "unknown".to_owned(),
+            hooktry_status: "unknown".to_owned(),
             direct_demand: 0,
             supporting_signals: 0,
             known_external_peers: 1,
@@ -1028,14 +1028,14 @@ mod tests {
     }
 
     #[test]
-    fn unresolved_ortyo_gap_breaks_signal_tie() {
+    fn unresolved_hooktry_gap_breaks_signal_tie() {
         let implemented = Candidate {
             product: "a".to_owned(),
             capability: "x".to_owned(),
             tier: "P0".to_owned(),
             horizon: "now".to_owned(),
             disposition: "must".to_owned(),
-            ortyo_status: "implemented".to_owned(),
+            hooktry_status: "implemented".to_owned(),
             direct_demand: 0,
             supporting_signals: 0,
             known_external_peers: 1,
@@ -1044,7 +1044,7 @@ mod tests {
             reasons: vec![],
         };
         let absent = Candidate {
-            ortyo_status: "absent".to_owned(),
+            hooktry_status: "absent".to_owned(),
             ..implemented.clone()
         };
         assert_eq!(compare_candidates(&absent, &implemented), Ordering::Less);

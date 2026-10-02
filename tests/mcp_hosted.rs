@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ortyo::{
+use hooktry::{
     execution::HttpExecutionRequest,
     hosted::{HostedRelayState, hosted_relay_app},
     hosted_client::HostedClient,
@@ -50,8 +50,8 @@ async fn mcp_proves_ask_approve_act_and_durable_query_against_hosted_boundary() 
     .await;
 
     let hosted = HostedClient::from_lookup(&base_url, |key| match key {
-        "ORTYO_TOKEN" => Some(executor.token.clone()),
-        "ORTYO_APPROVER_TOKEN" => Some(approver.token.clone()),
+        "HOOKTRY_TOKEN" => Some(executor.token.clone()),
+        "HOOKTRY_APPROVER_TOKEN" => Some(approver.token.clone()),
         _ => None,
     });
     let request = HttpExecutionRequest {
@@ -192,7 +192,7 @@ async fn create_workspace(
     slug: &str,
 ) -> Workspace {
     client
-        .post(format!("http://{addr}/_ortyo/admin/workspaces"))
+        .post(format!("http://{addr}/_hooktry/admin/workspaces"))
         .bearer_auth("test-control-token")
         .json(&json!({"slug": slug}))
         .send()
@@ -214,7 +214,7 @@ async fn issue_credential(
 ) -> IssuedApiCredential {
     client
         .post(format!(
-            "http://{addr}/_ortyo/admin/workspaces/{workspace_id}/credentials"
+            "http://{addr}/_hooktry/admin/workspaces/{workspace_id}/credentials"
         ))
         .bearer_auth("test-control-token")
         .json(&json!({

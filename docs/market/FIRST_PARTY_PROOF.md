@@ -1,7 +1,7 @@
-# Ortyo MCIF first-party proof loop
+# Hooktry MCIF first-party proof loop
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.13 FIRST-PARTY-PROOF
+DWC: MCIF/HOOKTRY.13 FIRST-PARTY-PROOF
 
 ## Goal
 
@@ -9,7 +9,7 @@ Desk research has sufficiently established that duplicate processing, out-of-ord
 
 The remaining uncertainty is product-specific:
 
-> Do developers actually use Ortyo's temporal/causal primitives to catch those failures before production?
+> Do developers actually use Hooktry's temporal/causal primitives to catch those failures before production?
 
 This slice creates the evidence loop without pretending that instrumentation itself is demand.
 
@@ -46,7 +46,7 @@ The useful outcome is a run where both request contracts pass but the Scenario f
 
 ## Usage event
 
-A completed `ortyo scenario run` can emit one privacy-minimized event when an explicit sink is configured.
+A completed `hooktry scenario run` can emit one privacy-minimized event when an explicit sink is configured.
 
 The event contains:
 
@@ -88,8 +88,8 @@ Telemetry is disabled by default.
 ### Local dogfood
 
 ```sh
-ORTYO_USAGE_LOG=.ortyo/usage.jsonl \
-  ortyo scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
+HOOKTRY_USAGE_LOG=.hooktry/usage.jsonl \
+  hooktry scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
 ```
 
 The local JSONL path is explicit and append-only.
@@ -108,9 +108,9 @@ The endpoint is disabled when `USAGE_INGEST_TOKEN` is absent.
 A CLI can opt into the sink with:
 
 ```sh
-ORTYO_USAGE_ENDPOINT=https://<host>/api/v1/usage-events \
-ORTYO_USAGE_TOKEN=<same ingest token> \
-  ortyo scenario run ...
+HOOKTRY_USAGE_ENDPOINT=https://<host>/api/v1/usage-events \
+HOOKTRY_USAGE_TOKEN=<same ingest token> \
+  hooktry scenario run ...
 ```
 
 Collector failure never changes Scenario PASS/FAIL.
@@ -186,7 +186,7 @@ until first-party evidence shows value, for example:
 - an independent project repeatedly uses one of the proof shapes
 - a user asks for richer cardinality/order/settle/context syntax because the thin primitive is insufficient
 
-Only then should Ortyo deepen the DSL.
+Only then should Hooktry deepen the DSL.
 
 ## Stop condition
 

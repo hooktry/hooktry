@@ -1,11 +1,11 @@
-# ORTYO
+# HOOKTRY
 
-> ORTYO is a programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
+> HOOKTRY is a programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
 
 ## Canonical interfaces
 
-- MCP: run `ortyo mcp`; always call `initialize` and `tools/list` before relying on tool names or schemas.
-- CLI: `ortyo ...`; successful command output is structured JSON.
+- MCP: run `hooktry mcp`; always call `initialize` and `tools/list` before relying on tool names or schemas.
+- CLI: `hooktry ...`; successful command output is structured JSON.
 - Local HTTP API: canonical local Boundary, Exposure, Scenario, Recording, Contract, Assertion, and Interaction APIs.
 - Hosted HTTP API: workspace-scoped Exposure and bounded outbound HTTP execution APIs.
 
@@ -14,12 +14,12 @@
 - Boundary - executable edge between an application and an external dependency.
 - Session - runtime grouping of related interactions.
 - Interaction - canonical evidence of what crossed a Boundary.
-- Exposure - controlled reachability through an ORTYO Boundary.
+- Exposure - controlled reachability through an HOOKTRY Boundary.
 - Recording - immutable captured evidence for replay.
 - Contract - assertions over observed interactions.
 - Scenario - reusable setup + evidence + replay + assertion workflow.
 
-Do not model ORTYO as a VM, Devbox, sandbox, or generic tunnel provider. Compute providers are implementation details behind execution/runtime boundaries.
+Do not model HOOKTRY as a VM, Devbox, sandbox, or generic tunnel provider. Compute providers are implementation details behind execution/runtime boundaries.
 
 ## Default agent workflow
 
@@ -29,20 +29,20 @@ For integration verification, prefer:
 
 For lower-level evidence work, use Exposure -> Interactions -> Recording -> Replay -> Contract -> Assertion.
 
-For a zero-signup inbound HTTP test, create an ephemeral hook with `POST /api/v1/hooks`. It is backed internally by an Exposure. The response contains three distinct capabilities: `https://ortyo.com/hook/hk_<token>` for webhook delivery, one `vw_<token>` exposed as both `https://ortyo.com/view/vw_<token>` for the browser viewer and `wss://ortyo.com/view/vw_<token>` for backlog + live push, and `https://ortyo.com/claim/cl_<token>` for one-shot claim. The response fields are `hook_url`, `view_url`, `view_websocket_url`, and `claim_url`. Each capability token uses a short type prefix plus 192 cryptographically random bits encoded as 32 unpadded Base64URL characters. Anonymous resources expire after five days unless claimed, accept at most 100 requests, 5 MiB per request, and 50 MiB retained body data. Do not poll the viewer.
+For a zero-signup inbound HTTP test, create an ephemeral hook with `POST /api/v1/hooks`. It is backed internally by an Exposure. The response contains three distinct capabilities: `https://hooktry.com/hook/hk_<token>` for webhook delivery, one `vw_<token>` exposed as both `https://hooktry.com/view/vw_<token>` for the browser viewer and `wss://hooktry.com/view/vw_<token>` for backlog + live push, and `https://hooktry.com/claim/cl_<token>` for one-shot claim. The response fields are `hook_url`, `view_url`, `view_websocket_url`, and `claim_url`. Each capability token uses a short type prefix plus 192 cryptographically random bits encoded as 32 unpadded Base64URL characters. Anonymous resources expire after five days unless claimed, accept at most 100 requests, 5 MiB per request, and 50 MiB retained body data. Do not poll the viewer.
 
 Use MCP when available because `tools/list` is the authoritative machine-readable tool schema. Use CLI structured JSON when MCP is unavailable.
 
 ## Security invariants
 
-- Never print, return, log, or paste raw ORTYO tokens, runtime capabilities, or captured secret values.
-- Prefer typed `ortyo://secrets/...` SecretRefs for hosted execution.
+- Never print, return, log, or paste raw HOOKTRY tokens, runtime capabilities, or captured secret values.
+- Prefer typed `hooktry://secrets/...` SecretRefs for hosted execution.
 - Typed SecretRefs are workspace-scoped and bound to an allowed HTTP origin; wrong-origin use fails closed.
 - Ordinary public relay Exposure URLs are reachability, not authentication credentials.
 - Anonymous Exposure hook, view, and claim URLs are separate bearer capabilities. Treat all three as secrets and never substitute one for another.
 - Runtime capabilities are separate, short-lived credentials for a specific Exposure.
 - Hosted outbound execution permits bounded HTTP/HTTPS only and rejects unsafe destinations and redirects.
-- Do not bypass ORTYO policy by reaching directly into secret storage or provider-specific infrastructure.
+- Do not bypass HOOKTRY policy by reaching directly into secret storage or provider-specific infrastructure.
 
 ## Approval-gated hosted execution
 
@@ -50,37 +50,37 @@ For sensitive hosted actions, prefer the one-shot agent-native approval flow:
 
 `approval_create -> approval_inbox -> approval_get -> approval_decide -> approval_execute -> execution_get`
 
-The asking/acting/query credential comes from `ORTYO_TOKEN` and needs `requests:execute`. The approver inbox and decision use the separate `ORTYO_APPROVER_TOKEN` with `requests:approve`. The inbox returns only pending approvals for that Workspace. `approval_decide` never falls back to `ORTYO_TOKEN`. Neither credential is an MCP tool argument or CLI argument. Approval is bound to the exact canonical request digest, stores only a redacted summary, and is consumed before the outbound attempt. Never treat an approval ID as authorization for a modified request.
+The asking/acting/query credential comes from `HOOKTRY_TOKEN` and needs `requests:execute`. The approver inbox and decision use the separate `HOOKTRY_APPROVER_TOKEN` with `requests:approve`. The inbox returns only pending approvals for that Workspace. `approval_decide` never falls back to `HOOKTRY_TOKEN`. Neither credential is an MCP tool argument or CLI argument. Approval is bound to the exact canonical request digest, stores only a redacted summary, and is consumed before the outbound attempt. Never treat an approval ID as authorization for a modified request.
 
 ## Failure semantics
 
 Hosted execution distinguishes:
 - succeeded - structured ExecutionEvidence exists;
-- rejected - ORTYO rejected the attempted action under its request/security contract;
+- rejected - HOOKTRY rejected the attempted action under its request/security contract;
 - failed - provider/runtime work did not produce valid successful evidence.
 
-Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and lifecycle timestamps. Hosted executions are durable: query `GET /_ortyo/hosted/executions/{execution_id}` with `requests:execute`. A durable `started` record means no terminal proof was committed yet; it does not imply the attempt is still running.
+Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and lifecycle timestamps. Hosted executions are durable: query `GET /_hooktry/hosted/executions/{execution_id}` with `requests:execute`. A durable `started` record means no terminal proof was committed yet; it does not imply the attempt is still running.
 
 ## Canonical source docs
 
-- README: https://github.com/ortyohq/ortyo/blob/main/README.md
-- Hosted execution and SecretRefs: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/hosted-execution.md
-- Execution lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/execution-lifecycle.md
-- Durable execution evidence: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/durable-execution-evidence.md
-- Agent approval/execution surface: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/agent-control-surface.md
-- Approval gate: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-gate.md
-- Approval inbox: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-inbox.md
-- Approval notification outbox: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-notification-outbox.md
-- Approval webhook provider: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/approval-webhook.md
-- Service access / Exposure boundary: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/service-access.md
-- Runtime capabilities: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/runtime-capabilities.md
-- Secret lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/secret-lifecycle.md
-- Production master-key rotation release gate: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/production-master-key-rotation.md
-- First public release gates: https://github.com/ortyohq/ortyo/blob/main/docs/ops/first-public-release-gates.md
-- Anonymous-first Exposure lifecycle: https://github.com/ortyohq/ortyo/blob/main/docs/rfc/anonymous-first-claim-later.md
+- README: https://github.com/hooktry/hooktry/blob/main/README.md
+- Hosted execution and SecretRefs: https://github.com/hooktry/hooktry/blob/main/docs/rfc/hosted-execution.md
+- Execution lifecycle: https://github.com/hooktry/hooktry/blob/main/docs/rfc/execution-lifecycle.md
+- Durable execution evidence: https://github.com/hooktry/hooktry/blob/main/docs/rfc/durable-execution-evidence.md
+- Agent approval/execution surface: https://github.com/hooktry/hooktry/blob/main/docs/rfc/agent-control-surface.md
+- Approval gate: https://github.com/hooktry/hooktry/blob/main/docs/rfc/approval-gate.md
+- Approval inbox: https://github.com/hooktry/hooktry/blob/main/docs/rfc/approval-inbox.md
+- Approval notification outbox: https://github.com/hooktry/hooktry/blob/main/docs/rfc/approval-notification-outbox.md
+- Approval webhook provider: https://github.com/hooktry/hooktry/blob/main/docs/rfc/approval-webhook.md
+- Service access / Exposure boundary: https://github.com/hooktry/hooktry/blob/main/docs/rfc/service-access.md
+- Runtime capabilities: https://github.com/hooktry/hooktry/blob/main/docs/rfc/runtime-capabilities.md
+- Secret lifecycle: https://github.com/hooktry/hooktry/blob/main/docs/rfc/secret-lifecycle.md
+- Production master-key rotation release gate: https://github.com/hooktry/hooktry/blob/main/docs/rfc/production-master-key-rotation.md
+- First public release gates: https://github.com/hooktry/hooktry/blob/main/docs/ops/first-public-release-gates.md
+- Anonymous-first Exposure lifecycle: https://github.com/hooktry/hooktry/blob/main/docs/rfc/anonymous-first-claim-later.md
 
 ## Agent skill
 
-Read `/skills/ortyo/SKILL.md` on an ORTYO HTTP service, or `skills/ortyo/SKILL.md` in the repository.
+Read `/skills/hooktry/SKILL.md` on an HOOKTRY HTTP service, or `skills/hooktry/SKILL.md` in the repository.
 
 For a longer self-contained projection, read `/llms-full.txt`.

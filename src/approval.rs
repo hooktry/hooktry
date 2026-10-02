@@ -183,9 +183,9 @@ pub struct ApprovalStore {
 
 pub const KEYED_FINGERPRINT_PREFIX: &str = "hmac-sha256:v1:";
 
-const DIGEST_KEY_DOMAIN: &[u8] = b"ortyo/approval/digest-key/v1";
-const REQUEST_DIGEST_DOMAIN: &[u8] = b"ortyo/approval/request-digest/v1";
-const BODY_FINGERPRINT_DOMAIN: &[u8] = b"ortyo/approval/body-fingerprint/v1";
+const DIGEST_KEY_DOMAIN: &[u8] = b"hooktry/approval/digest-key/v1";
+const REQUEST_DIGEST_DOMAIN: &[u8] = b"hooktry/approval/request-digest/v1";
+const BODY_FINGERPRINT_DOMAIN: &[u8] = b"hooktry/approval/body-fingerprint/v1";
 
 pub fn derive_digest_key(master_key: &[u8; 32]) -> [u8; 32] {
     let key = hmac::Key::new(hmac::HMAC_SHA256, master_key);

@@ -1,12 +1,12 @@
-# ORTYO Web
+# HOOKTRY Web
 
-Shared React/Vite surface for ORTYO.
+Shared React/Vite surface for HOOKTRY.
 
-The browser application is intentionally deployment-provider neutral. It talks only to the canonical ORTYO HTTP/WebSocket contract and defaults to same-origin URLs.
+The browser application is intentionally deployment-provider neutral. It talks only to the canonical HOOKTRY HTTP/WebSocket contract and defaults to same-origin URLs.
 
 The same compiled bundle runs from:
 
-- ORTYO managed cloud
+- HOOKTRY managed cloud
 - the local Rust binary
 - a future Tauri shell
 
@@ -27,7 +27,7 @@ open app
 
 The browser does not receive or embed the Cloudflare internal claim token.
 
-On managed cloud, AUTH1 uses the owner's existing claim capability together with an HttpOnly Ortyo session established through GitHub OAuth + PKCE. The GitHub access token is never stored. The claim capability remains in the owner browser session and is not derivable from a shared view URL.
+On managed cloud, AUTH1 uses the owner's existing claim capability together with an HttpOnly Hooktry session established through GitHub OAuth + PKCE. The GitHub access token is never stored. The claim capability remains in the owner browser session and is not derivable from a shared view URL.
 
 LOCAL1 remains account-free; cloud GitHub authentication is not a requirement for running the local binary.
 
@@ -49,7 +49,7 @@ Session storage is a convenience, not authority on the server.
 
 ## Local development
 
-Run the native ORTYO runtime on port 7777, then:
+Run the native HOOKTRY runtime on port 7777, then:
 
 ~~~sh
 npm install
@@ -66,7 +66,7 @@ Vite serves the UI on port 5173 and proxies:
 
 to http://127.0.0.1:7777 by default.
 
-Set ORTYO_LOCAL_RUNTIME to point Vite at another compatible runtime, for example a local Wrangler instance.
+Set HOOKTRY_LOCAL_RUNTIME to point Vite at another compatible runtime, for example a local Wrangler instance.
 
 The production build has no Cloudflare dependency:
 
@@ -108,13 +108,13 @@ bash scripts/build-binary.sh
 Then run:
 
 ~~~sh
-./target/release/ortyo ui
+./target/release/hooktry ui
 ~~~
 
 or keep the process headless with:
 
 ~~~sh
-./target/release/ortyo serve
+./target/release/hooktry serve
 ~~~
 
 Both expose WEB1 and the canonical Hook API at http://127.0.0.1:7777.

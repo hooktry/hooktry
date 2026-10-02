@@ -10,9 +10,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /app/target/release/ortyo /usr/local/bin/ortyo
+COPY --from=build /app/target/release/hooktry /usr/local/bin/hooktry
 
-ENV ORTYO_BIND=0.0.0.0:8080
+ENV HOOKTRY_BIND=0.0.0.0:8080
 EXPOSE 8080
 
-CMD ["ortyo", "hosted"]
+CMD ["hooktry", "hosted"]

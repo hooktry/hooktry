@@ -1,37 +1,37 @@
-# Ortyo MCIF cross-project proof
+# Hooktry MCIF cross-project proof
 
 Checked: 2026-10-02  
-DWC: MCIF/ORTYO.16 CROSS-PROJECT-PROOF
+DWC: MCIF/HOOKTRY.16 CROSS-PROJECT-PROOF
 
 ## Question
 
-LIVE-INTEGRATION-PROOF established that Ortyo's exact-count, idempotency-context, and settle semantics protect a real Ortyo workflow.
+LIVE-INTEGRATION-PROOF established that Hooktry's exact-count, idempotency-context, and settle semantics protect a real Hooktry workflow.
 
 CROSS-PROJECT-PROOF asks the next question:
 
-> Does a different product with an independent business purpose choose the same Ortyo primitives to verify its webhook integration?
+> Does a different product with an independent business purpose choose the same Hooktry primitives to verify its webhook integration?
 
 The consumer is Operational.
 
 ## Independent consumer
 
-Operational has its own provider-neutral durable notification architecture. Its webhook provider is not an Ortyo feature.
+Operational has its own provider-neutral durable notification architecture. Its webhook provider is not an Hooktry feature.
 
-Operational PR #261 added a real `WebhookProviderAdapter` and a dedicated CI partition that checks out a pinned Ortyo executable:
+Operational PR #261 added a real `WebhookProviderAdapter` and a dedicated CI partition that checks out a pinned Hooktry executable:
 
 ```text
-ortyohq/ortyo@9dd0e2597eb22b356c46c2106802d8c41687e1db
+hooktry/hooktry@9dd0e2597eb22b356c46c2106802d8c41687e1db
 ```
 
-The projects interact only through process and HTTP boundaries. Operational does not import Ortyo Rust modules.
+The projects interact only through process and HTTP boundaries. Operational does not import Hooktry Rust modules.
 
 ## Verified path
 
 ```text
 Operational WebhookProviderAdapter
   -> Idempotency-Key = durable Operational delivery ID
-  -> ORTYO_EXPOSURE_URL
-  -> Ortyo Interaction evidence
+  -> HOOKTRY_EXPOSURE_URL
+  -> Hooktry Interaction evidence
   -> receiver
   -> Scenario exact count + idempotency context + settle
 ```
@@ -45,7 +45,7 @@ The Operational CI gate produced:
 ```text
 CROSS-PROJECT-PROOF passed:
 Operational WebhookProviderAdapter
--> Ortyo Scenario exact-count/idempotency/settle
+-> Hooktry Scenario exact-count/idempotency/settle
 -> receiver
 ```
 
@@ -61,7 +61,7 @@ This is stronger than self-dogfood:
 
 - a second repository owns the integration
 - a second product owns the business job
-- Ortyo is a pinned external executable
+- Hooktry is a pinned external executable
 - the boundary is process + HTTP
 - the consumer's CI depends on the proof
 
@@ -71,8 +71,8 @@ Therefore:
 
 ```text
 duplicate/idempotency problem       -> public demand proven
-Ortyo mechanism                     -> proven
-Ortyo live self-use                 -> proven
+Hooktry mechanism                     -> proven
+Hooktry live self-use                 -> proven
 independent first-party product use -> proven
 external adoption                   -> not proven
 richer DSL demand                   -> not proven
@@ -110,7 +110,7 @@ Operational's webhook adapter is implemented and verified, but its public `kind:
 
 Reason: its current destination `config_json` is plaintext, while real webhook URLs commonly contain credentials in path/query values.
 
-This is exactly the kind of boundary evidence cross-project dogfood should surface: Ortyo verified transport behavior without forcing the consuming product to weaken secret handling.
+This is exactly the kind of boundary evidence cross-project dogfood should surface: Hooktry verified transport behavior without forcing the consuming product to weaken secret handling.
 
 ## Stop rule
 

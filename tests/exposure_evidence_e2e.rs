@@ -5,7 +5,7 @@ use axum::{
     routing::post,
 };
 use http_body_util::BodyExt;
-use ortyo::{
+use hooktry::{
     domain::{AssertionResult, Contract, Exposure, Interaction, Origin, Recording},
     http::{AppState, app},
 };
@@ -36,7 +36,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
         router
             .clone()
             .oneshot(
-                Request::post("/_ortyo/exposures")
+                Request::post("/_hooktry/exposures")
                     .header("content-type", "application/json")
                     .body(Body::from(
                         json!({"name": "agent-webhook", "port": target_port}).to_string(),
@@ -65,7 +65,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
         router
             .clone()
             .oneshot(
-                Request::get("/_ortyo/interactions")
+                Request::get("/_hooktry/interactions")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -85,7 +85,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
         router
             .clone()
             .oneshot(
-                Request::post("/_ortyo/recordings")
+                Request::post("/_hooktry/recordings")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -99,7 +99,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
         router
             .clone()
             .oneshot(
-                Request::post(format!("/_ortyo/recordings/{}/replay", recording.id))
+                Request::post(format!("/_hooktry/recordings/{}/replay", recording.id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -118,7 +118,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
         router
             .clone()
             .oneshot(
-                Request::post("/_ortyo/contracts")
+                Request::post("/_hooktry/contracts")
                     .header("content-type", "application/json")
                     .body(Body::from(
                         json!({
@@ -144,7 +144,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
             .clone()
             .oneshot(
                 Request::post(format!(
-                    "/_ortyo/contracts/{}/assert/{}",
+                    "/_hooktry/contracts/{}/assert/{}",
                     contract.id, replay.id
                 ))
                 .body(Body::empty())
@@ -161,7 +161,7 @@ async fn exposure_evidence_can_be_recorded_replayed_and_asserted_end_to_end() {
     let persisted: AssertionResult = response_json(
         router
             .oneshot(
-                Request::get(format!("/_ortyo/assertions/{}", assertion.id))
+                Request::get(format!("/_hooktry/assertions/{}", assertion.id))
                     .body(Body::empty())
                     .unwrap(),
             )

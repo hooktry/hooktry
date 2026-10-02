@@ -82,7 +82,7 @@ This lets a deployment introduce the outbox without silently losing already-pend
 
 ## Production dogfood
 
-Hosted startup acceptance proves the transactional invariant against the production database. Immediately after `approval_create`, ORTYO loads the outbox intent by `workspace_id + approval_id` and requires:
+Hosted startup acceptance proves the transactional invariant against the production database. Immediately after `approval_create`, HOOKTRY loads the outbox intent by `workspace_id + approval_id` and requires:
 
 - `event = approval_requested`
 - matching Workspace and Approval identities

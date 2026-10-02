@@ -68,7 +68,7 @@ impl std::fmt::Debug for HostedServerConfig {
 
 impl HostedServerConfig {
     pub fn from_lookup(mut lookup: impl FnMut(&str) -> Option<String>) -> Result<Self, String> {
-        let bind = match lookup("ORTYO_BIND") {
+        let bind = match lookup("HOOKTRY_BIND") {
             Some(bind) => bind,
             None => match lookup("PORT") {
                 Some(port) => format!("0.0.0.0:{}", parse_port(&port)?),
@@ -78,38 +78,38 @@ impl HostedServerConfig {
 
         let socket: SocketAddr = bind
             .parse()
-            .map_err(|_| format!("invalid ORTYO_BIND socket address: {bind}"))?;
+            .map_err(|_| format!("invalid HOOKTRY_BIND socket address: {bind}"))?;
 
         let public_base_url =
-            lookup("ORTYO_PUBLIC_BASE_URL").unwrap_or_else(|| local_public_base_url(socket));
+            lookup("HOOKTRY_PUBLIC_BASE_URL").unwrap_or_else(|| local_public_base_url(socket));
         if !public_base_url.starts_with("http://") && !public_base_url.starts_with("https://") {
-            return Err("ORTYO_PUBLIC_BASE_URL must start with http:// or https://".to_owned());
+            return Err("HOOKTRY_PUBLIC_BASE_URL must start with http:// or https://".to_owned());
         }
 
-        let control_token = lookup("ORTYO_CONTROL_TOKEN")
+        let control_token = lookup("HOOKTRY_CONTROL_TOKEN")
             .filter(|token| !token.trim().is_empty())
-            .ok_or_else(|| "ORTYO_CONTROL_TOKEN is required".to_owned())?;
-        let database_url = lookup("ORTYO_DATABASE_URL").filter(|url| !url.trim().is_empty());
+            .ok_or_else(|| "HOOKTRY_CONTROL_TOKEN is required".to_owned())?;
+        let database_url = lookup("HOOKTRY_DATABASE_URL").filter(|url| !url.trim().is_empty());
         if database_url
             .as_ref()
             .is_some_and(|url| !url.starts_with("postgres://") && !url.starts_with("postgresql://"))
         {
-            return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
+            return Err("HOOKTRY_DATABASE_URL must be a PostgreSQL URL".to_owned());
         }
-        let secrets_key = lookup("ORTYO_SECRETS_KEY")
+        let secrets_key = lookup("HOOKTRY_SECRETS_KEY")
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| "ORTYO_SECRETS_KEY is required".to_owned())
+            .ok_or_else(|| "HOOKTRY_SECRETS_KEY is required".to_owned())
             .and_then(|value| {
                 decode_master_key(&value).map_err(|_| {
-                    "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
+                    "HOOKTRY_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
                 })
             })?;
-        let secrets_key_version = lookup("ORTYO_SECRETS_KEY_VERSION")
+        let secrets_key_version = lookup("HOOKTRY_SECRETS_KEY_VERSION")
             .filter(|value| !value.trim().is_empty())
-            .map(|value| parse_positive_key_version("ORTYO_SECRETS_KEY_VERSION", &value))
+            .map(|value| parse_positive_key_version("HOOKTRY_SECRETS_KEY_VERSION", &value))
             .transpose()?
             .unwrap_or(1);
-        let previous_secrets_keys = lookup("ORTYO_SECRETS_PREVIOUS_KEYS")
+        let previous_secrets_keys = lookup("HOOKTRY_SECRETS_PREVIOUS_KEYS")
             .filter(|value| !value.trim().is_empty())
             .map(|value| parse_previous_secret_keys(&value))
             .transpose()?
@@ -118,15 +118,15 @@ impl HostedServerConfig {
             VersionedKeyring::new(secrets_key_version, secrets_key, previous_secrets_keys)
                 .map_err(keyring_config_error)?;
         let bootstrap_workspace =
-            lookup("ORTYO_BOOTSTRAP_WORKSPACE").filter(|value| !value.trim().is_empty());
+            lookup("HOOKTRY_BOOTSTRAP_WORKSPACE").filter(|value| !value.trim().is_empty());
         let approval_webhook_url =
-            lookup("ORTYO_APPROVAL_WEBHOOK_URL").filter(|value| !value.trim().is_empty());
+            lookup("HOOKTRY_APPROVAL_WEBHOOK_URL").filter(|value| !value.trim().is_empty());
         if let Some(url) = approval_webhook_url.as_deref() {
             validate_webhook_url(url)?;
         }
-        let db_path = lookup("ORTYO_HOSTED_DB_PATH")
+        let db_path = lookup("HOOKTRY_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
-            .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
+            .unwrap_or_else(|| "hooktry-hosted.db".to_owned());
 
         Ok(Self {
             bind,
@@ -206,10 +206,10 @@ pub async fn run_hosted_server(config: HostedServerConfig) -> Result<(), String>
     };
     let dogfood = dogfood_exposure_config(|key| std::env::var(key).ok(), local_port)?;
     if dogfood.is_some() && bootstrap_workspace_id.is_none() {
-        return Err("ORTYO_DOGFOOD_EXPOSURE_PORT requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned());
+        return Err("HOOKTRY_DOGFOOD_EXPOSURE_PORT requires HOOKTRY_BOOTSTRAP_WORKSPACE".to_owned());
     }
     if config.approval_webhook_url.is_some() && bootstrap_workspace_id.is_none() {
-        return Err("ORTYO_APPROVAL_WEBHOOK_URL requires ORTYO_BOOTSTRAP_WORKSPACE".to_owned());
+        return Err("HOOKTRY_APPROVAL_WEBHOOK_URL requires HOOKTRY_BOOTSTRAP_WORKSPACE".to_owned());
     }
     let approval_webhook = match (
         bootstrap_workspace_id,
@@ -507,18 +507,18 @@ fn dogfood_exposure_config(
     mut lookup: impl FnMut(&str) -> Option<String>,
     self_port: u16,
 ) -> Result<Option<DogfoodExposureConfig>, String> {
-    let Some(port) = lookup("ORTYO_DOGFOOD_EXPOSURE_PORT").filter(|value| !value.trim().is_empty())
+    let Some(port) = lookup("HOOKTRY_DOGFOOD_EXPOSURE_PORT").filter(|value| !value.trim().is_empty())
     else {
         return Ok(None);
     };
     let target_port = if port == "self" {
         self_port
     } else {
-        parse_port(&port).map_err(|_| format!("invalid ORTYO_DOGFOOD_EXPOSURE_PORT: {port}"))?
+        parse_port(&port).map_err(|_| format!("invalid HOOKTRY_DOGFOOD_EXPOSURE_PORT: {port}"))?
     };
-    let name = lookup("ORTYO_DOGFOOD_EXPOSURE_NAME")
+    let name = lookup("HOOKTRY_DOGFOOD_EXPOSURE_NAME")
         .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| "ortyo-dogfood".to_owned());
+        .unwrap_or_else(|| "hooktry-dogfood".to_owned());
     Ok(Some(DogfoodExposureConfig { name, target_port }))
 }
 
@@ -540,12 +540,12 @@ async fn run_dogfood_approval_webhook(
     workspace_id: Uuid,
 ) -> Result<(), String> {
     const ATTEMPTS: usize = 30;
-    const DOGFOOD_HEADER: &str = "x-ortyo-dogfood-secret";
+    const DOGFOOD_HEADER: &str = "x-hooktry-dogfood-secret";
 
     let canary_id = Uuid::now_v7();
-    let query_canary = format!("ortyo-query-canary-{canary_id}");
-    let header_canary = format!("ortyo-header-canary-{canary_id}");
-    let body_canary = format!("ortyo-body-canary-{canary_id}");
+    let query_canary = format!("hooktry-query-canary-{canary_id}");
+    let header_canary = format!("hooktry-header-canary-{canary_id}");
+    let body_canary = format!("hooktry-body-canary-{canary_id}");
     let request = HttpExecutionRequest {
         method: "POST".to_owned(),
         url: format!(
@@ -563,7 +563,7 @@ async fn run_dogfood_approval_webhook(
         state,
         workspace_id,
         "POST",
-        "/_ortyo/hosted/approvals",
+        "/_hooktry/hosted/approvals",
         Some(
             serde_json::to_value(&request)
                 .map_err(|error| format!("serialize dogfood webhook approval: {error}"))?,
@@ -636,7 +636,7 @@ async fn run_dogfood_approval_webhook(
     let headers = webhook_headers(notification.notification_id);
     let expected_idempotency_key = notification.notification_id.to_string();
     if headers.get("idempotency-key").map(String::as_str) != Some(expected_idempotency_key.as_str())
-        || headers.get("x-ortyo-event").map(String::as_str) != Some("approval_requested")
+        || headers.get("x-hooktry-event").map(String::as_str) != Some("approval_requested")
     {
         return Err("dogfood webhook delivery headers were not deterministic".to_owned());
     }
@@ -665,7 +665,7 @@ async fn run_dogfood_approval_webhook(
         state,
         workspace_id,
         "POST",
-        &format!("/_ortyo/hosted/approvals/{}/decision", approval.approval_id),
+        &format!("/_hooktry/hosted/approvals/{}/decision", approval.approval_id),
         Some(json!({"decision": "deny"})),
     )
     .await?;
@@ -731,7 +731,7 @@ async fn run_dogfood_approval_gate(
                 state,
                 workspace_id,
                 "POST",
-                "/_ortyo/hosted/approvals",
+                "/_hooktry/hosted/approvals",
                 Some(
                     serde_json::to_value(&inner_request)
                         .map_err(|error| format!("serialize dogfood approval request: {error}"))?,
@@ -803,7 +803,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_ortyo/hosted/approvals/{}/decision", approval.approval_id),
+        &format!("/_hooktry/hosted/approvals/{}/decision", approval.approval_id),
         Some(json!({"decision": "approve"})),
     )
     .await?;
@@ -836,7 +836,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
+        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
         Some(
             serde_json::to_value(mismatched)
                 .map_err(|error| format!("serialize dogfood mismatch request: {error}"))?,
@@ -854,7 +854,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
+        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
         Some(
             serde_json::to_value(&inner_request)
                 .map_err(|error| format!("serialize dogfood approved request: {error}"))?,
@@ -897,7 +897,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "GET",
-        &format!("/_ortyo/hosted/executions/{}", proof.execution.execution_id),
+        &format!("/_hooktry/hosted/executions/{}", proof.execution.execution_id),
         None,
     )
     .await?;
@@ -922,7 +922,7 @@ async fn run_dogfood_approval_gate(
         state,
         workspace_id,
         "POST",
-        &format!("/_ortyo/hosted/approvals/{}/execute", approval.approval_id),
+        &format!("/_hooktry/hosted/approvals/{}/execute", approval.approval_id),
         Some(
             serde_json::to_value(&inner_request)
                 .map_err(|error| format!("serialize dogfood replay request: {error}"))?,
@@ -958,7 +958,7 @@ async fn dogfood_approval_inbox(
         state,
         workspace_id,
         "GET",
-        "/_ortyo/hosted/approvals",
+        "/_hooktry/hosted/approvals",
         None,
     )
     .await?;
@@ -983,7 +983,7 @@ async fn execute_dogfood_control_request(
     secret_headers.insert(
         "authorization".to_owned(),
         SecretHeaderBinding::SecretRef {
-            secret_ref: "ortyo://secrets/default-api-token".to_owned(),
+            secret_ref: "hooktry://secrets/default-api-token".to_owned(),
             prefix: "Bearer ".to_owned(),
             suffix: String::new(),
         },
@@ -1045,7 +1045,7 @@ async fn provision_dogfood_exposure(
     config: &DogfoodExposureConfig,
 ) -> Result<(HostedExposureRecord, bool), String> {
     const ATTEMPTS: usize = 20;
-    const API_TOKEN_REF: &str = "ortyo://secrets/default-api-token";
+    const API_TOKEN_REF: &str = "hooktry://secrets/default-api-token";
     const RUNTIME_CAPABILITY_SECRET: &str = "dogfood-runtime-capability";
 
     for attempt in 0..ATTEMPTS {
@@ -1064,7 +1064,7 @@ async fn provision_dogfood_exposure(
         );
         let request = HttpExecutionRequest {
             method: "POST".to_owned(),
-            url: format!("{}/_ortyo/hosted/exposures", state.public_base_url),
+            url: format!("{}/_hooktry/hosted/exposures", state.public_base_url),
             headers: BTreeMap::new(),
             body: Some(json!({
                 "name": config.name.clone(),
@@ -1093,7 +1093,7 @@ async fn provision_dogfood_exposure(
                     .ok_or_else(|| "dogfood response missing public_url".to_owned())?
                     .to_owned();
                 let captured = evidence.captured_secrets.iter().any(|secret| {
-                    secret.secret_ref == format!("ortyo://secrets/{RUNTIME_CAPABILITY_SECRET}")
+                    secret.secret_ref == format!("hooktry://secrets/{RUNTIME_CAPABILITY_SECRET}")
                 });
                 if !captured {
                     return Err("dogfood runtime capability was not captured".to_owned());
@@ -1231,7 +1231,7 @@ async fn attach_dogfood_runtime(
         .map_err(|_| "authorize dogfood runtime capability".to_owned())?;
 
     let runtime_url = format!(
-        "{local_runtime_base_url}/_ortyo/runtime/{}",
+        "{local_runtime_base_url}/_hooktry/runtime/{}",
         exposure.exposure_id
     );
     let provision = ProvisionedExposure {
@@ -1324,12 +1324,12 @@ fn parse_previous_secret_keys(value: &str) -> Result<Vec<(i32, [u8; 32])>, Strin
         .filter(|entry| !entry.is_empty())
         .map(|entry| {
             let (version, key) = entry.split_once(':').ok_or_else(|| {
-                "ORTYO_SECRETS_PREVIOUS_KEYS must contain version:64hex entries".to_owned()
+                "HOOKTRY_SECRETS_PREVIOUS_KEYS must contain version:64hex entries".to_owned()
             })?;
             let version =
-                parse_positive_key_version("ORTYO_SECRETS_PREVIOUS_KEYS version", version)?;
+                parse_positive_key_version("HOOKTRY_SECRETS_PREVIOUS_KEYS version", version)?;
             let key = decode_master_key(key).map_err(|_| {
-                "ORTYO_SECRETS_PREVIOUS_KEYS keys must be exactly 64 hexadecimal characters"
+                "HOOKTRY_SECRETS_PREVIOUS_KEYS keys must be exactly 64 hexadecimal characters"
                     .to_owned()
             })?;
             Ok((version, key))
@@ -1390,8 +1390,8 @@ mod tests {
     fn hosted_config_defaults_master_key_version_to_one() {
         let key = "11".repeat(32);
         let config = HostedServerConfig::from_lookup(|name| match name {
-            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
-            "ORTYO_SECRETS_KEY" => Some(key.clone()),
+            "HOOKTRY_CONTROL_TOKEN" => Some("control".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(key.clone()),
             _ => None,
         })
         .unwrap();
@@ -1409,10 +1409,10 @@ mod tests {
         let active = "22".repeat(32);
         let previous = format!("1:{}", "11".repeat(32));
         let config = HostedServerConfig::from_lookup(|name| match name {
-            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
-            "ORTYO_SECRETS_KEY" => Some(active.clone()),
-            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
-            "ORTYO_SECRETS_PREVIOUS_KEYS" => Some(previous.clone()),
+            "HOOKTRY_CONTROL_TOKEN" => Some("control".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(active.clone()),
+            "HOOKTRY_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "HOOKTRY_SECRETS_PREVIOUS_KEYS" => Some(previous.clone()),
             _ => None,
         })
         .unwrap();
@@ -1430,22 +1430,22 @@ mod tests {
     fn hosted_config_rejects_invalid_or_duplicate_master_key_versions() {
         let key = "33".repeat(32);
         let invalid = HostedServerConfig::from_lookup(|name| match name {
-            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
-            "ORTYO_SECRETS_KEY" => Some(key.clone()),
-            "ORTYO_SECRETS_KEY_VERSION" => Some("0".to_owned()),
+            "HOOKTRY_CONTROL_TOKEN" => Some("control".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(key.clone()),
+            "HOOKTRY_SECRETS_KEY_VERSION" => Some("0".to_owned()),
             _ => None,
         })
         .unwrap_err();
         assert_eq!(
             invalid,
-            "ORTYO_SECRETS_KEY_VERSION must be a positive integer"
+            "HOOKTRY_SECRETS_KEY_VERSION must be a positive integer"
         );
 
         let duplicate = HostedServerConfig::from_lookup(|name| match name {
-            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
-            "ORTYO_SECRETS_KEY" => Some(key.clone()),
-            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
-            "ORTYO_SECRETS_PREVIOUS_KEYS" => {
+            "HOOKTRY_CONTROL_TOKEN" => Some("control".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(key.clone()),
+            "HOOKTRY_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "HOOKTRY_SECRETS_PREVIOUS_KEYS" => {
                 Some(format!("1:{},1:{}", "11".repeat(32), "12".repeat(32)))
             }
             _ => None,
@@ -1454,10 +1454,10 @@ mod tests {
         assert_eq!(duplicate, "duplicate secret key version: 1");
 
         let active_duplicate = HostedServerConfig::from_lookup(|name| match name {
-            "ORTYO_CONTROL_TOKEN" => Some("control".to_owned()),
-            "ORTYO_SECRETS_KEY" => Some(key.clone()),
-            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
-            "ORTYO_SECRETS_PREVIOUS_KEYS" => Some(format!("2:{}", "11".repeat(32))),
+            "HOOKTRY_CONTROL_TOKEN" => Some("control".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(key.clone()),
+            "HOOKTRY_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "HOOKTRY_SECRETS_PREVIOUS_KEYS" => Some(format!("2:{}", "11".repeat(32))),
             _ => None,
         })
         .unwrap_err();
@@ -1479,11 +1479,11 @@ mod tests {
 
     #[tokio::test]
     async fn operator_bootstrap_captures_token_and_is_idempotent() {
-        let path = std::env::temp_dir().join(format!("ortyo-bootstrap-{}.db", Uuid::now_v7()));
+        let path = std::env::temp_dir().join(format!("hooktry-bootstrap-{}.db", Uuid::now_v7()));
         let identities = HostedIdentityStore::open(&path).unwrap();
         let secrets = SecretStore::open(&path, [41; 32]).unwrap();
 
-        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://ortyo.example")
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://hooktry.example")
             .await
             .unwrap();
         let workspace = identities
@@ -1501,9 +1501,9 @@ mod tests {
         let first_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
         assert_eq!(
             first_ref.allowed_origin.as_deref(),
-            Some("https://ortyo.example")
+            Some("https://hooktry.example")
         );
-        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://ortyo.example")
+        ensure_operator_bootstrap_async(&identities, &secrets, "serhii", "https://hooktry.example")
             .await
             .unwrap();
         let second_ref = secrets.get_ref(workspace.id, "default-api-token").unwrap();
@@ -1538,10 +1538,10 @@ mod tests {
         let original = HostedExposureRecord {
             exposure_id,
             workspace_id: Some(workspace_id),
-            name: "ortyo-dogfood".to_owned(),
+            name: "hooktry-dogfood".to_owned(),
             target_port: 10000,
-            public_url: format!("https://ortyo.example/e/{exposure_id}"),
-            runtime_url: format!("wss://ortyo.example/_ortyo/runtime/{exposure_id}"),
+            public_url: format!("https://hooktry.example/e/{exposure_id}"),
+            runtime_url: format!("wss://hooktry.example/_hooktry/runtime/{exposure_id}"),
             capability_expires_at_unix_seconds: 0,
             revoked: false,
         };
@@ -1553,7 +1553,7 @@ mod tests {
             exposures.clone(),
             HostedIdentityStore::default(),
             secrets.clone(),
-            "https://ortyo.example",
+            "https://hooktry.example",
             "control-token",
         );
         state.capability_ttl = Duration::from_secs(60);
@@ -1562,7 +1562,7 @@ mod tests {
             &state,
             workspace_id,
             &DogfoodExposureConfig {
-                name: "ortyo-dogfood".to_owned(),
+                name: "hooktry-dogfood".to_owned(),
                 target_port: 10000,
             },
         )
@@ -1600,7 +1600,7 @@ mod tests {
 
         let config = dogfood_exposure_config(
             |key| match key {
-                "ORTYO_DOGFOOD_EXPOSURE_PORT" => Some("3000".to_owned()),
+                "HOOKTRY_DOGFOOD_EXPOSURE_PORT" => Some("3000".to_owned()),
                 _ => None,
             },
             4242,
@@ -1609,7 +1609,7 @@ mod tests {
         assert_eq!(
             config,
             Some(DogfoodExposureConfig {
-                name: "ortyo-dogfood".to_owned(),
+                name: "hooktry-dogfood".to_owned(),
                 target_port: 3000,
             })
         );
@@ -1619,7 +1619,7 @@ mod tests {
     fn dogfood_exposure_can_target_the_hosted_service_itself() {
         let config = dogfood_exposure_config(
             |key| match key {
-                "ORTYO_DOGFOOD_EXPOSURE_PORT" => Some("self".to_owned()),
+                "HOOKTRY_DOGFOOD_EXPOSURE_PORT" => Some("self".to_owned()),
                 _ => None,
             },
             10000,
@@ -1634,13 +1634,13 @@ mod tests {
     fn dogfood_exposure_rejects_invalid_port() {
         let error = dogfood_exposure_config(
             |key| match key {
-                "ORTYO_DOGFOOD_EXPOSURE_PORT" => Some("0".to_owned()),
+                "HOOKTRY_DOGFOOD_EXPOSURE_PORT" => Some("0".to_owned()),
                 _ => None,
             },
             4242,
         )
         .unwrap_err();
-        assert_eq!(error, "invalid ORTYO_DOGFOOD_EXPOSURE_PORT: 0");
+        assert_eq!(error, "invalid HOOKTRY_DOGFOOD_EXPOSURE_PORT: 0");
     }
 
     #[tokio::test]
@@ -1649,7 +1649,7 @@ mod tests {
             bind: "127.0.0.1:0".to_owned(),
             public_base_url: "http://127.0.0.1".to_owned(),
             control_token: "test-control-token".to_owned(),
-            database_url: Some("postgresql://127.0.0.1:1/ortyo".to_owned()),
+            database_url: Some("postgresql://127.0.0.1:1/hooktry".to_owned()),
             db_path: "unused.db".to_owned(),
             secrets_keyring: VersionedKeyring::single([7; 32]),
             bootstrap_workspace: None,

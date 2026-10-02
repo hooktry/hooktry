@@ -1,4 +1,4 @@
-use ortyo::secret::{SecretError, SecretStore};
+use hooktry::secret::{SecretError, SecretStore};
 use uuid::Uuid;
 
 #[test]

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs};
 
-use ortyo::{
+use hooktry::{
     execution::{
         ExecutionError, ExecutionOutcome, ExecutionProviderKind, ExecutionRecord,
         HttpExecutionRequest,
@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 #[test]
 fn execution_store_persists_started_then_completed_lifecycle() {
-    let path = std::env::temp_dir().join(format!("ortyo-execution-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-execution-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let execution_id = Uuid::now_v7();
 
@@ -103,7 +103,7 @@ fn execution_store_is_workspace_scoped_and_discards_only_uncompleted_reservation
 
 #[test]
 fn durable_store_does_not_persist_execution_request_material() {
-    let path = std::env::temp_dir().join(format!("ortyo-execution-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-execution-{}.db", Uuid::now_v7()));
     let workspace_id = Uuid::now_v7();
     let execution_id = Uuid::now_v7();
     let store = ExecutionStore::open(&path).unwrap();

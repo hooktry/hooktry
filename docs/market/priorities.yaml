@@ -1,5 +1,5 @@
 checked_at: 2026-10-02
-evidence_scope: "Public market evidence plus Ortyo self-dogfood and Operational cross-project first-party portfolio usage; no external customer cohort yet."
+evidence_scope: "Public market evidence plus Hooktry self-dogfood and Operational cross-project first-party portfolio usage; no external customer cohort yet."
 
 priorities:
   - id: primary-inspector
@@ -35,7 +35,7 @@ priorities:
     decision: differentiation
     confidence: medium
     capabilities: [wait-for-event, deterministic-ci, contracts]
-    rationale: "CI authentication, bounded waits, reproducible test environments, request assertions, and structured evidence are clearly present across competitors. Current evidence does not establish the same stable behavior-vs-infrastructure outcome semantics, so Ortyo should differentiate only where richer temporal/causal evidence improves the outcome; the exact DSL remains a hypothesis."
+    rationale: "CI authentication, bounded waits, reproducible test environments, request assertions, and structured evidence are clearly present across competitors. Current evidence does not establish the same stable behavior-vs-infrastructure outcome semantics, so Hooktry should differentiate only where richer temporal/causal evidence improves the outcome; the exact DSL remains a hypothesis."
 
   - id: temporal-duplicate-proof
     horizon: validate
@@ -43,7 +43,7 @@ priorities:
     confidence: medium
     next_evidence: external_usage
     capabilities: [cardinality, correlation-context, observation-window]
-    rationale: "Production bug reports validate duplicate and delivery-identity failures. Ortyo protects its real approval webhook with exact-count/idempotency/settle semantics, and Operational independently consumes a pinned Ortyo executable to verify its WebhookProviderAdapter across a repository/process/HTTP boundary. Thin first-party utility is therefore established; the next barrier is external usage, while richer ranged-cardinality and DSL depth remain hypotheses."
+    rationale: "Production bug reports validate duplicate and delivery-identity failures. Hooktry protects its real approval webhook with exact-count/idempotency/settle semantics, and Operational independently consumes a pinned Hooktry executable to verify its WebhookProviderAdapter across a repository/process/HTTP boundary. Thin first-party utility is therefore established; the next barrier is external usage, while richer ranged-cardinality and DSL depth remain hypotheses."
 
   - id: temporal-ordering-proof
     horizon: validate
@@ -51,14 +51,14 @@ priorities:
     confidence: medium
     next_evidence: first_party_usage
     capabilities: [ordering]
-    rationale: "Production bug reports and provider behavior validate out-of-order delivery as a real failure class, and Ortyo's synthetic dogfood proves the ordering mechanism. No independent live product workflow currently needs the ordering assertion, so the next evidence remains first-party usage rather than deeper syntax."
+    rationale: "Production bug reports and provider behavior validate out-of-order delivery as a real failure class, and Hooktry's synthetic dogfood proves the ordering mechanism. No independent live product workflow currently needs the ordering assertion, so the next evidence remains first-party usage rather than deeper syntax."
 
   - id: reliable-delivery
     horizon: watch
     decision: watch
     confidence: medium
     capabilities: [durable-retries, dlq, fanout, filtering-routing, transformation]
-    rationale: "Clearly validated market depth, but not yet validated as the next job for Ortyo users. Activate when development Hooks become long-lived pilots."
+    rationale: "Clearly validated market depth, but not yet validated as the next job for Hooktry users. Activate when development Hooks become long-lived pilots."
 
   - id: agent-control
     horizon: option

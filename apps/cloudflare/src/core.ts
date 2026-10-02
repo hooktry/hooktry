@@ -103,7 +103,7 @@ export async function sha256Hex(value: string): Promise<string> {
 
 export function randomPrincipal(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return `ortyo_ap_${hex(bytes)}`;
+  return `hooktry_ap_${hex(bytes)}`;
 }
 
 export function randomCapability(prefix: "hk_" | "vw_" | "cl_"): string {
@@ -134,7 +134,7 @@ export function uuidV7(nowMs = Date.now()): string {
 }
 
 export function validAnonymousPrincipal(value: string): boolean {
-  return /^ortyo_ap_[0-9a-f]{64}$/.test(value);
+  return /^hooktry_ap_[0-9a-f]{64}$/.test(value);
 }
 
 export function validWorkspaceId(value: string): boolean {
@@ -144,7 +144,7 @@ export function validWorkspaceId(value: string): boolean {
 }
 
 export function anonymousPrincipal(request: Request): string | null {
-  const header = request.headers.get("x-ortyo-anonymous-principal");
+  const header = request.headers.get("x-hooktry-anonymous-principal");
   if (header && validAnonymousPrincipal(header)) {
     return header;
   }
@@ -155,7 +155,7 @@ export function anonymousPrincipal(request: Request): string | null {
   for (const entry of cookie.split(";")) {
     const [name, ...parts] = entry.trim().split("=");
     const value = parts.join("=");
-    if (name === "ortyo_anon" && validAnonymousPrincipal(value)) {
+    if (name === "hooktry_anon" && validAnonymousPrincipal(value)) {
       return value;
     }
   }

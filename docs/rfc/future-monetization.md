@@ -1,11 +1,11 @@
-# Future monetization: Ortyo Cloud
+# Future monetization: Hooktry Cloud
 
 Status: exploratory product thesis, not a committed pricing plan  
 DWC: FUTURE/MONETIZATION.1 MONETIZATION - monetize reliance, not core capability
 
 ## Context
 
-Ortyo Cloud should let a developer understand and use the product meaningfully before paying.
+Hooktry Cloud should let a developer understand and use the product meaningfully before paying.
 
 The boundary we want to explore is not:
 
@@ -13,7 +13,7 @@ The boundary we want to explore is not:
 
 It is:
 
-> use the core product for free; pay when you start relying on Ortyo as durable infrastructure.
+> use the core product for free; pay when you start relying on Hooktry as durable infrastructure.
 
 That suggests a monetization model centered on:
 
@@ -27,7 +27,7 @@ The product experience that motivated this thesis is simple: an ephemeral or tim
 
 ## Product principle
 
-Ortyo should avoid artificial degradation of correctness or security in the free tier.
+Hooktry should avoid artificial degradation of correctness or security in the free tier.
 
 The following should remain part of the trustworthy core product:
 
@@ -70,7 +70,7 @@ The current thesis is the opposite:
 
 This matters more in an agent-heavy development world because project creation is getting cheaper. A developer may have many small experiments, pet projects, generated services, prototypes, and short-lived ideas at the same time.
 
-Ortyo should benefit from that proliferation instead of taxing it.
+Hooktry should benefit from that proliferation instead of taxing it.
 
 A healthy funnel can look like:
 
@@ -82,7 +82,7 @@ user creates workspace D -> needs notifications / compute / background execution
 user creates workspace E -> abandoned -> costs almost nothing
 ```
 
-The more projects a user brings into Ortyo, the more chances there are that one of them eventually becomes important enough to justify managed reliability.
+The more projects a user brings into Hooktry, the more chances there are that one of them eventually becomes important enough to justify managed reliability.
 
 This suggests a platform shape closer to resource-level monetization than account-level gating:
 
@@ -107,7 +107,7 @@ The important conversion event is not:
 It is:
 
 ```text
-"This workspace now matters enough that I need Ortyo to keep it alive,
+"This workspace now matters enough that I need Hooktry to keep it alive,
 remember it, run it, notify me, or guarantee more around it."
 ```
 
@@ -149,13 +149,13 @@ Instead of making one isolated feature the first paywall, consider packaging the
 
 Working concept:
 
-> **Ortyo Durable Cloud**  
+> **Hooktry Durable Cloud**  
 > Keep your endpoints, state, approvals, secrets, and evidence alive.
 
 Illustrative only:
 
 ```text
-Ortyo Cloud Free
+Hooktry Cloud Free
 $0
 
 many workspaces
@@ -169,7 +169,7 @@ temporary/inactivity-limited hosted reservations
 ```
 
 ```text
-Ortyo Cloud
+Hooktry Cloud
 ~$3-6/month hypothesis for a workspace that needs managed durability
 
 paid reliability can be enabled selectively per workspace
@@ -187,7 +187,7 @@ higher concurrency
 Potential later team tier:
 
 ```text
-Ortyo Team
+Hooktry Team
 pricing TBD
 
 members
@@ -220,7 +220,7 @@ experiment
 
 This is a better conversion boundary than hiding the underlying Exposure primitive itself.
 
-If free hosted URLs ever expire, Ortyo should avoid hostile surprise deletion. A production design should consider:
+If free hosted URLs ever expire, Hooktry should avoid hostile surprise deletion. A production design should consider:
 
 - explicit inactivity policy
 - clear expiry timestamps
@@ -231,7 +231,7 @@ If free hosted URLs ever expire, Ortyo should avoid hostile surprise deletion. A
 
 ## Why evidence retention may be a strong conversion point
 
-Ortyo's model is inherently temporal.
+Hooktry's model is inherently temporal.
 
 Interactions, executions, approvals, recordings, assertions, and outcomes become more valuable when retained.
 
@@ -275,13 +275,13 @@ The monetizable value is not the Approve button.
 
 It is:
 
-> Ortyo keeps holding the unfinished handoff safely while nobody is watching.
+> Hooktry keeps holding the unfinished handoff safely while nobody is watching.
 
 This also gives future Telegram, Slack, email, or webhook notifications a clean architecture: notifications point to durable approval state instead of becoming the workflow state themselves.
 
 ## Compute must be priced separately from cheap control-plane state
 
-If Ortyo later runs browsers, sandboxes, computers, VMs, or other expensive execution environments, a flat low-cost unlimited plan is unlikely to be sustainable.
+If Hooktry later runs browsers, sandboxes, computers, VMs, or other expensive execution environments, a flat low-cost unlimited plan is unlikely to be sustainable.
 
 Prefer a model like:
 
@@ -308,7 +308,7 @@ OSS / local
   -> powerful primitives
   -> user owns runtime, storage, uptime, backups, ingress, notifications
 
-Ortyo Cloud
+Hooktry Cloud
   -> managed continuity
   -> hosted durable state
   -> stable ingress
@@ -318,7 +318,7 @@ Ortyo Cloud
   -> scale
 ```
 
-This makes Cloud payment understandable: users pay Ortyo to operate the boring persistent parts reliably, not to regain functionality intentionally removed from OSS.
+This makes Cloud payment understandable: users pay Hooktry to operate the boring persistent parts reliably, not to regain functionality intentionally removed from OSS.
 
 ## Anti-patterns to avoid
 
@@ -370,7 +370,7 @@ Pricing should follow real cost curves and observed willingness to pay, not the 
 8. What export guarantees should users have before any hosted data ages out?
 9. Which billable resources should attach directly to a workspace versus to an organization-wide subscription?
 10. How should free workspace creation be protected from abuse without turning workspace count into the pricing boundary?
-11. Which paid guarantees can Ortyo prove automatically in dogfood the same way it proves runtime continuity today?
+11. Which paid guarantees can Hooktry prove automatically in dogfood the same way it proves runtime continuity today?
 
 ## Current conclusion
 
@@ -378,8 +378,8 @@ Do not lock pricing yet.
 
 Preserve this as the current thesis:
 
-> **Ortyo should monetize reliance, not curiosity.**
+> **Hooktry should monetize reliance, not curiosity.**
 >
 > **Breadth should be free; depth should be paid.**
 
-A user should be able to create many projects/workspaces and discover the full core loop without paying merely for breadth. Payment should become natural inside the specific workspaces that need Ortyo Cloud to remain available, remember state, retain proof, hold human handoffs, collaborate, execute in the background, consume managed compute, or scale.
+A user should be able to create many projects/workspaces and discover the full core loop without paying merely for breadth. Payment should become natural inside the specific workspaces that need Hooktry Cloud to remain available, remember state, retain proof, hold human handoffs, collaborate, execute in the background, consume managed compute, or scale.

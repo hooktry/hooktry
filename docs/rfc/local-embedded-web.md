@@ -5,10 +5,10 @@ Checked: 2026-10-01
 
 ## Decision
 
-The ORTYO native binary embeds the compiled WEB1 React application and serves it from the same local process as the native API.
+The HOOKTRY native binary embeds the compiled WEB1 React application and serves it from the same local process as the native API.
 
 ~~~text
-ortyo
+hooktry
   |
   +-- Rust CLI
   +-- local Axum API
@@ -23,10 +23,10 @@ There is no separate local frontend implementation.
 ## Commands
 
 ~~~text
-ortyo serve
+hooktry serve
   -> start local API + embedded WEB1 on 127.0.0.1:7777
 
-ortyo ui
+hooktry ui
   -> same local runtime
   -> best-effort open browser at http://127.0.0.1:7777
 ~~~
@@ -56,7 +56,7 @@ Local durable data remains on the user's machine.
 The default local database is:
 
 ~~~text
-ortyo.db
+hooktry.db
 ~~~
 
 The native evidence store and anonymous Hook repository use the local SQLite database.
@@ -94,7 +94,7 @@ cargo build --release --locked
 The resulting executable is:
 
 ~~~text
-target/release/ortyo
+target/release/hooktry
 ~~~
 
 ## Build boundary

@@ -13,7 +13,7 @@ beforeEach(async () => {
 describe("FIRST-PARTY-PROOF usage ingest", () => {
   it("stores only the allowlisted scenario proof shape", async () => {
     const response = await worker.fetch(
-      new Request("https://ortyo.test/api/v1/usage-events", {
+      new Request("https://hooktry.test/api/v1/usage-events", {
         method: "POST",
         headers: {
           authorization: "Bearer test-usage-token",
@@ -57,7 +57,7 @@ describe("FIRST-PARTY-PROOF usage ingest", () => {
 
   it("is idempotent by telemetry event id", async () => {
     const request = () =>
-      new Request("https://ortyo.test/api/v1/usage-events", {
+      new Request("https://hooktry.test/api/v1/usage-events", {
         method: "POST",
         headers: {
           authorization: "Bearer test-usage-token",
@@ -80,7 +80,7 @@ describe("FIRST-PARTY-PROOF usage ingest", () => {
 
   it("rejects unauthenticated and expanded payload-bearing schemas", async () => {
     const unauthorized = await worker.fetch(
-      new Request("https://ortyo.test/api/v1/usage-events", {
+      new Request("https://hooktry.test/api/v1/usage-events", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(event()),
@@ -94,7 +94,7 @@ describe("FIRST-PARTY-PROOF usage ingest", () => {
       body: "captured webhook payload must never enter usage evidence",
     };
     const invalid = await worker.fetch(
-      new Request("https://ortyo.test/api/v1/usage-events", {
+      new Request("https://hooktry.test/api/v1/usage-events", {
         method: "POST",
         headers: {
           authorization: "Bearer test-usage-token",

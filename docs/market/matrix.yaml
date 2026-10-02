@@ -1,6 +1,6 @@
 checked_at: 2026-10-01
-scope: "Material primary-cohort products and capabilities that currently affect Ortyo webhook development/testing/pilot decisions."
-projection_rule: "External product cells are present/partial only when current official evidence supports the claim. Missing evidence is unknown, not absent. Ortyo cells project the current implementation overlay."
+scope: "Material primary-cohort products and capabilities that currently affect Hooktry webhook development/testing/pilot decisions."
+projection_rule: "External product cells are present/partial only when current official evidence supports the claim. Missing evidence is unknown, not absent. Hooktry cells project the current implementation overlay."
 status_vocabulary:
   present: "Current evidence supports useful implementation of the capability."
   partial: "Current evidence supports a narrower or materially incomplete implementation."
@@ -8,7 +8,7 @@ status_vocabulary:
   unknown: "Current research does not establish the state."
 
 products:
-  - ortyo
+  - hooktry
   - webhook-site
   - hookdeck
   - webhook-relay
@@ -22,7 +22,7 @@ products:
 
 matrix:
   instant-public-endpoint:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -34,7 +34,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   no-signup-ephemeral-start:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -46,7 +46,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   persistent-endpoint:
-    ortyo: partial
+    hooktry: partial
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -58,7 +58,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   request-inspection:
-    ortyo: present
+    hooktry: present
     webhook-site: present
     hookdeck: unknown
     webhook-relay: unknown
@@ -70,7 +70,7 @@ matrix:
     hook0: unknown
     requestbin-net: present
   request-history:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -82,7 +82,7 @@ matrix:
     hook0: unknown
     requestbin-net: present
   search-filter:
-    ortyo: partial
+    hooktry: partial
     webhook-site: present
     hookdeck: present
     webhook-relay: partial
@@ -94,7 +94,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   custom-response:
-    ortyo: partial
+    hooktry: partial
     webhook-site: present
     hookdeck: partial
     webhook-relay: present
@@ -106,7 +106,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   failure-simulation:
-    ortyo: partial
+    hooktry: partial
     webhook-site: partial
     hookdeck: unknown
     webhook-relay: partial
@@ -118,7 +118,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   replay:
-    ortyo: present
+    hooktry: present
     webhook-site: present
     hookdeck: present
     webhook-relay: unknown
@@ -130,7 +130,7 @@ matrix:
     hook0: unknown
     requestbin-net: present
   local-forwarding:
-    ortyo: present
+    hooktry: present
     webhook-site: present
     hookdeck: present
     webhook-relay: present
@@ -142,7 +142,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   provider-templates:
-    ortyo: absent
+    hooktry: absent
     webhook-site: unknown
     hookdeck: present
     webhook-relay: unknown
@@ -154,7 +154,7 @@ matrix:
     hook0: unknown
     requestbin-net: present
   signature-verification:
-    ortyo: unknown
+    hooktry: unknown
     webhook-site: unknown
     hookdeck: present
     webhook-relay: partial
@@ -166,7 +166,7 @@ matrix:
     hook0: present
     requestbin-net: unknown
   api:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -178,7 +178,7 @@ matrix:
     hook0: unknown
     requestbin-net: present
   cli:
-    ortyo: present
+    hooktry: present
     webhook-site: present
     hookdeck: unknown
     webhook-relay: unknown
@@ -190,7 +190,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   mcp-agent:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: present
     webhook-relay: present
@@ -202,7 +202,7 @@ matrix:
     hook0: present
     requestbin-net: present
   wait-for-event:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: present
@@ -214,7 +214,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   contracts:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -226,7 +226,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   scenario-runs:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: partial
@@ -238,7 +238,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   cardinality:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -250,7 +250,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   ordering:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -262,7 +262,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   observation-window:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: partial
@@ -274,7 +274,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   correlation-context:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -286,7 +286,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   deterministic-ci:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: partial
     webhook-relay: partial
@@ -298,7 +298,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   request-diff:
-    ortyo: unknown
+    hooktry: unknown
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -310,7 +310,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   self-host:
-    ortyo: present
+    hooktry: present
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -322,7 +322,7 @@ matrix:
     hook0: present
     requestbin-net: unknown
   team-collaboration:
-    ortyo: partial
+    hooktry: partial
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -334,7 +334,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   durable-retries:
-    ortyo: unknown
+    hooktry: unknown
     webhook-site: unknown
     hookdeck: present
     webhook-relay: present
@@ -346,7 +346,7 @@ matrix:
     hook0: present
     requestbin-net: unknown
   dlq:
-    ortyo: absent
+    hooktry: absent
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown
@@ -358,7 +358,7 @@ matrix:
     hook0: unknown
     requestbin-net: unknown
   api-mocking:
-    ortyo: partial
+    hooktry: partial
     webhook-site: unknown
     hookdeck: unknown
     webhook-relay: unknown

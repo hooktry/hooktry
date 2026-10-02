@@ -4,9 +4,9 @@ vectors:
     from_cohort: primary
     target_cohorts: [deterministic-verification]
     thesis: "Turn webhook inspection/replay into reproducible integration proof with Contracts, Scenarios, structured evidence, and deterministic CI."
-    deepen_if: "Users repeatedly replay captured events, automate integration checks, use Ortyo in CI, or ask to prove ordering/cardinality/idempotency rather than only inspect payloads."
+    deepen_if: "Users repeatedly replay captured events, automate integration checks, use Hooktry in CI, or ask to prove ordering/cardinality/idempotency rather than only inspect payloads."
     expand_if: null
-    stop_if: "Users overwhelmingly use Ortyo as a disposable inspector and do not retain, replay, automate, or assert interactions."
+    stop_if: "Users overwhelmingly use Hooktry as a disposable inspector and do not retain, replay, automate, or assert interactions."
 
   - id: reliable-delivery
     type: depth
@@ -15,7 +15,7 @@ vectors:
     thesis: "Let successful pilots graduate into durable webhook receiving/delivery infrastructure without leaving the evidence model."
     deepen_if: "Pilots become long-lived, users ask for stable endpoints, retention, retries, DLQ, fan-out, routing, or production continuity."
     expand_if: null
-    stop_if: "Users prefer Ortyo only for pre-production testing and consistently hand production delivery to dedicated providers."
+    stop_if: "Users prefer Hooktry only for pre-production testing and consistently hand production delivery to dedicated providers."
 
   - id: api-virtualization
     type: adjacent
@@ -24,7 +24,7 @@ vectors:
     thesis: "Extend the same programmable boundary/evidence primitives from webhook responses into stateful upstream and downstream HTTP dependency simulation."
     deepen_if: null
     expand_if: "Webhook users repeatedly need configurable responses, dependency simulation, failure injection, or contract-backed mocks; bridge-product evidence becomes stronger when the same users traverse both jobs in one workflow."
-    stop_if: "Mocking requirements are well served by integrations with specialist tools and do not benefit from Ortyo evidence."
+    stop_if: "Mocking requirements are well served by integrations with specialist tools and do not benefit from Hooktry evidence."
 
   - id: multi-protocol
     type: adjacent
@@ -48,7 +48,7 @@ vectors:
     type: option
     from_cohort: primary
     target_cohorts: [managed-compute]
-    thesis: "Use replaceable managed compute to run integration code when that improves the Ortyo development lifecycle."
+    thesis: "Use replaceable managed compute to run integration code when that improves the Hooktry development lifecycle."
     deepen_if: null
-    expand_if: "Users need Ortyo-managed execution to reproduce or verify integrations and the provider can stay behind a neutral abstraction."
+    expand_if: "Users need Hooktry-managed execution to reproduce or verify integrations and the provider can stay behind a neutral abstraction."
     stop_if: "The value is primarily remote shell/devbox functionality rather than webhook/integration evidence."

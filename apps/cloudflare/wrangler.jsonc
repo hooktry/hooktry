@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ortyo-cloudflare",
+  "name": "hooktry-cloudflare",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": [
@@ -9,7 +9,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "ortyo-cloudflare",
+      "database_name": "hooktry-cloudflare",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
@@ -17,7 +17,7 @@
   "r2_buckets": [
     {
       "binding": "PAYLOADS",
-      "bucket_name": "ortyo-payloads"
+      "bucket_name": "hooktry-payloads"
     }
   ],
   "durable_objects": {

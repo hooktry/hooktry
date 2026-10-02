@@ -10,14 +10,14 @@ HOSTED6 closes the lifecycle of a hosted runtime capability.
 The runtime endpoint supports two operations:
 
 ```text
-GET    /_ortyo/runtime/:exposure_id   WebSocket upgrade
-DELETE /_ortyo/runtime/:exposure_id   revoke runtime capability
+GET    /_hooktry/runtime/:exposure_id   WebSocket upgrade
+DELETE /_hooktry/runtime/:exposure_id   revoke runtime capability
 ```
 
 Both use the same per-Exposure capability:
 
 ```http
-Authorization: Bearer ortyo_rt_...
+Authorization: Bearer hooktry_rt_...
 ```
 
 The control-plane token is not required by the daemon and is never copied into daemon state.
@@ -27,7 +27,7 @@ The control-plane token is not required by the daemon and is never copied into d
 When the user runs:
 
 ```sh
-ortyo exposure-revoke <exposure-id>
+hooktry exposure-revoke <exposure-id>
 ```
 
 the local daemon:

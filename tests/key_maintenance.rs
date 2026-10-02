@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs};
 
-use ortyo::{
+use hooktry::{
     approval::{ApprovalDecision, ApprovalStore, derive_digest_key, derive_digest_keyring},
     execution::HttpExecutionRequest,
     key_maintenance::{KeyMaintenance, KeyMaintenanceConfig},
@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 #[test]
 fn rewrap_then_terminal_approval_makes_old_key_safe_to_retire() {
-    let path = std::env::temp_dir().join(format!("ortyo-key-maintenance-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-key-maintenance-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let requester = Uuid::now_v7();
     let approver = Uuid::now_v7();
@@ -126,7 +126,7 @@ fn rewrap_then_terminal_approval_makes_old_key_safe_to_retire() {
 
 #[test]
 fn digest1_implicit_v1_approval_blocks_v1_retirement() {
-    let path = std::env::temp_dir().join(format!("ortyo-key-digest1-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-key-digest1-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let root_v1 = [0x31; 32];
     let root_v2 = [0x32; 32];
@@ -166,7 +166,7 @@ fn digest1_implicit_v1_approval_blocks_v1_retirement() {
 
 #[test]
 fn malformed_keyed_actionable_approval_fails_retirement_closed() {
-    let path = std::env::temp_dir().join(format!("ortyo-key-malformed-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-key-malformed-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let root_v1 = [0x41; 32];
     let root_v2 = [0x42; 32];

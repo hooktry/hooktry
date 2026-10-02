@@ -5,14 +5,14 @@ Checked: 2026-10-01
 
 ## Decision
 
-ORTYO has one browser application.
+HOOKTRY has one browser application.
 
-It is a React/Vite SPA that depends on canonical ORTYO API and WebSocket contracts, not on Cloudflare APIs, Tauri commands, or Rust internals.
+It is a React/Vite SPA that depends on canonical HOOKTRY API and WebSocket contracts, not on Cloudflare APIs, Tauri commands, or Rust internals.
 
 ~~~text
                     apps/web
                        |
-                canonical ORTYO API
+                canonical HOOKTRY API
                        |
         +--------------+--------------+
         |              |              |
@@ -27,7 +27,7 @@ The browser surface is therefore reusable across deployment profiles.
 
 WEB1 intentionally implements only the first useful Hook workflow:
 
-1. open ORTYO without an account
+1. open HOOKTRY without an account
 2. create an ephemeral Hook
 3. copy the public ingress URL
 4. connect to the read capability over WebSocket
@@ -69,13 +69,13 @@ AUTH1 completes the human claim flow with GitHub sign-in:
 ~~~text
 owner-only claim capability
         +
-authenticated Ortyo session
+authenticated Hooktry session
         |
         v
 same Exposure becomes persistent in personal workspace
 ~~~
 
-If the browser has no Ortyo session, the Claim action starts the GitHub OAuth authorization-code + PKCE flow and returns to the same view capability with `?claim=1`. Session storage retains the owner-only provision during the same-tab redirect, so WEB1 can finish the claim without putting the claim capability into an OAuth parameter, cookie, or server-side redirect state.
+If the browser has no Hooktry session, the Claim action starts the GitHub OAuth authorization-code + PKCE flow and returns to the same view capability with `?claim=1`. Session storage retains the owner-only provision during the same-tab redirect, so WEB1 can finish the claim without putting the claim capability into an OAuth parameter, cookie, or server-side redirect state.
 
 The internal claim bearer remains CI/control-plane authority only and is never exposed to WEB1.
 
@@ -93,14 +93,14 @@ For Cloudflare, Workers Static Assets serves the compiled bundle.
 
 For LOCAL1, the Rust binary serves the same compiled assets directly from the executable.
 
-For DESKTOP1, Tauri may wrap the same bundle. Native OS integration must stay a shell concern and must not fork ORTYO domain semantics.
+For DESKTOP1, Tauri may wrap the same bundle. Native OS integration must stay a shell concern and must not fork HOOKTRY domain semantics.
 
 ## Native local mapping
 
 LOCAL1 embeds the WEB1 dist files into the Rust executable at compile time.
 
 ~~~text
-ortyo serve / ortyo ui
+hooktry serve / hooktry ui
         |
         +-- canonical Hook API
         +-- native WebSocket viewer

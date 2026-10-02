@@ -1,4 +1,4 @@
-use ortyo::{
+use hooktry::{
     domain::{AssertionResult, Contract},
     store::InteractionStore,
 };
@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 #[test]
 fn contracts_and_assertions_survive_database_reopen() {
-    let path = std::env::temp_dir().join(format!("ortyo-contracts-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-contracts-{}.db", Uuid::now_v7()));
     let contract = Contract {
         id: Uuid::now_v7(),
         name: "stripe payment intent".into(),

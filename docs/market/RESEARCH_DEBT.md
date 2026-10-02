@@ -1,13 +1,13 @@
-# Ortyo MCIF research debt
+# Hooktry MCIF research debt
 
 Checked: 2026-10-02  
-DWC: MCIF/ORTYO.8 RESEARCH-DEBT
+DWC: MCIF/HOOKTRY.8 RESEARCH-DEBT
 
 The purpose of research debt is **not** to fill every unknown matrix cell.
 
 It answers:
 
-> Which missing observations are most likely to change an Ortyo product, roadmap, positioning, or vector decision?
+> Which missing observations are most likely to change an Hooktry product, roadmap, positioning, or vector decision?
 
 ## Current coverage
 
@@ -20,13 +20,13 @@ The denominator increased by 60 because six differentiation capabilities were in
 
 This does **not** mean 171 equally important research tasks remain.
 
-Many unknowns are baseline-completion debt around capabilities Ortyo already implements or around decisions that are already sufficiently established.
+Many unknowns are baseline-completion debt around capabilities Hooktry already implements or around decisions that are already sufficiently established.
 
 ## Decision tiers
 
 ### P0 - current implementation decision
 
-Research can change the depth or shape of a capability already scheduled for now, and Ortyo is still partial/absent/unknown.
+Research can change the depth or shape of a capability already scheduled for now, and Hooktry is still partial/absent/unknown.
 
 Current P0 capability groups:
 
@@ -42,21 +42,21 @@ Research can change a next-horizon gap and the capability already has direct-dem
 
 Current P1 groups:
 
-1. `provider-templates` - Ortyo absent; 7 unknown / 3 evidenced peers
-2. `signature-verification` - Ortyo unknown; 4 unknown / 6 evidenced peers
+1. `provider-templates` - Hooktry absent; 7 unknown / 3 evidenced peers
+2. `signature-verification` - Hooktry unknown; 4 unknown / 6 evidenced peers
 
 These checks can affect whether provider-aware testing becomes the next primary-cohort slice and how generic/provider-specific the adapter model should be.
 
 ### P2 - next/validation decision
 
-Research can change an upcoming decision, validate differentiation, or clarify an open Ortyo gap.
+Research can change an upcoming decision, validate differentiation, or clarify an open Hooktry gap.
 
 Current leading P2 groups include:
 
-- `deterministic-ci` - 5 unknown / 5 evidenced peers; Hookdeck, Webhook Relay, and Beeceptor now show partial CI depth, but not the full Ortyo outcome-semantics contract
+- `deterministic-ci` - 5 unknown / 5 evidenced peers; Hookdeck, Webhook Relay, and Beeceptor now show partial CI depth, but not the full Hooktry outcome-semantics contract
 - `request-diff` - 7 unknown / 3 evidenced peers; Beeceptor adds partial contract-drift comparison alongside deeper webhooks.cc/Hooklistener evidence
-- `persistent-endpoint` - Ortyo partial
-- `team-collaboration` - Ortyo partial
+- `persistent-endpoint` - Hooktry partial
+- `team-collaboration` - Hooktry partial
 - temporal/causal verification capabilities when demand or market evidence makes the differentiation thesis decision-relevant
 
 ### P3 - watch/vector decision
@@ -65,9 +65,9 @@ Research informs a vector that is intentionally not on the current critical path
 
 ### P4 - baseline completion
 
-Useful for market completeness, but unlikely to change the current roadmap. Implemented table stakes such as Ortyo's API, replay, and self-host support belong here even when public demand exists.
+Useful for market completeness, but unlikely to change the current roadmap. Implemented table stakes such as Hooktry's API, replay, and self-host support belong here even when public demand exists.
 
-This distinction is important: **demand for a capability does not imply more competitor research on that capability has high decision value when Ortyo already covers it and the roadmap decision is closed.**
+This distinction is important: **demand for a capability does not imply more competitor research on that capability has high decision value when Hooktry already covers it and the roadmap decision is closed.**
 
 ## Ranking invariant
 
@@ -78,7 +78,7 @@ Candidates are ordered lexicographically by:
 ```text
 decision-changing tier
 -> direct demand
--> Ortyo gap
+-> Hooktry gap
 -> horizon
 -> disposition
 -> supporting demand-proxy / market-motion signals
@@ -175,8 +175,8 @@ total deferred from market research:
 
 The external-usage routing is justified by two maintained first-party uses:
 
-1. Ortyo's approval outbox/webhook regression proof.
-2. Operational's independent cross-repository WebhookProviderAdapter proof using a pinned Ortyo executable.
+1. Hooktry's approval outbox/webhook regression proof.
+2. Operational's independent cross-repository WebhookProviderAdapter proof using a pinned Hooktry executable.
 
 The next questions are now different:
 

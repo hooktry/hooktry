@@ -7,11 +7,11 @@ Checked: 2026-10-01
 
 Cloudflare is the first managed-cloud implementation of PORTS1. It is not a domain dependency and does not replace the native Rust implementation.
 
-Production deployment is orchestrated from GitHub Actions, not owned by Cloudflare. Wrangler and Cloudflare APIs are provider-specific deployment tools beneath the canonical ORTYO deployment orchestrator. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
+Production deployment is orchestrated from GitHub Actions, not owned by Cloudflare. Wrangler and Cloudflare APIs are provider-specific deployment tools beneath the canonical HOOKTRY deployment orchestrator. See [ORCH1 - Deployment Orchestration](deployment-orchestration.md).
 
-Each production Worker version receives `ORTYO_RELEASE_SHA` from the GitHub commit being deployed. `GET /healthz` reports that revision, and live acceptance waits for repeated observations of the expected SHA before opening the Hook/WebSocket scenario. This creates a provider-neutral release-provenance and convergence boundary rather than treating the return of `wrangler deploy` as readiness.
+Each production Worker version receives `HOOKTRY_RELEASE_SHA` from the GitHub commit being deployed. `GET /healthz` reports that revision, and live acceptance waits for repeated observations of the expected SHA before opening the Hook/WebSocket scenario. This creates a provider-neutral release-provenance and convergence boundary rather than treating the return of `wrangler deploy` as readiness.
 
-Ordinary production deployment uses a long-lived Editor-scoped token against existing ORTYO resources. Resource creation belongs to the separate bootstrap workflow and its short-lived bootstrap authority; deploy must fail rather than silently create missing infrastructure.
+Ordinary production deployment uses a long-lived Editor-scoped token against existing HOOKTRY resources. Resource creation belongs to the separate bootstrap workflow and its short-lived bootstrap authority; deploy must fail rather than silently create missing infrastructure.
 
 CF1 preserves the anonymous Exposure lifecycle while mapping portable capabilities onto Cloudflare primitives:
 

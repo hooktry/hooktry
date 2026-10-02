@@ -1,4 +1,4 @@
-use ortyo::{
+use hooktry::{
     scenario::{CreateScenario, ScenarioManifest},
     usage::ScenarioUsageFeatures,
 };

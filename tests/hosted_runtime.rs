@@ -3,7 +3,7 @@ mod common;
 use std::time::Duration;
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_runtime::HostedRuntimeStatus,
     http::{AppState, app},
@@ -49,7 +49,7 @@ async fn daemon_owns_public_runtime_after_provisioning() {
     let client = reqwest::Client::new();
     let credential = common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
     let provision: ProvisionedExposure = client
-        .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{hosted_addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "stripe",
@@ -65,7 +65,7 @@ async fn daemon_owns_public_runtime_after_provisioning() {
         .unwrap();
 
     let status: HostedRuntimeStatus = client
-        .post(format!("http://{local_addr}/_ortyo/hosted-runtimes"))
+        .post(format!("http://{local_addr}/_hooktry/hosted-runtimes"))
         .json(&provision)
         .send()
         .await
@@ -102,7 +102,7 @@ async fn daemon_owns_public_runtime_after_provisioning() {
 
     client
         .delete(format!(
-            "http://{local_addr}/_ortyo/exposures/{}",
+            "http://{local_addr}/_hooktry/exposures/{}",
             provision.exposure_id
         ))
         .send()
@@ -130,7 +130,7 @@ async fn daemon_owns_public_runtime_after_provisioning() {
         "revoked exposure left hosted runtime connected"
     );
 
-    let reconnect = ortyo::websocket_transport::run_websocket_runtime(
+    let reconnect = hooktry::websocket_transport::run_websocket_runtime(
         &provision.runtime_url,
         provision.exposure_id,
         &provision.runtime_capability,

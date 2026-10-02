@@ -7,7 +7,7 @@ KEYROT1 added versioned root keys. KEYRET1 added status, CAS-protected secret re
 
 Production intentionally still runs with master key version 1.
 
-This RFC records the decision that ORTYO must complete one real production root-key rotation from v1 to v2 before the first public release.
+This RFC records the decision that HOOKTRY must complete one real production root-key rotation from v1 to v2 before the first public release.
 
 ## Why before the first public release
 
@@ -87,9 +87,9 @@ The key is stored only in the production secret/configuration system and the ope
 Production configuration becomes conceptually:
 
 ```text
-ORTYO_SECRETS_KEY=<v2>
-ORTYO_SECRETS_KEY_VERSION=2
-ORTYO_SECRETS_PREVIOUS_KEYS=1:<v1>
+HOOKTRY_SECRETS_KEY=<v2>
+HOOKTRY_SECRETS_KEY_VERSION=2
+HOOKTRY_SECRETS_PREVIOUS_KEYS=1:<v1>
 ```
 
 Deploy this configuration and verify that startup reports:
@@ -105,7 +105,7 @@ At this point old ciphertext and old keyed approvals must still be usable throug
 Run:
 
 ```sh
-ortyo key status
+hooktry key status
 ```
 
 The status output is the baseline evidence for the migration.
@@ -115,7 +115,7 @@ The status output is the baseline evidence for the migration.
 Run:
 
 ```sh
-ortyo key rewrap 1
+hooktry key rewrap 1
 ```
 
 This must report candidates without changing ciphertext.
@@ -127,7 +127,7 @@ If the result is unexpected, stop here. v1 is still retained and no destructive 
 Run:
 
 ```sh
-ortyo key rewrap 1 --apply
+hooktry key rewrap 1 --apply
 ```
 
 Rewrap is CAS-protected. A concurrently changed secret must be skipped rather than overwritten.
@@ -139,7 +139,7 @@ Repeat status/dry-run as needed until no encrypted secret remains on v1.
 Run:
 
 ```sh
-ortyo key retire-check 1
+hooktry key retire-check 1
 ```
 
 v1 cannot be retired while any of the following remain:
@@ -159,7 +159,7 @@ Only after:
 safe_to_retire=true
 ```
 
-remove v1 from `ORTYO_SECRETS_PREVIOUS_KEYS`.
+remove v1 from `HOOKTRY_SECRETS_PREVIOUS_KEYS`.
 
 Do not destroy the securely retained v1 recovery material yet.
 
@@ -170,7 +170,7 @@ Deploy again.
 After v1 has been removed from runtime configuration:
 
 - startup reports `master_key_version=2`
-- `ortyo key status` is clean
+- `hooktry key status` is clean
 - production health is green
 - data-plane dogfood is green
 - approval webhook dogfood is green

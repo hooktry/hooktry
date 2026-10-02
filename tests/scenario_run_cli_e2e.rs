@@ -1,7 +1,7 @@
 use std::{process::Command, sync::Arc};
 
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
     scenario_run::ScenarioRunReport,
@@ -27,23 +27,23 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let ortyo_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let ortyo_port = ortyo_listener.local_addr().unwrap().port();
-    let base_url = format!("http://127.0.0.1:{ortyo_port}");
+    let hooktry_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let hooktry_port = hooktry_listener.local_addr().unwrap().port();
+    let base_url = format!("http://127.0.0.1:{hooktry_port}");
     let exposures = ExposureService::with_providers(
         Arc::new(LocalExposureProvider::new(&base_url)),
-        Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
     );
     let state = AppState {
         exposures,
         ..AppState::default()
     };
     tokio::spawn(async move {
-        axum::serve(ortyo_listener, app(state)).await.unwrap();
+        axum::serve(hooktry_listener, app(state)).await.unwrap();
     });
 
     let manifest_path =
-        std::env::temp_dir().join(format!("ortyo-scenario-run-{}.json", Uuid::now_v7()));
+        std::env::temp_dir().join(format!("hooktry-scenario-run-{}.json", Uuid::now_v7()));
     std::fs::write(
         &manifest_path,
         json!({
@@ -66,9 +66,9 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
     .unwrap();
 
     let usage_path =
-        std::env::temp_dir().join(format!("ortyo-scenario-usage-{}.jsonl", Uuid::now_v7()));
+        std::env::temp_dir().join(format!("hooktry-scenario-usage-{}.jsonl", Uuid::now_v7()));
     let helper = std::env::current_exe().unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_ortyo"))
+    let output = Command::new(env!("CARGO_BIN_EXE_hooktry"))
         .arg("--base-url")
         .arg(&base_url)
         .arg("scenario")
@@ -79,10 +79,10 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
         .arg("--exact")
         .arg("scenario_run_child_helper")
         .arg("--nocapture")
-        .env("ORTYO_TEST_CHILD", "1")
-        .env("ORTYO_USAGE_LOG", &usage_path)
-        .env("ORTYO_USAGE_TOKEN", "usage-secret-not-for-child")
-        .env_remove("ORTYO_USAGE_ENDPOINT")
+        .env("HOOKTRY_TEST_CHILD", "1")
+        .env("HOOKTRY_USAGE_LOG", &usage_path)
+        .env("HOOKTRY_USAGE_TOKEN", "usage-secret-not-for-child")
+        .env_remove("HOOKTRY_USAGE_ENDPOINT")
         .output()
         .unwrap();
 
@@ -132,28 +132,28 @@ async fn scenario_run_cli_drives_child_process_and_real_exposure_traffic() {
 
 #[tokio::test]
 async fn scenario_run_child_helper() {
-    if std::env::var("ORTYO_TEST_CHILD").as_deref() != Ok("1") {
+    if std::env::var("HOOKTRY_TEST_CHILD").as_deref() != Ok("1") {
         return;
     }
 
     for key in [
-        "ORTYO_BASE_URL",
-        "ORTYO_SCENARIO_ID",
-        "ORTYO_SCENARIO_RUN_ID",
-        "ORTYO_EXPOSURE_ID",
-        "ORTYO_EXPOSURE_URL",
+        "HOOKTRY_BASE_URL",
+        "HOOKTRY_SCENARIO_ID",
+        "HOOKTRY_SCENARIO_RUN_ID",
+        "HOOKTRY_EXPOSURE_ID",
+        "HOOKTRY_EXPOSURE_URL",
     ] {
         assert!(!std::env::var(key).unwrap().is_empty());
     }
     for key in [
-        "ORTYO_USAGE_LOG",
-        "ORTYO_USAGE_ENDPOINT",
-        "ORTYO_USAGE_TOKEN",
+        "HOOKTRY_USAGE_LOG",
+        "HOOKTRY_USAGE_ENDPOINT",
+        "HOOKTRY_USAGE_TOKEN",
     ] {
         assert!(std::env::var_os(key).is_none(), "{key} leaked into child");
     }
 
-    let exposure_url = std::env::var("ORTYO_EXPOSURE_URL").unwrap();
+    let exposure_url = std::env::var("HOOKTRY_EXPOSURE_URL").unwrap();
     let response = reqwest::Client::new()
         .post(format!("{exposure_url}/webhook?delivery=42"))
         .header("content-type", "application/json")

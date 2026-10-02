@@ -1,5 +1,5 @@
 use chrono::Utc;
-use ortyo::{
+use hooktry::{
     domain::{
         Scenario, ScenarioCheckOutcome, ScenarioOrdering, ScenarioOutcome, ScenarioRun,
         ScenarioRunState,
@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 #[test]
 fn scenario_run_and_outcome_survive_database_reopen() {
-    let path = std::env::temp_dir().join(format!("ortyo-scenario-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-scenario-{}.db", Uuid::now_v7()));
     let scenario = Scenario {
         id: Uuid::now_v7(),
         name: "payment webhook".into(),

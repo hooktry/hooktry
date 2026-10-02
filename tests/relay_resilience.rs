@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ortyo::relay::{RelayBroker, RelayError, RelayRequest};
+use hooktry::relay::{RelayBroker, RelayError, RelayRequest};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -20,7 +20,7 @@ async fn unregister_removes_only_the_registration_that_owns_the_slot() {
     let ingress = broker.ingress_with_timeout(request, Duration::from_secs(1));
     let worker = async {
         let work = second.recv().await.unwrap();
-        work.complete(ortyo::relay::RelayResponse {
+        work.complete(hooktry::relay::RelayResponse {
             request_id,
             status: 204,
             headers: Vec::new(),

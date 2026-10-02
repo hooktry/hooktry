@@ -1,4 +1,4 @@
-use ortyo::{
+use hooktry::{
     hosted::{HostedRelayState, hosted_relay_app},
     http::{AppState, app},
     relay::RelayBroker,
@@ -37,7 +37,7 @@ async fn spawn_hosted() -> String {
     let state = HostedRelayState::websocket_only(
         RelayBroker::default(),
         CapabilityStore::default(),
-        "https://ortyo.example",
+        "https://hooktry.example",
         "test-control-token",
     );
     tokio::spawn(async move {
@@ -60,10 +60,10 @@ async fn assert_discovery_surfaces(base_url: &str) {
         "text/plain; charset=utf-8"
     );
     let llms = llms.text().await.unwrap();
-    assert!(llms.contains("# ORTYO"));
+    assert!(llms.contains("# HOOKTRY"));
     assert!(llms.contains("MCP"));
-    assert!(llms.contains("/skills/ortyo/SKILL.md"));
-    assert!(!llms.contains("ortyo_super_secret"));
+    assert!(llms.contains("/skills/hooktry/SKILL.md"));
+    assert!(!llms.contains("hooktry_super_secret"));
 
     let full = reqwest::get(format!("{base_url}/llms-full.txt"))
         .await
@@ -71,10 +71,10 @@ async fn assert_discovery_surfaces(base_url: &str) {
     assert!(full.status().is_success());
     let full = full.text().await.unwrap();
     assert!(full.contains("# Canonical README"));
-    assert!(full.contains("# ORTYO Agent Skill"));
+    assert!(full.contains("# HOOKTRY Agent Skill"));
     assert!(full.contains("A programmable integration boundary"));
 
-    let skill = reqwest::get(format!("{base_url}/skills/ortyo/SKILL.md"))
+    let skill = reqwest::get(format!("{base_url}/skills/hooktry/SKILL.md"))
         .await
         .unwrap();
     assert!(skill.status().is_success());
@@ -88,7 +88,7 @@ async fn assert_discovery_surfaces(base_url: &str) {
         "text/markdown; charset=utf-8"
     );
     let skill = skill.text().await.unwrap();
-    assert!(skill.contains("name: ortyo"));
+    assert!(skill.contains("name: hooktry"));
     assert!(skill.contains("tools/list"));
     assert!(skill.contains("never print or return either raw credential"));
 }

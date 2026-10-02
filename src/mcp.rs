@@ -54,7 +54,7 @@ pub async fn handle_with_hosted_client(
         "initialize" => json!({
             "protocolVersion": "2025-06-18",
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "ortyo", "version": env!("CARGO_PKG_VERSION")}
+            "serverInfo": {"name": "hooktry", "version": env!("CARGO_PKG_VERSION")}
         }),
         "tools/list" => json!({"tools": tools()}),
         "tools/call" => {
@@ -93,7 +93,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "approval_inbox",
-            "List pending approvals for the approver's Workspace, oldest first. Requires ORTYO_APPROVER_TOKEN.",
+            "List pending approvals for the approver's Workspace, oldest first. Requires HOOKTRY_APPROVER_TOKEN.",
             json!({}),
         ),
         tool_with_required(
@@ -111,7 +111,7 @@ fn tools() -> Vec<Value> {
         ),
         tool_with_required(
             "approval_decide",
-            "Approve or deny a pending ApprovalRecord. Requires ORTYO_APPROVER_TOKEN in the MCP process environment; never falls back to ORTYO_TOKEN.",
+            "Approve or deny a pending ApprovalRecord. Requires HOOKTRY_APPROVER_TOKEN in the MCP process environment; never falls back to HOOKTRY_TOKEN.",
             json!({
                 "approval_id": {"type": "string", "format": "uuid"},
                 "decision": {"type": "string", "enum": ["approve", "deny"]}
@@ -205,7 +205,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "interactions_list",
-            "List canonical ORTYO interaction evidence.",
+            "List canonical HOOKTRY interaction evidence.",
             json!({}),
         ),
         tool(
@@ -248,7 +248,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "contract_assert",
-            "Assert one captured interaction against a persisted ORTYO contract.",
+            "Assert one captured interaction against a persisted HOOKTRY contract.",
             json!({
                 "contract_id": {"type": "string", "format": "uuid"},
                 "interaction_id": {"type": "string", "format": "uuid"}
@@ -323,7 +323,7 @@ fn http_execution_request_schema() -> Value {
                     "properties": {
                         "secret_ref": {
                             "type": "string",
-                            "pattern": "^ortyo://secrets/"
+                            "pattern": "^hooktry://secrets/"
                         },
                         "prefix": {"type": "string"},
                         "suffix": {"type": "string"}
@@ -409,7 +409,7 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
             let ordering = arguments.get("ordering").cloned();
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/scenarios"),
+                &format!("{base_url}/_hooktry/scenarios"),
                 Some(json!({
                     "name": scenario_name,
                     "port": port,
@@ -422,13 +422,13 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
         }
         "scenario_get" => {
             let id = uuid_argument(&arguments, "scenario_id")?;
-            api_json("GET", &format!("{base_url}/_ortyo/scenarios/{id}"), None).await?
+            api_json("GET", &format!("{base_url}/_hooktry/scenarios/{id}"), None).await?
         }
         "scenario_start" => {
             let id = uuid_argument(&arguments, "scenario_id")?;
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/scenarios/{id}/start"),
+                &format!("{base_url}/_hooktry/scenarios/{id}/start"),
                 None,
             )
             .await?
@@ -437,7 +437,7 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
             let id = uuid_argument(&arguments, "run_id")?;
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/scenario-runs/{id}/complete"),
+                &format!("{base_url}/_hooktry/scenario-runs/{id}/complete"),
                 None,
             )
             .await?
@@ -446,7 +446,7 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
             let id = uuid_argument(&arguments, "run_id")?;
             api_json(
                 "GET",
-                &format!("{base_url}/_ortyo/scenario-runs/{id}/outcome"),
+                &format!("{base_url}/_hooktry/scenario-runs/{id}/outcome"),
                 None,
             )
             .await?
@@ -456,30 +456,30 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
             let port = port_argument(&arguments)?;
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/exposures"),
+                &format!("{base_url}/_hooktry/exposures"),
                 Some(json!({"name": name, "port": port})),
             )
             .await?
         }
         "exposure_get" => {
             let id = uuid_argument(&arguments, "exposure_id")?;
-            api_json("GET", &format!("{base_url}/_ortyo/exposures/{id}"), None).await?
+            api_json("GET", &format!("{base_url}/_hooktry/exposures/{id}"), None).await?
         }
         "exposure_revoke" => {
             let id = uuid_argument(&arguments, "exposure_id")?;
-            api_json("DELETE", &format!("{base_url}/_ortyo/exposures/{id}"), None).await?
+            api_json("DELETE", &format!("{base_url}/_hooktry/exposures/{id}"), None).await?
         }
         "interactions_list" => {
-            api_json("GET", &format!("{base_url}/_ortyo/interactions"), None).await?
+            api_json("GET", &format!("{base_url}/_hooktry/interactions"), None).await?
         }
         "recording_create" => {
-            api_json("POST", &format!("{base_url}/_ortyo/recordings"), None).await?
+            api_json("POST", &format!("{base_url}/_hooktry/recordings"), None).await?
         }
         "recording_replay" => {
             let id = uuid_argument(&arguments, "recording_id")?;
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/recordings/{id}/replay"),
+                &format!("{base_url}/_hooktry/recordings/{id}/replay"),
                 None,
             )
             .await?
@@ -493,25 +493,25 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
                 "response": arguments.get("response").cloned(),
                 "context": arguments.get("context").cloned()
             });
-            api_json("POST", &format!("{base_url}/_ortyo/contracts"), Some(body)).await?
+            api_json("POST", &format!("{base_url}/_hooktry/contracts"), Some(body)).await?
         }
         "contract_get" => {
             let id = uuid_argument(&arguments, "contract_id")?;
-            api_json("GET", &format!("{base_url}/_ortyo/contracts/{id}"), None).await?
+            api_json("GET", &format!("{base_url}/_hooktry/contracts/{id}"), None).await?
         }
         "contract_assert" => {
             let contract_id = uuid_argument(&arguments, "contract_id")?;
             let interaction_id = uuid_argument(&arguments, "interaction_id")?;
             api_json(
                 "POST",
-                &format!("{base_url}/_ortyo/contracts/{contract_id}/assert/{interaction_id}"),
+                &format!("{base_url}/_hooktry/contracts/{contract_id}/assert/{interaction_id}"),
                 None,
             )
             .await?
         }
         "assertion_get" => {
             let id = uuid_argument(&arguments, "assertion_id")?;
-            api_json("GET", &format!("{base_url}/_ortyo/assertions/{id}"), None).await?
+            api_json("GET", &format!("{base_url}/_hooktry/assertions/{id}"), None).await?
         }
         _ => return Ok(tool_error(format!("unknown tool: {name}"))),
     };
@@ -525,7 +525,7 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
         "GET" => client.get(url),
         "POST" => client.post(url),
         "DELETE" => client.delete(url),
-        _ => return Err(format!("unsupported ORTYO API method: {method}")),
+        _ => return Err(format!("unsupported HOOKTRY API method: {method}")),
     };
     let request = if let Some(body) = body {
         request
@@ -540,11 +540,11 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
     let body = response.text().await.map_err(|error| error.to_string())?;
     if !status.is_success() {
         return Ok(tool_error(format!(
-            "ORTYO API returned HTTP {status}: {body}"
+            "HOOKTRY API returned HTTP {status}: {body}"
         )));
     }
 
-    serde_json::from_str(&body).map_err(|error| format!("invalid ORTYO API JSON: {error}"))
+    serde_json::from_str(&body).map_err(|error| format!("invalid HOOKTRY API JSON: {error}"))
 }
 
 fn tool_success(value: Value) -> Result<Value, String> {

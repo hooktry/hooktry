@@ -1,6 +1,6 @@
 mod common;
 
-use ortyo::{
+use hooktry::{
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_server::HostedServerConfig,
     relay::RelayBroker,
@@ -11,8 +11,8 @@ use tokio::net::TcpListener;
 #[test]
 fn hosted_server_config_has_deployable_defaults() {
     let config = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => {
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_SECRETS_KEY" => {
             Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
         }
         _ => None,
@@ -22,18 +22,18 @@ fn hosted_server_config_has_deployable_defaults() {
     assert_eq!(config.bind, "0.0.0.0:8080");
     assert_eq!(config.public_base_url, "http://127.0.0.1:8080");
     assert_eq!(config.database_url, None);
-    assert_eq!(config.db_path, "ortyo-hosted.db");
+    assert_eq!(config.db_path, "hooktry-hosted.db");
 }
 
 #[test]
 fn hosted_server_config_uses_port_and_public_url() {
     let config = HostedServerConfig::from_lookup(|key| match key {
         "PORT" => Some("9090".to_owned()),
-        "ORTYO_PUBLIC_BASE_URL" => Some("https://relay.example/".to_owned()),
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_DATABASE_URL" => Some("postgresql://secret@db/ortyo".to_owned()),
-        "ORTYO_HOSTED_DB_PATH" => Some("/tmp/ortyo-hosted-test.db".to_owned()),
-        "ORTYO_SECRETS_KEY" => {
+        "HOOKTRY_PUBLIC_BASE_URL" => Some("https://relay.example/".to_owned()),
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_DATABASE_URL" => Some("postgresql://secret@db/hooktry".to_owned()),
+        "HOOKTRY_HOSTED_DB_PATH" => Some("/tmp/hooktry-hosted-test.db".to_owned()),
+        "HOOKTRY_SECRETS_KEY" => {
             Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
         }
         _ => None,
@@ -44,9 +44,9 @@ fn hosted_server_config_uses_port_and_public_url() {
     assert_eq!(config.public_base_url, "https://relay.example");
     assert_eq!(
         config.database_url.as_deref(),
-        Some("postgresql://secret@db/ortyo")
+        Some("postgresql://secret@db/hooktry")
     );
-    assert_eq!(config.db_path, "/tmp/ortyo-hosted-test.db");
+    assert_eq!(config.db_path, "/tmp/hooktry-hosted-test.db");
     let debug = format!("{config:?}");
     assert!(!debug.contains("secret@db"));
     assert!(debug.contains("[REDACTED]"));
@@ -55,12 +55,12 @@ fn hosted_server_config_uses_port_and_public_url() {
 #[test]
 fn approval_webhook_config_is_validated_and_redacted() {
     let config = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => {
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_SECRETS_KEY" => {
             Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
         }
-        "ORTYO_BOOTSTRAP_WORKSPACE" => Some("serhii".to_owned()),
-        "ORTYO_APPROVAL_WEBHOOK_URL" => {
+        "HOOKTRY_BOOTSTRAP_WORKSPACE" => Some("serhii".to_owned()),
+        "HOOKTRY_APPROVAL_WEBHOOK_URL" => {
             Some("https://hooks.example.com/private/secret-token?key=hidden".to_owned())
         }
         _ => None,
@@ -77,11 +77,11 @@ fn approval_webhook_config_is_validated_and_redacted() {
     assert!(debug.contains("[REDACTED]"));
 
     let error = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => {
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_SECRETS_KEY" => {
             Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
         }
-        "ORTYO_APPROVAL_WEBHOOK_URL" => Some("file:///tmp/hook".to_owned()),
+        "HOOKTRY_APPROVAL_WEBHOOK_URL" => Some("file:///tmp/hook".to_owned()),
         _ => None,
     })
     .unwrap_err();
@@ -94,10 +94,10 @@ fn approval_webhook_config_is_validated_and_redacted() {
 #[test]
 fn explicit_bind_wins_over_port() {
     let config = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_BIND" => Some("127.0.0.1:4242".to_owned()),
+        "HOOKTRY_BIND" => Some("127.0.0.1:4242".to_owned()),
         "PORT" => Some("9090".to_owned()),
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_SECRETS_KEY" => {
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_SECRETS_KEY" => {
             Some("0707070707070707070707070707070707070707070707070707070707070707".to_owned())
         }
         _ => None,
@@ -111,15 +111,15 @@ fn explicit_bind_wins_over_port() {
 #[test]
 fn hosted_server_config_rejects_invalid_public_url_scheme() {
     let error = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_PUBLIC_BASE_URL" => Some("relay.example".to_owned()),
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_PUBLIC_BASE_URL" => Some("relay.example".to_owned()),
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
         _ => None,
     })
     .unwrap_err();
 
     assert_eq!(
         error,
-        "ORTYO_PUBLIC_BASE_URL must start with http:// or https://"
+        "HOOKTRY_PUBLIC_BASE_URL must start with http:// or https://"
     );
 }
 
@@ -153,7 +153,7 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
 
     let client = reqwest::Client::new();
     let unauthorized = client
-        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{addr}/_hooktry/hosted/exposures"))
         .json(&serde_json::json!({
             "name": "app",
             "target_port": 3000
@@ -167,7 +167,7 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
 
     let credential = common::issue_full_access_token(&format!("http://{addr}")).await;
     let provision: ProvisionedExposure = client
-        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "app",
@@ -185,7 +185,7 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
     assert_eq!(provision.relay_addr, None);
     assert_eq!(
         provision.runtime_url,
-        format!("ws://{addr}/_ortyo/runtime/{}", provision.exposure_id)
+        format!("ws://{addr}/_hooktry/runtime/{}", provision.exposure_id)
     );
     assert_eq!(
         provision.public_url,
@@ -196,17 +196,17 @@ async fn websocket_only_hosted_app_is_healthy_and_does_not_advertise_raw_tcp() {
 #[test]
 fn hosted_server_config_requires_control_token() {
     let error = HostedServerConfig::from_lookup(|_| None).unwrap_err();
-    assert_eq!(error, "ORTYO_CONTROL_TOKEN is required");
+    assert_eq!(error, "HOOKTRY_CONTROL_TOKEN is required");
 }
 
 #[test]
 fn hosted_server_config_rejects_non_postgres_database_url() {
     let error = HostedServerConfig::from_lookup(|key| match key {
-        "ORTYO_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
-        "ORTYO_DATABASE_URL" => Some("mysql://db/ortyo".to_owned()),
+        "HOOKTRY_CONTROL_TOKEN" => Some("test-control-token".to_owned()),
+        "HOOKTRY_DATABASE_URL" => Some("mysql://db/hooktry".to_owned()),
         _ => None,
     })
     .unwrap_err();
 
-    assert_eq!(error, "ORTYO_DATABASE_URL must be a PostgreSQL URL");
+    assert_eq!(error, "HOOKTRY_DATABASE_URL must be a PostgreSQL URL");
 }

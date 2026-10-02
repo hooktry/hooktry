@@ -51,7 +51,7 @@ The MCP schema intentionally exposes typed SecretRef bindings:
 {
   "secret_headers": {
     "authorization": {
-      "secret_ref": "ortyo://secrets/provider-token",
+      "secret_ref": "hooktry://secrets/provider-token",
       "prefix": "Bearer ",
       "suffix": ""
     }
@@ -66,37 +66,37 @@ Raw credential values are not MCP arguments.
 The equivalent structured-JSON CLI is:
 
 ```text
-ortyo --base-url https://... approval inbox
-ortyo --base-url https://... approval create request.json
-ortyo --base-url https://... approval get <approval-id>
-ortyo --base-url https://... approval approve <approval-id>
-ortyo --base-url https://... approval deny <approval-id>
-ortyo --base-url https://... approval execute <approval-id> request.json
-ortyo --base-url https://... execution get <execution-id>
+hooktry --base-url https://... approval inbox
+hooktry --base-url https://... approval create request.json
+hooktry --base-url https://... approval get <approval-id>
+hooktry --base-url https://... approval approve <approval-id>
+hooktry --base-url https://... approval deny <approval-id>
+hooktry --base-url https://... approval execute <approval-id> request.json
+hooktry --base-url https://... execution get <execution-id>
 ```
 
 The same request JSON file can be reused for create and execute. CONTROL1 canonical request hashing remains authoritative, so whitespace and JSON object key order do not create a different approval action, while execution-relevant values still must match exactly.
 
 ## Credential boundary
 
-Hosted agent surfaces never accept ORTYO credentials as command-line arguments or MCP tool arguments.
+Hosted agent surfaces never accept HOOKTRY credentials as command-line arguments or MCP tool arguments.
 
 The process environment provides authority:
 
-- `ORTYO_TOKEN` - ask, inspect, act, and query durable execution proof
-- `ORTYO_APPROVER_TOKEN` - approve/deny and, for an approver-only process, inspect an approval
+- `HOOKTRY_TOKEN` - ask, inspect, act, and query durable execution proof
+- `HOOKTRY_APPROVER_TOKEN` - approve/deny and, for an approver-only process, inspect an approval
 
 The critical invariant is:
 
 ```text
 approval_decide
-    requires ORTYO_APPROVER_TOKEN
-    never falls back to ORTYO_TOKEN
+    requires HOOKTRY_APPROVER_TOKEN
+    never falls back to HOOKTRY_TOKEN
 ```
 
 Merely discovering `approval_decide` through `tools/list` does not grant approval authority.
 
-An operator may intentionally configure both credentials in one MCP process, but ORTYO does not silently combine them.
+An operator may intentionally configure both credentials in one MCP process, but HOOKTRY does not silently combine them.
 
 ## Errors
 

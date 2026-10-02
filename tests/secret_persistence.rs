@@ -1,6 +1,6 @@
 use std::fs;
 
-use ortyo::{
+use hooktry::{
     keyring::VersionedKeyring,
     secret::{SecretError, SecretStore},
 };
@@ -8,10 +8,10 @@ use uuid::Uuid;
 
 #[test]
 fn sqlite_secret_survives_restart_and_plaintext_is_absent() {
-    let path = std::env::temp_dir().join(format!("ortyo-secret-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-secret-{}.db", Uuid::now_v7()));
     let key = [23u8; 32];
     let workspace = Uuid::now_v7();
-    let plaintext = "ortyo_token_that_must_never_be_stored_plaintext";
+    let plaintext = "hooktry_token_that_must_never_be_stored_plaintext";
 
     let store = SecretStore::open(&path, key).unwrap();
     let first = store.put(workspace, "api-token", plaintext).unwrap();
@@ -51,7 +51,7 @@ fn sqlite_secret_survives_restart_and_plaintext_is_absent() {
 #[test]
 fn master_key_rotation_reads_old_secrets_and_writes_new_version() {
     let path =
-        std::env::temp_dir().join(format!("ortyo-secret-key-rotation-{}.db", Uuid::now_v7()));
+        std::env::temp_dir().join(format!("hooktry-secret-key-rotation-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let v1 = [0x11; 32];
     let v2 = [0x22; 32];
@@ -106,7 +106,7 @@ fn master_key_rotation_reads_old_secrets_and_writes_new_version() {
 
 #[test]
 fn overwrite_rotates_ciphertext_and_reference() {
-    let path = std::env::temp_dir().join(format!("ortyo-secret-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-secret-{}.db", Uuid::now_v7()));
     let store = SecretStore::open(&path, [31u8; 32]).unwrap();
     let workspace = Uuid::now_v7();
 
@@ -134,7 +134,7 @@ fn overwrite_rotates_ciphertext_and_reference() {
 
 #[test]
 fn bound_secret_origin_survives_restart_and_fails_closed_elsewhere() {
-    let path = std::env::temp_dir().join(format!("ortyo-secret-bound-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-secret-bound-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let store = SecretStore::open(&path, [53u8; 32]).unwrap();
 
@@ -204,7 +204,7 @@ fn rotation_preserves_secret_origin_binding() {
 #[test]
 fn delete_clears_secret_origin_binding() {
     let path =
-        std::env::temp_dir().join(format!("ortyo-secret-delete-bound-{}.db", Uuid::now_v7()));
+        std::env::temp_dir().join(format!("hooktry-secret-delete-bound-{}.db", Uuid::now_v7()));
     let workspace = Uuid::now_v7();
     let store = SecretStore::open(&path, [61u8; 32]).unwrap();
 

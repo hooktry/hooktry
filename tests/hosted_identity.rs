@@ -1,6 +1,6 @@
 use std::fs;
 
-use ortyo::{
+use hooktry::{
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
     hosted_identity::{
         ApiScope, HostedIdentityStore, IdentityError, IssuedApiCredential, Workspace,
@@ -67,7 +67,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
     .await;
 
     let master_rejected = client
-        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth("test-control-token")
         .json(&serde_json::json!({"name": "master", "target_port": 3000}))
         .send()
@@ -76,7 +76,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
     assert_eq!(master_rejected.status(), reqwest::StatusCode::UNAUTHORIZED);
 
     let provision: ProvisionedExposure = client
-        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&token_a.token)
         .json(&serde_json::json!({"name": "app", "target_port": 3000}))
         .send()
@@ -91,7 +91,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
     let forbidden = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/exposures/{}",
+            "http://{addr}/_hooktry/hosted/exposures/{}",
             provision.exposure_id
         ))
         .bearer_auth(&create_only.token)
@@ -104,7 +104,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
     let visible_to_a = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/exposures/{}",
+            "http://{addr}/_hooktry/hosted/exposures/{}",
             provision.exposure_id
         ))
         .bearer_auth(&token_a.token)
@@ -115,7 +115,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
     let hidden_from_b = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/exposures/{}",
+            "http://{addr}/_hooktry/hosted/exposures/{}",
             provision.exposure_id
         ))
         .bearer_auth(&token_b.token)
@@ -126,7 +126,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
     let cannot_revoke_from_b = client
         .delete(format!(
-            "http://{addr}/_ortyo/hosted/exposures/{}",
+            "http://{addr}/_hooktry/hosted/exposures/{}",
             provision.exposure_id
         ))
         .bearer_auth(&token_b.token)
@@ -139,7 +139,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
     );
 
     let list_a: Vec<serde_json::Value> = client
-        .get(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .get(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&token_a.token)
         .send()
         .await
@@ -152,7 +152,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
     assert_eq!(list_a.len(), 1);
 
     let list_b: Vec<serde_json::Value> = client
-        .get(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .get(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&token_b.token)
         .send()
         .await
@@ -166,7 +166,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
     client
         .delete(format!(
-            "http://{addr}/_ortyo/hosted/exposures/{}",
+            "http://{addr}/_hooktry/hosted/exposures/{}",
             provision.exposure_id
         ))
         .bearer_auth(&token_a.token)
@@ -188,7 +188,7 @@ async fn workspace_tokens_enforce_scope_and_tenant_isolation() {
 
 #[test]
 fn api_credentials_survive_sqlite_reopen_without_persisting_raw_token() {
-    let path = std::env::temp_dir().join(format!("ortyo-identity-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-identity-{}.db", Uuid::now_v7()));
 
     let store = HostedIdentityStore::open(&path).unwrap();
     let workspace = store.create_workspace("persistent").unwrap();
@@ -244,7 +244,7 @@ async fn create_workspace(
     slug: &str,
 ) -> Workspace {
     client
-        .post(format!("http://{addr}/_ortyo/admin/workspaces"))
+        .post(format!("http://{addr}/_hooktry/admin/workspaces"))
         .bearer_auth("test-control-token")
         .json(&serde_json::json!({"slug": slug}))
         .send()
@@ -266,7 +266,7 @@ async fn issue_credential(
 ) -> IssuedApiCredential {
     client
         .post(format!(
-            "http://{addr}/_ortyo/admin/workspaces/{workspace_id}/credentials"
+            "http://{addr}/_hooktry/admin/workspaces/{workspace_id}/credentials"
         ))
         .bearer_auth("test-control-token")
         .json(&serde_json::json!({

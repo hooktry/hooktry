@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use ortyo::http::{AppState, app};
+use hooktry::http::{AppState, app};
 use tower::ServiceExt;
 
 #[tokio::test]
@@ -30,7 +30,7 @@ async fn captures_http_request_as_structured_interaction() {
     let response = router
         .oneshot(
             Request::builder()
-                .uri("/_ortyo/interactions")
+                .uri("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )

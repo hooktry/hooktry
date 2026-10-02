@@ -97,37 +97,37 @@ pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/llms.txt", get(agent_surface::llms_txt))
         .route("/llms-full.txt", get(agent_surface::llms_full_txt))
-        .route("/skills/ortyo/SKILL.md", get(agent_surface::skill_md))
-        .route("/_ortyo/interactions", get(list_interactions))
-        .route("/_ortyo/recordings", post(create_recording))
-        .route("/_ortyo/recordings/{id}/replay", post(replay_recording))
-        .route("/_ortyo/contracts", post(create_contract))
-        .route("/_ortyo/contracts/{id}", get(get_contract))
+        .route("/skills/hooktry/SKILL.md", get(agent_surface::skill_md))
+        .route("/_hooktry/interactions", get(list_interactions))
+        .route("/_hooktry/recordings", post(create_recording))
+        .route("/_hooktry/recordings/{id}/replay", post(replay_recording))
+        .route("/_hooktry/contracts", post(create_contract))
+        .route("/_hooktry/contracts/{id}", get(get_contract))
         .route(
-            "/_ortyo/contracts/{contract_id}/assert/{interaction_id}",
+            "/_hooktry/contracts/{contract_id}/assert/{interaction_id}",
             post(assert_contract),
         )
-        .route("/_ortyo/assertions/{id}", get(get_assertion))
-        .route("/_ortyo/scenarios", post(create_scenario))
-        .route("/_ortyo/scenarios/{id}", get(get_scenario))
-        .route("/_ortyo/scenarios/{id}/start", post(start_scenario))
+        .route("/_hooktry/assertions/{id}", get(get_assertion))
+        .route("/_hooktry/scenarios", post(create_scenario))
+        .route("/_hooktry/scenarios/{id}", get(get_scenario))
+        .route("/_hooktry/scenarios/{id}/start", post(start_scenario))
         .route(
-            "/_ortyo/scenario-runs/{id}/complete",
+            "/_hooktry/scenario-runs/{id}/complete",
             post(complete_scenario),
         )
         .route(
-            "/_ortyo/scenario-runs/{id}/outcome",
+            "/_hooktry/scenario-runs/{id}/outcome",
             get(get_scenario_outcome),
         )
         .route(
-            "/_ortyo/exposures",
+            "/_hooktry/exposures",
             get(list_exposures).post(create_exposure),
         )
         .route(
-            "/_ortyo/exposures/{id}",
+            "/_hooktry/exposures/{id}",
             get(get_exposure).delete(revoke_exposure),
         )
-        .route("/_ortyo/hosted-runtimes", post(attach_hosted_runtime))
+        .route("/_hooktry/hosted-runtimes", post(attach_hosted_runtime))
         .route("/exposed/{id}/{*path}", any(proxy_exposure))
         .route("/boundary/{*path}", any(capture))
         .with_state(state)

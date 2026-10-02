@@ -1,5 +1,5 @@
 use chrono::Utc;
-use ortyo::{
+use hooktry::{
     domain::{Direction, Interaction, Origin, Protocol},
     store::InteractionStore,
 };

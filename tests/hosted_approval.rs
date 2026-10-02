@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ortyo::{
+use hooktry::{
     approval::{ApprovalDecision, ApprovalRecord, ApprovalState},
     execution::{ExecutionError, ExecutionOutcome, HttpExecutionRequest},
     execution_store::{DurableExecutionRecord, DurableExecutionState},
@@ -69,7 +69,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
     };
 
     let approval: ApprovalRecord = client
-        .post(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .post(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&agent_a.token)
         .json(&request)
         .send()
@@ -89,7 +89,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let visible_to_approver: ApprovalRecord = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}",
+            "http://{addr}/_hooktry/hosted/approvals/{}",
             approval.approval_id
         ))
         .bearer_auth(&approver_a.token)
@@ -105,7 +105,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let hidden_from_other_workspace = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}",
+            "http://{addr}/_hooktry/hosted/approvals/{}",
             approval.approval_id
         ))
         .bearer_auth(&agent_b.token)
@@ -119,7 +119,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let agent_cannot_approve = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/decision",
+            "http://{addr}/_hooktry/hosted/approvals/{}/decision",
             approval.approval_id
         ))
         .bearer_auth(&agent_a.token)
@@ -134,7 +134,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let approved: ApprovalRecord = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/decision",
+            "http://{addr}/_hooktry/hosted/approvals/{}/decision",
             approval.approval_id
         ))
         .bearer_auth(&approver_a.token)
@@ -157,7 +157,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
     changed.body = Some(json!({"operation":"create"}));
     let mismatch = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/execute",
+            "http://{addr}/_hooktry/hosted/approvals/{}/execute",
             approval.approval_id
         ))
         .bearer_auth(&agent_a.token)
@@ -171,7 +171,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let approver_cannot_execute = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/execute",
+            "http://{addr}/_hooktry/hosted/approvals/{}/execute",
             approval.approval_id
         ))
         .bearer_auth(&approver_a.token)
@@ -186,7 +186,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let proof: ApprovedExecution = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/execute",
+            "http://{addr}/_hooktry/hosted/approvals/{}/execute",
             approval.approval_id
         ))
         .bearer_auth(&agent_a.token)
@@ -219,7 +219,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let durable: DurableExecutionRecord = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/executions/{}",
+            "http://{addr}/_hooktry/hosted/executions/{}",
             proof.execution.execution_id
         ))
         .bearer_auth(&agent_a.token)
@@ -236,7 +236,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let hidden_execution = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/executions/{}",
+            "http://{addr}/_hooktry/hosted/executions/{}",
             proof.execution.execution_id
         ))
         .bearer_auth(&agent_b.token)
@@ -247,7 +247,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let replay = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/execute",
+            "http://{addr}/_hooktry/hosted/approvals/{}/execute",
             approval.approval_id
         ))
         .bearer_auth(&agent_a.token)
@@ -260,7 +260,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
     assert_eq!(replay_body["error"]["code"], "approval_consumed");
 
     let denied: ApprovalRecord = client
-        .post(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .post(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&agent_a.token)
         .json(&request)
         .send()
@@ -274,7 +274,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let denied: ApprovalRecord = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/decision",
+            "http://{addr}/_hooktry/hosted/approvals/{}/decision",
             denied.approval_id
         ))
         .bearer_auth(&approver_a.token)
@@ -291,7 +291,7 @@ async fn hosted_approval_gate_enforces_separation_exact_request_and_one_shot_use
 
     let denied_execution = client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/execute",
+            "http://{addr}/_hooktry/hosted/approvals/{}/execute",
             denied.approval_id
         ))
         .bearer_auth(&agent_a.token)
@@ -310,7 +310,7 @@ async fn create_workspace(
     slug: &str,
 ) -> Workspace {
     client
-        .post(format!("http://{addr}/_ortyo/admin/workspaces"))
+        .post(format!("http://{addr}/_hooktry/admin/workspaces"))
         .bearer_auth("test-control-token")
         .json(&json!({"slug": slug}))
         .send()
@@ -332,7 +332,7 @@ async fn issue_credential(
 ) -> IssuedApiCredential {
     client
         .post(format!(
-            "http://{addr}/_ortyo/admin/workspaces/{workspace_id}/credentials"
+            "http://{addr}/_hooktry/admin/workspaces/{workspace_id}/credentials"
         ))
         .bearer_auth("test-control-token")
         .json(&json!({

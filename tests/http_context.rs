@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use ortyo::{
+use hooktry::{
     domain::Interaction,
     http::{AppState, app},
 };
@@ -35,7 +35,7 @@ async fn http_capture_preserves_raw_headers_and_extracts_normalized_context() {
 
     let response = router
         .oneshot(
-            Request::get("/_ortyo/interactions")
+            Request::get("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -99,7 +99,7 @@ async fn invalid_traceparent_remains_raw_evidence_without_normalized_trace_ident
 
     let response = router
         .oneshot(
-            Request::get("/_ortyo/interactions")
+            Request::get("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )

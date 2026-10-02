@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, ExposureTarget, Origin},
     exposure::CreateExposure,
     http::AppState,

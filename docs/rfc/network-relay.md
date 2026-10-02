@@ -16,7 +16,7 @@ TCP relay adapter
     | persistent connection initiated by runtime
     |
     v
-ORTYO runtime
+HOOKTRY runtime
     |
     v
 HTTP Boundary

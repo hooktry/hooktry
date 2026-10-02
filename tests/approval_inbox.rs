@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use ortyo::{
+use hooktry::{
     approval::{ApprovalDecision, ApprovalRecord},
     execution::HttpExecutionRequest,
     hosted::{HostedRelayState, hosted_relay_app},
@@ -80,7 +80,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
     let other_workspace = create_approval(&client, addr, &agent_b, &request).await;
 
     let execute_only = client
-        .get(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .get(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&agent_a.token)
         .send()
         .await
@@ -88,7 +88,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
     assert_eq!(execute_only.status(), reqwest::StatusCode::FORBIDDEN);
 
     let inbox_a: Vec<ApprovalRecord> = client
-        .get(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .get(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&approver_a.token)
         .send()
         .await
@@ -117,7 +117,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
     }
 
     let inbox_b: Vec<ApprovalRecord> = client
-        .get(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .get(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&approver_b.token)
         .send()
         .await
@@ -132,7 +132,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
 
     client
         .post(format!(
-            "http://{addr}/_ortyo/hosted/approvals/{}/decision",
+            "http://{addr}/_hooktry/hosted/approvals/{}/decision",
             first.approval_id
         ))
         .bearer_auth(&approver_a.token)
@@ -144,7 +144,7 @@ async fn approval_inbox_is_pending_only_approver_only_and_workspace_scoped() {
         .unwrap();
 
     let after_decision: Vec<ApprovalRecord> = client
-        .get(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .get(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&approver_a.token)
         .send()
         .await
@@ -165,7 +165,7 @@ async fn create_approval(
     request: &HttpExecutionRequest,
 ) -> ApprovalRecord {
     client
-        .post(format!("http://{addr}/_ortyo/hosted/approvals"))
+        .post(format!("http://{addr}/_hooktry/hosted/approvals"))
         .bearer_auth(&credential.token)
         .json(request)
         .send()
@@ -184,7 +184,7 @@ async fn create_workspace(
     slug: &str,
 ) -> Workspace {
     client
-        .post(format!("http://{addr}/_ortyo/admin/workspaces"))
+        .post(format!("http://{addr}/_hooktry/admin/workspaces"))
         .bearer_auth("test-control-token")
         .json(&json!({"slug": slug}))
         .send()
@@ -206,7 +206,7 @@ async fn issue_credential(
 ) -> IssuedApiCredential {
     client
         .post(format!(
-            "http://{addr}/_ortyo/admin/workspaces/{workspace_id}/credentials"
+            "http://{addr}/_hooktry/admin/workspaces/{workspace_id}/credentials"
         ))
         .bearer_auth("test-control-token")
         .json(&json!({

@@ -20,14 +20,14 @@ function fetchWorker(request: Request): Promise<Response> {
 describe("CF1 ephemeral Hook conformance", () => {
   it("publishes deployment provenance from healthz", async () => {
     const response = await worker.fetch(
-      new Request("https://ortyo.test/healthz"),
-      { ...bindings, ORTYO_RELEASE_SHA: "deadbeef" },
+      new Request("https://hooktry.test/healthz"),
+      { ...bindings, HOOKTRY_RELEASE_SHA: "deadbeef" },
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ok: true,
-      service: "ortyo-cloudflare",
+      service: "hooktry-cloudflare",
       revision: "deadbeef",
       github_auth_configured: true,
       usage_ingest_configured: true,
@@ -91,7 +91,7 @@ describe("CF1 ephemeral Hook conformance", () => {
         method: "POST",
         headers: {
           authorization: "Bearer test-internal-token",
-          "x-ortyo-workspace-id": WORKSPACE_ID,
+          "x-hooktry-workspace-id": WORKSPACE_ID,
         },
       }),
     ));
@@ -117,7 +117,7 @@ describe("CF1 ephemeral Hook conformance", () => {
         method: "POST",
         headers: {
           authorization: "Bearer test-internal-token",
-          "x-ortyo-workspace-id": WORKSPACE_ID,
+          "x-hooktry-workspace-id": WORKSPACE_ID,
         },
       }),
     ));
@@ -133,7 +133,7 @@ describe("CF1 ephemeral Hook conformance", () => {
     const stub = bindings.EXPOSURES.getByName(provision.exposure_id);
 
     const viewerResponse = await stub.fetch(
-      new Request("https://ortyo.internal/view", {
+      new Request("https://hooktry.internal/view", {
         headers: {
           Upgrade: "websocket",
           [INTERNAL_EXPOSURE_HEADER]: provision.exposure_id,
@@ -163,7 +163,7 @@ describe("CF1 ephemeral Hook conformance", () => {
     const captured = await withStage(
       "direct-capture-after-eviction",
       stub.fetch(
-        new Request("https://ortyo.internal/hook/hk_test", {
+        new Request("https://hooktry.internal/hook/hk_test", {
           method: "POST",
           headers: {
             [INTERNAL_EXPOSURE_HEADER]: provision.exposure_id,
@@ -203,7 +203,7 @@ describe("CF1 ephemeral Hook conformance", () => {
     }
 
     const response = await fetchWorker(
-      new Request(`https://ortyo.test/hook/${viewToken}`, {
+      new Request(`https://hooktry.test/hook/${viewToken}`, {
         method: "POST",
         body: "must-not-route",
       }),
@@ -214,12 +214,12 @@ describe("CF1 ephemeral Hook conformance", () => {
   it("enforces three active ephemeral Hooks per principal", async () => {
     const first = await createHook();
     const headers = {
-      "x-ortyo-anonymous-principal": first.anonymous_principal,
+      "x-hooktry-anonymous-principal": first.anonymous_principal,
     };
 
     for (let index = 0; index < 2; index += 1) {
       const response = await fetchWorker(
-        new Request("https://ortyo.test/api/v1/hooks", {
+        new Request("https://hooktry.test/api/v1/hooks", {
           method: "POST",
           headers,
         }),
@@ -228,7 +228,7 @@ describe("CF1 ephemeral Hook conformance", () => {
     }
 
     const fourth = await fetchWorker(
-      new Request("https://ortyo.test/api/v1/hooks", {
+      new Request("https://hooktry.test/api/v1/hooks", {
         method: "POST",
         headers,
       }),
@@ -277,7 +277,7 @@ describe("CF1 ephemeral Hook conformance", () => {
 
 async function createHook(): Promise<AnonymousProvision> {
   const response = await fetchWorker(
-    new Request("https://ortyo.test/api/v1/hooks", {
+    new Request("https://hooktry.test/api/v1/hooks", {
       method: "POST",
     }),
   );

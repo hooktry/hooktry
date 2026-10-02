@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
@@ -109,7 +109,7 @@ async fn invalid_observation_policy_is_rejected() {
         json!({"within_ms": 100, "settle_ms": 101}),
     ] {
         let response = client
-            .post(format!("{base_url}/_ortyo/scenarios"))
+            .post(format!("{base_url}/_hooktry/scenarios"))
             .json(&json!({
                 "name": "invalid observation",
                 "port": target_port,
@@ -143,19 +143,19 @@ async fn system() -> (String, u16) {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let ortyo_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let ortyo_port = ortyo_listener.local_addr().unwrap().port();
-    let base_url = format!("http://127.0.0.1:{ortyo_port}");
+    let hooktry_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let hooktry_port = hooktry_listener.local_addr().unwrap().port();
+    let base_url = format!("http://127.0.0.1:{hooktry_port}");
     let exposures = ExposureService::with_providers(
         Arc::new(LocalExposureProvider::new(&base_url)),
-        Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
     );
     let state = AppState {
         exposures,
         ..AppState::default()
     };
     tokio::spawn(async move {
-        axum::serve(ortyo_listener, app(state)).await.unwrap();
+        axum::serve(hooktry_listener, app(state)).await.unwrap();
     });
 
     (base_url, target_port)
@@ -169,7 +169,7 @@ async fn create_and_start(
 ) -> ScenarioRun {
     let client = reqwest::Client::new();
     let scenario: Scenario = client
-        .post(format!("{base_url}/_ortyo/scenarios"))
+        .post(format!("{base_url}/_hooktry/scenarios"))
         .json(&json!({
             "name": "observation scenario",
             "port": port,
@@ -184,7 +184,7 @@ async fn create_and_start(
         .unwrap();
 
     client
-        .post(format!("{base_url}/_ortyo/scenarios/{}/start", scenario.id))
+        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
         .send()
         .await
         .unwrap()
@@ -206,7 +206,7 @@ async fn send(exposure_url: &str, body: &str) {
 
 async fn complete(base_url: &str, run_id: uuid::Uuid) -> ScenarioOutcome {
     reqwest::Client::new()
-        .post(format!("{base_url}/_ortyo/scenario-runs/{run_id}/complete"))
+        .post(format!("{base_url}/_hooktry/scenario-runs/{run_id}/complete"))
         .send()
         .await
         .unwrap()

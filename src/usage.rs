@@ -98,14 +98,14 @@ impl ScenarioUsageEvent {
 pub async fn emit_from_env(event: &ScenarioUsageEvent) -> Result<(), String> {
     let mut errors = Vec::new();
 
-    if let Ok(path) = std::env::var("ORTYO_USAGE_LOG")
+    if let Ok(path) = std::env::var("HOOKTRY_USAGE_LOG")
         && !path.trim().is_empty()
         && let Err(error) = append_jsonl(Path::new(&path), event)
     {
         errors.push(error);
     }
 
-    if let Ok(endpoint) = std::env::var("ORTYO_USAGE_ENDPOINT")
+    if let Ok(endpoint) = std::env::var("HOOKTRY_USAGE_ENDPOINT")
         && !endpoint.trim().is_empty()
         && let Err(error) = post_event(&endpoint, event).await
     {
@@ -145,7 +145,7 @@ async fn post_event(endpoint: &str, event: &ScenarioUsageEvent) -> Result<(), St
         .map_err(|error| format!("build usage client: {error}"))?;
     let mut request = client.post(endpoint).json(event);
 
-    if let Ok(token) = std::env::var("ORTYO_USAGE_TOKEN")
+    if let Ok(token) = std::env::var("HOOKTRY_USAGE_TOKEN")
         && !token.trim().is_empty()
     {
         request = request.bearer_auth(token);

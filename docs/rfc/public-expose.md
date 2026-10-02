@@ -7,32 +7,32 @@ HOSTED5 turns hosted relay primitives into the user-facing public exposure flow.
 
 ## User workflow
 
-Run the local ORTYO daemon:
+Run the local HOOKTRY daemon:
 
 ```sh
-ortyo serve
+hooktry serve
 ```
 
 Then create a public exposure:
 
 ```sh
-ORTYO_TOKEN='ortyo_...' ortyo expose 3000 web --public
+HOOKTRY_TOKEN='hooktry_...' hooktry expose 3000 web --public
 ```
 
 The default hosted control plane is:
 
 ```text
-https://ortyo.onrender.com
+https://hooktry.onrender.com
 ```
 
-Override it with `ORTYO_HOSTED_URL`.
+Override it with `HOOKTRY_HOSTED_URL`.
 
 ## Process ownership
 
 The CLI is intentionally short-lived. It does not own the WebSocket tunnel.
 
 ```text
-ortyo expose --public
+hooktry expose --public
     |
     +-- provision hosted Exposure
     |      -> exposure_id
@@ -40,7 +40,7 @@ ortyo expose --public
     |      -> runtime_url
     |      -> per-exposure runtime capability
     |
-    +-- POST descriptor to local ortyo serve
+    +-- POST descriptor to local hooktry serve
            |
            +-- adopt exact Exposure id + public URL
            +-- connect authenticated WebSocket
@@ -56,7 +56,7 @@ This keeps the command agent-friendly: stdout can be consumed as one JSON result
 
 ## Authority separation
 
-The workspace-scoped `ORTYO_TOKEN` is used only by the CLI to provision the hosted Exposure. The master `ORTYO_CONTROL_TOKEN` is reserved for bootstrap/admin operations and is never part of the user workflow.
+The workspace-scoped `HOOKTRY_TOKEN` is used only by the CLI to provision the hosted Exposure. The master `HOOKTRY_CONTROL_TOKEN` is reserved for bootstrap/admin operations and is never part of the user workflow.
 
 The daemon receives only the short-lived capability scoped to the provisioned Exposure.
 
@@ -70,7 +70,7 @@ A successful public expose returns:
 {
   "exposure_id": "...",
   "name": "web",
-  "url": "https://ortyo.onrender.com/e/...",
+  "url": "https://hooktry.onrender.com/e/...",
   "access": "public",
   "mode": "relay",
   "target_port": 3000,
@@ -83,7 +83,7 @@ A successful public expose returns:
 
 ## Lifecycle
 
-`ortyo exposure-revoke <id>` first self-revokes the per-Exposure runtime capability at the hosted relay, removes the broker registration, then aborts the daemon-owned reconnect task and revokes the local Exposure. The old capability cannot reconnect.
+`hooktry exposure-revoke <id>` first self-revokes the per-Exposure runtime capability at the hosted relay, removes the broker registration, then aborts the daemon-owned reconnect task and revokes the local Exposure. The old capability cannot reconnect.
 
 Runtime reconnection uses capped exponential backoff after a disconnect.
 

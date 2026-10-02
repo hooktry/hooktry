@@ -1,7 +1,7 @@
-# Ortyo MCIF dogfood proof
+# Hooktry MCIF dogfood proof
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.14 DOGFOOD-PROOF
+DWC: MCIF/HOOKTRY.14 DOGFOOD-PROOF
 
 ## Purpose
 
@@ -22,9 +22,9 @@ cargo test --locked --test first_party_dogfood_cli -- --nocapture
 The test starts:
 
 1. a real local target HTTP service
-2. a real Ortyo HTTP boundary
-3. the real `ortyo scenario run` binary
-4. child processes that send traffic through `ORTYO_EXPOSURE_URL`
+2. a real Hooktry HTTP boundary
+3. the real `hooktry scenario run` binary
+4. child processes that send traffic through `HOOKTRY_EXPOSURE_URL`
 
 It materializes the repository-owned recipes with the test target's ephemeral port.
 
@@ -142,13 +142,13 @@ next_evidence: first_party_usage
 
 The mechanism is now sufficiently proven for the two selected failure classes.
 
-The next meaningful evidence must come from a live integration workflow where the probe is used because the integration needs testing, not because the test was constructed solely to exercise Ortyo.
+The next meaningful evidence must come from a live integration workflow where the probe is used because the integration needs testing, not because the test was constructed solely to exercise Hooktry.
 
 ## Promotion trigger
 
 A stronger first-party signal can be recorded when at least one of these occurs:
 
-- Ortyo dogfoods a real webhook integration and the probe catches an unintended duplicate/order bug
+- Hooktry dogfoods a real webhook integration and the probe catches an unintended duplicate/order bug
 - another project adopts a temporal recipe and keeps rerunning it
 - a developer modifies the thin recipe because they need richer cardinality/order/settle/context behavior
 - direct feedback asks for a deeper primitive after using the thin proof

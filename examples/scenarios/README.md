@@ -1,6 +1,6 @@
 # Scenario proof recipes
 
-These manifests exercise the two temporal failure classes currently selected for Ortyo first-party validation.
+These manifests exercise the two temporal failure classes currently selected for Hooktry first-party validation.
 
 ## Duplicate / idempotency
 
@@ -9,12 +9,12 @@ These manifests exercise the two temporal failure classes currently selected for
 A child test can intentionally expose a duplicate bug with:
 
 ```sh
-curl -sS -X POST "$ORTYO_EXPOSURE_URL/webhook" \
+curl -sS -X POST "$HOOKTRY_EXPOSURE_URL/webhook" \
   -H 'x-correlation-id: checkout-demo' \
   -H 'idempotency-key: payment-demo' \
   -d '{}'
 
-curl -sS -X POST "$ORTYO_EXPOSURE_URL/webhook" \
+curl -sS -X POST "$HOOKTRY_EXPOSURE_URL/webhook" \
   -H 'x-correlation-id: checkout-demo' \
   -H 'idempotency-key: payment-demo' \
   -d '{}'
@@ -23,7 +23,7 @@ curl -sS -X POST "$ORTYO_EXPOSURE_URL/webhook" \
 Run it around the application test:
 
 ```sh
-ortyo scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
+hooktry scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
 ```
 
 The scenario passes only when exactly one matching interaction is observed through the settle window.
@@ -35,8 +35,8 @@ The scenario passes only when exactly one matching interaction is observed throu
 A reversed child flow:
 
 ```sh
-curl -sS -X POST "$ORTYO_EXPOSURE_URL/subscription" -d '{}'
-curl -sS -X POST "$ORTYO_EXPOSURE_URL/customer" -d '{}'
+curl -sS -X POST "$HOOKTRY_EXPOSURE_URL/subscription" -d '{}'
+curl -sS -X POST "$HOOKTRY_EXPOSURE_URL/customer" -d '{}'
 ```
 
 causes the scenario outcome to fail even when both request contracts pass.
@@ -44,7 +44,7 @@ causes the scenario outcome to fail even when both request contracts pass.
 Run it with:
 
 ```sh
-ortyo scenario run examples/scenarios/out-of-order.json -- ./your-test-command
+hooktry scenario run examples/scenarios/out-of-order.json -- ./your-test-command
 ```
 
 ## First-party proof telemetry
@@ -54,16 +54,16 @@ Scenario usage evidence is disabled unless a sink is explicitly configured.
 Local dogfood JSONL:
 
 ```sh
-ORTYO_USAGE_LOG=.ortyo/usage.jsonl \
-  ortyo scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
+HOOKTRY_USAGE_LOG=.hooktry/usage.jsonl \
+  hooktry scenario run examples/scenarios/duplicate-idempotency.json -- ./your-test-command
 ```
 
 Optional HTTP sink:
 
 ```sh
-ORTYO_USAGE_ENDPOINT=https://your-ortyo-host/api/v1/usage-events \
-ORTYO_USAGE_TOKEN=... \
-  ortyo scenario run examples/scenarios/out-of-order.json -- ./your-test-command
+HOOKTRY_USAGE_ENDPOINT=https://your-hooktry-host/api/v1/usage-events \
+HOOKTRY_USAGE_TOKEN=... \
+  hooktry scenario run examples/scenarios/out-of-order.json -- ./your-test-command
 ```
 
 The event contains only feature/result aggregates. It does not contain scenario/run/exposure IDs, names, ports, URLs, child commands, headers, request/response bodies, or correlation/idempotency values.

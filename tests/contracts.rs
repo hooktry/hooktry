@@ -1,5 +1,5 @@
 use chrono::Utc;
-use ortyo::{
+use hooktry::{
     contract::assert_interaction,
     domain::{Contract, CorrelationContext, Direction, Interaction, Origin, Protocol},
 };
@@ -20,7 +20,7 @@ fn interaction() -> Interaction {
         request: json!({"method":"POST","path":"/stripe/payment_intents","body":"{\"amount\":4999}"}),
         response: json!({"status":200}),
         source_interaction_id: None,
-        context: ortyo::domain::InteractionContext {
+        context: hooktry::domain::InteractionContext {
             correlation: CorrelationContext {
                 request_id: Some("req-123".into()),
                 correlation_id: Some("checkout-42".into()),

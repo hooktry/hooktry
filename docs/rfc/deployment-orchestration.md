@@ -5,9 +5,9 @@ Checked: 2026-10-01
 
 ## Decision
 
-GitHub is the source repository for ORTYO and GitHub Actions is the canonical CI, release, and deployment orchestrator.
+GitHub is the source repository for HOOKTRY and GitHub Actions is the canonical CI, release, and deployment orchestrator.
 
-Infrastructure platforms are deployment providers, not release orchestrators for ORTYO.
+Infrastructure platforms are deployment providers, not release orchestrators for HOOKTRY.
 
 ~~~text
                          GitHub
@@ -42,7 +42,7 @@ The system that decides:
 - which production acceptance checks must pass
 - which Git SHA/version is recorded as deployed
 
-For ORTYO this is GitHub Actions.
+For HOOKTRY this is GitHub Actions.
 
 ### Deployment provider
 
@@ -57,7 +57,7 @@ Examples:
 - Kubernetes
 - Docker/OCI
 - customer-owned BYOC infrastructure
-- a future ORTYO-operated compute platform
+- a future HOOKTRY-operated compute platform
 
 Provider-specific tooling belongs below the orchestration boundary.
 
@@ -75,13 +75,13 @@ GitHub Actions
             +-- Durable Objects
 ~~~
 
-Cloudflare is the first production deployment provider. It is not the owner of the ORTYO release process.
+Cloudflare is the first production deployment provider. It is not the owner of the HOOKTRY release process.
 
 The current Deploy Cloudflare workflow is therefore intentionally located under .github/workflows/.
 
 ## Why this boundary exists
 
-ORTYO is more than one hosted Worker.
+HOOKTRY is more than one hosted Worker.
 
 A release may eventually produce and coordinate:
 
@@ -99,7 +99,7 @@ same Git SHA / release
     +-- optional desktop/Tauri shell
 ~~~
 
-A provider-owned build system can be excellent at deploying that provider's resources, but it cannot naturally become the authoritative release controller for all ORTYO surfaces and deployment profiles.
+A provider-owned build system can be excellent at deploying that provider's resources, but it cannot naturally become the authoritative release controller for all HOOKTRY surfaces and deployment profiles.
 
 The canonical orchestration layer therefore remains provider-neutral.
 
@@ -130,7 +130,7 @@ The invariant is that GitHub Actions invokes and verifies them.
 When a second real provider exists, a thin top-level dispatcher may be introduced:
 
 ~~~text
-Deploy ORTYO
+Deploy HOOKTRY
     target=cloudflare
     target=namespace
     target=container
@@ -153,17 +153,17 @@ run provider acceptance
 record the same SHA/version
 ~~~
 
-Provider-generated identifiers may supplement the ORTYO Git SHA but must not replace it as release provenance.
+Provider-generated identifiers may supplement the HOOKTRY Git SHA but must not replace it as release provenance.
 
 A production incident should be answerable with:
 
 ~~~text
-Which ORTYO Git SHA is running?
+Which HOOKTRY Git SHA is running?
 Which deployment profile?
 Which provider deployment/version corresponds to it?
 ~~~
 
-For the Cloudflare profile, every Worker deployment receives the immutable Git SHA as `ORTYO_RELEASE_SHA`. The public `/healthz` response reports that revision. Production acceptance must observe the expected revision consistently before exercising the realtime Hook flow; a provider deployment command returning is not by itself sufficient evidence that the expected release is serving the acceptance path.
+For the Cloudflare profile, every Worker deployment receives the immutable Git SHA as `HOOKTRY_RELEASE_SHA`. The public `/healthz` response reports that revision. Production acceptance must observe the expected revision consistently before exercising the realtime Hook flow; a provider deployment command returning is not by itself sufficient evidence that the expected release is serving the acceptance path.
 
 ## Provider-native CI/CD
 
@@ -196,7 +196,7 @@ create D1 / R2 / Worker
     v
 ordinary deployment authority
     |
-    | long-lived / Editor / existing ORTYO resources only
+    | long-lived / Editor / existing HOOKTRY resources only
     v
 migrate -> deploy -> acceptance
 ~~~
@@ -205,7 +205,7 @@ The GitHub `production` environment stores the ordinary deployment authority:
 
 ~~~text
 secret: CLOUDFLARE_API_TOKEN
-secret: ORTYO_CLAIM_INTERNAL_TOKEN
+secret: HOOKTRY_CLAIM_INTERNAL_TOKEN
 variable: CLOUDFLARE_ACCOUNT_ID
 ~~~
 
@@ -215,7 +215,7 @@ Ordinary deployment must not silently recreate missing infrastructure. Missing p
 
 Cloudflare API token policy changes and token-secret rotation are separate operations. Prefer reducing an existing token's permissions without rolling its secret when the credential value itself has not been exposed.
 
-Those credentials authorize the Cloudflare deployment profile. They do not make Cloudflare the ORTYO release authority.
+Those credentials authorize the Cloudflare deployment profile. They do not make Cloudflare the HOOKTRY release authority.
 
 Future provider credentials should remain similarly scoped to their adapter.
 
@@ -239,27 +239,27 @@ Together they preserve both runtime portability and operational portability.
 
 Self-hosted and BYOC distributions remain first-class deployment profiles.
 
-GitHub Actions may publish artifacts that customers deploy themselves. ORTYO does not need to retain operational authority over customer-owned infrastructure for those profiles.
+GitHub Actions may publish artifacts that customers deploy themselves. HOOKTRY does not need to retain operational authority over customer-owned infrastructure for those profiles.
 
 Examples:
 
 ~~~text
-GitHub release -> ortyo binary -> user machine
+GitHub release -> hooktry binary -> user machine
 
 GitHub release -> OCI image -> customer Kubernetes
 
-ORTYO Cloud control plane -> enrolled customer compute
+HOOKTRY Cloud control plane -> enrolled customer compute
 ~~~
 
-The release provenance still originates from the ORTYO repository even when the final deployment action occurs outside ORTYO-operated infrastructure.
+The release provenance still originates from the HOOKTRY repository even when the final deployment action occurs outside HOOKTRY-operated infrastructure.
 
 ## Non-goals
 
 ORCH1 does not:
 
 - require every deployment to use the same provider API
-- require self-hosted users to grant ORTYO access to their infrastructure
+- require self-hosted users to grant HOOKTRY access to their infrastructure
 - prohibit Cloudflare Builds or other provider-native tooling
 - introduce a generic multi-provider deployment framework before it is needed
-- make GitHub Actions part of the ORTYO runtime
-- make Cloudflare, Namespace, AWS, or another provider part of the ORTYO domain model
+- make GitHub Actions part of the HOOKTRY runtime
+- make Cloudflare, Namespace, AWS, or another provider part of the HOOKTRY domain model

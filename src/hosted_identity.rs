@@ -826,5 +826,5 @@ fn api_token() -> String {
         write!(&mut encoded, "{byte:02x}").expect("write to String cannot fail");
     }
 
-    format!("ortyo_{}", encoded)
+    format!("hooktry_{}", encoded)
 }

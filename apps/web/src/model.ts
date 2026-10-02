@@ -7,7 +7,7 @@ export function viewCapabilityFromPath(pathname: string): string | null {
 }
 
 export function viewSessionKey(capability: string): string {
-  return `ortyo:web1:view:${capability}`;
+  return `hooktry:web1:view:${capability}`;
 }
 
 export function formatBytes(bytes: number): string {

@@ -26,7 +26,7 @@ Claim
 GitHub authorization code + PKCE
     |
     v
-Ortyo browser session
+Hooktry browser session
     |
     v
 personal workspace
@@ -39,11 +39,11 @@ The existing Hook capability and retained Interaction history remain unchanged.
 
 ## Why GitHub first
 
-The primary cohort is product development, testing, and pilot workflows. GitHub is a common identity already present in that cohort and avoids asking for a password before the first useful Ortyo workflow.
+The primary cohort is product development, testing, and pilot workflows. GitHub is a common identity already present in that cohort and avoids asking for a password before the first useful Hooktry workflow.
 
-AUTH1 uses a GitHub OAuth App only as an identity provider. It requests **no OAuth scopes**. GitHub's no-scope token is sufficient to read public profile identity, which gives Ortyo the stable GitHub user ID, current login, and avatar without repository, organization, email, or write access.
+AUTH1 uses a GitHub OAuth App only as an identity provider. It requests **no OAuth scopes**. GitHub's no-scope token is sufficient to read public profile identity, which gives Hooktry the stable GitHub user ID, current login, and avatar without repository, organization, email, or write access.
 
-GitHub recommends GitHub Apps for repository integrations because they provide fine-grained permissions and short-lived credentials. That recommendation applies to future Ortyo repository/automation integrations. Those should use a separate GitHub App authority rather than expanding this sign-in credential.
+GitHub recommends GitHub Apps for repository integrations because they provide fine-grained permissions and short-lived credentials. That recommendation applies to future Hooktry repository/automation integrations. Those should use a separate GitHub App authority rather than expanding this sign-in credential.
 
 ## OAuth web flow
 
@@ -54,7 +54,7 @@ browser
   |
   | GET /api/v1/auth/github/start?return_to=/view/vw_...?claim=1
   v
-Ortyo Worker
+Hooktry Worker
   |
   | state + PKCE challenge
   v
@@ -73,10 +73,10 @@ GitHub token exchange
 GET api.github.com/user
   |
   v
-Ortyo user + personal workspace + session
+Hooktry user + personal workspace + session
 ~~~
 
-The GitHub access token is used only to revalidate identity during that callback. It is never persisted by Ortyo.
+The GitHub access token is used only to revalidate identity during that callback. It is never persisted by Hooktry.
 
 ## CSRF and PKCE
 
@@ -100,9 +100,9 @@ A 32-byte random verifier remains only in a short-lived HttpOnly cookie.
 
 Only its SHA-256 S256 challenge is sent in the authorization request. The raw verifier is returned server-side during the code exchange and is never stored in D1.
 
-## Ortyo session
+## Hooktry session
 
-After GitHub identity validation, Ortyo creates its own opaque session.
+After GitHub identity validation, Hooktry creates its own opaque session.
 
 ~~~text
 raw sess_... token
@@ -137,7 +137,7 @@ D1 stores:
 
 A GitHub numeric user ID is the external stable identity key. GitHub login and avatar are mutable profile attributes and are refreshed on every sign-in.
 
-The first sign-in idempotently creates one personal workspace owned by the Ortyo user.
+The first sign-in idempotently creates one personal workspace owned by the Hooktry user.
 
 AUTH1 does not yet implement:
 
@@ -163,7 +163,7 @@ There are now two valid authority sources.
 
 ### Human browser
 
-An authenticated Ortyo session supplies the personal workspace identity. The browser supplies the claim capability through the claim URL already held in its owner session.
+An authenticated Hooktry session supplies the personal workspace identity. The browser supplies the claim capability through the claim URL already held in its owner session.
 
 ### Deployment acceptance
 
@@ -177,7 +177,7 @@ The owner browser already stores the provision response in session storage keyed
 
 When the user chooses Claim:
 
-1. WEB1 checks for an Ortyo session.
+1. WEB1 checks for an Hooktry session.
 2. If authenticated, it posts the claim immediately.
 3. Otherwise it starts GitHub OAuth with a same-origin return target:
    `/view/vw_<capability>?claim=1`.
@@ -218,13 +218,13 @@ Production acceptance requires auth readiness before a release is considered con
 AUTH1 initially uses the current managed-cloud callback origin:
 
 ~~~text
-https://ortyo-cloudflare.web33.workers.dev/api/v1/auth/github/callback
+https://hooktry-cloudflare.web33.workers.dev/api/v1/auth/github/callback
 ~~~
 
-When DOMAIN1 moves the canonical product origin to `https://ortyo.com`, the GitHub OAuth App callback must move to:
+When DOMAIN1 moves the canonical product origin to `https://hooktry.com`, the GitHub OAuth App callback must move to:
 
 ~~~text
-https://ortyo.com/api/v1/auth/github/callback
+https://hooktry.com/api/v1/auth/github/callback
 ~~~
 
 The identity/session model does not change.

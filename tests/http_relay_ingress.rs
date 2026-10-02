@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, ExposureTarget, Origin},
     exposure::CreateExposure,
     http::AppState,
@@ -18,7 +18,7 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
         "/stripe",
         post(|headers: axum::http::HeaderMap, body: Bytes| async move {
             assert_eq!(headers.get("stripe-signature").unwrap(), "t=1,v1=proof");
-            (StatusCode::ACCEPTED, [("x-ortyo-target", "stripe")], body)
+            (StatusCode::ACCEPTED, [("x-hooktry-target", "stripe")], body)
         }),
     );
     let target_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -95,7 +95,7 @@ async fn public_http_ingress_crosses_tcp_runtime_and_records_evidence() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::ACCEPTED);
-    assert_eq!(response.headers()["x-ortyo-target"], "stripe");
+    assert_eq!(response.headers()["x-hooktry-target"], "stripe");
     assert_eq!(response.bytes().await.unwrap().as_ref(), raw_body);
 
     let interactions = runtime_state.store.all();

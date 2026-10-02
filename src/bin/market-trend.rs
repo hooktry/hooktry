@@ -9,7 +9,7 @@ use std::{
 struct Capability {
     id: String,
     disposition: String,
-    ortyo_status: String,
+    hooktry_status: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -69,7 +69,7 @@ struct TrendReport {
     capabilities_added: Vec<String>,
     capabilities_removed: Vec<String>,
     disposition_changes: Vec<ValueChange>,
-    ortyo_status_changes: Vec<ValueChange>,
+    hooktry_status_changes: Vec<ValueChange>,
     matrix_changes: Vec<MatrixChange>,
     signals_added: Vec<Signal>,
     signals_removed: Vec<Signal>,
@@ -192,11 +192,11 @@ fn diff_snapshots(from: &Snapshot, to: &Snapshot) -> TrendReport {
                 to: after.disposition.clone(),
             });
         }
-        if before.ortyo_status != after.ortyo_status {
-            report.ortyo_status_changes.push(ValueChange {
+        if before.hooktry_status != after.hooktry_status {
+            report.hooktry_status_changes.push(ValueChange {
                 id: id.clone(),
-                from: before.ortyo_status.clone(),
-                to: after.ortyo_status.clone(),
+                from: before.hooktry_status.clone(),
+                to: after.hooktry_status.clone(),
             });
         }
     }
@@ -226,7 +226,7 @@ fn diff_snapshots(from: &Snapshot, to: &Snapshot) -> TrendReport {
                 product: product.clone(),
                 capability: capability.clone(),
                 kind: classify_matrix_change(product, before, after),
-                decision_relevant: product == "ortyo"
+                decision_relevant: product == "hooktry"
                     || (disposition != "out_of_scope"
                         && !matches!((before, after), ("unknown", "unknown"))),
                 disposition,
@@ -254,8 +254,8 @@ fn matrix_state<'a>(snapshot: &'a Snapshot, capability: &str, product: &str) -> 
 }
 
 fn classify_matrix_change(product: &str, from: &str, to: &str) -> String {
-    if product == "ortyo" {
-        return "ortyo_motion".to_owned();
+    if product == "hooktry" {
+        return "hooktry_motion".to_owned();
     }
     match (from, to) {
         ("unknown", "present" | "partial" | "absent") => "research_resolution",
@@ -298,10 +298,10 @@ fn render_text(report: &TrendReport) -> String {
         .iter()
         .filter(|change| change.kind == "observed_state_change")
         .count();
-    let ortyo_matrix_changes = report
+    let hooktry_matrix_changes = report
         .matrix_changes
         .iter()
-        .filter(|change| change.kind == "ortyo_motion")
+        .filter(|change| change.kind == "hooktry_motion")
         .count();
     let decision_relevant_matrix_changes = report
         .matrix_changes
@@ -358,12 +358,12 @@ fn render_text(report: &TrendReport) -> String {
         "- new direct_demand signals: {direct_demand_added}\n\n"
     ));
 
-    output.push_str("Ortyo motion\n");
+    output.push_str("Hooktry motion\n");
     output.push_str(&format!(
         "- capability status changes: {}\n",
-        report.ortyo_status_changes.len()
+        report.hooktry_status_changes.len()
     ));
-    output.push_str(&format!("- matrix state changes: {ortyo_matrix_changes}\n"));
+    output.push_str(&format!("- matrix state changes: {hooktry_matrix_changes}\n"));
     output.push_str(&format!(
         "- disposition changes: {}\n\n",
         report.disposition_changes.len()
@@ -459,8 +459,8 @@ fn render_json(report: &TrendReport) -> String {
         json_value_changes(&report.disposition_changes)
     ));
     fields.push(format!(
-        "\"ortyo_status_changes\":{}",
-        json_value_changes(&report.ortyo_status_changes)
+        "\"hooktry_status_changes\":{}",
+        json_value_changes(&report.hooktry_status_changes)
     ));
     fields.push(format!(
         "\"matrix_changes\":{}",
@@ -632,7 +632,7 @@ fn parse_snapshot(text: &str) -> Snapshot {
                 {
                     match key.as_str() {
                         "disposition" => item.disposition = value,
-                        "ortyo_status" => item.ortyo_status = value,
+                        "hooktry_status" => item.hooktry_status = value,
                         _ => {}
                     }
                 }
@@ -750,22 +750,22 @@ mod tests {
     #[test]
     fn self_diff_is_empty() {
         let value = snapshot(
-            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: replay\n    disposition: must\n    ortyo_status: implemented\nmatrix:\n  replay:\n    ortyo: present\nsignals:\nobservations:\n",
+            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - hooktry\nmatrix_products:\n  - hooktry\ncapabilities:\n  - id: replay\n    disposition: must\n    hooktry_status: implemented\nmatrix:\n  replay:\n    hooktry: present\nsignals:\nobservations:\n",
         );
         let report = diff_snapshots(&value, &value);
         assert!(report.matrix_changes.is_empty());
         assert!(report.signals_added.is_empty());
         assert!(report.observations_added.is_empty());
-        assert!(report.ortyo_status_changes.is_empty());
+        assert!(report.hooktry_status_changes.is_empty());
     }
 
     #[test]
     fn unknown_to_present_is_research_resolution_not_market_motion() {
         let from = snapshot(
-            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - ortyo\n  - hookdeck\nmatrix_products:\n  - ortyo\n  - hookdeck\ncapabilities:\n  - id: replay\n    disposition: must\n    ortyo_status: implemented\nmatrix:\n  replay:\n    ortyo: present\n    hookdeck: unknown\nsignals:\nobservations:\n",
+            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - hooktry\n  - hookdeck\nmatrix_products:\n  - hooktry\n  - hookdeck\ncapabilities:\n  - id: replay\n    disposition: must\n    hooktry_status: implemented\nmatrix:\n  replay:\n    hooktry: present\n    hookdeck: unknown\nsignals:\nobservations:\n",
         );
         let to = snapshot(
-            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - ortyo\n  - hookdeck\nmatrix_products:\n  - ortyo\n  - hookdeck\ncapabilities:\n  - id: replay\n    disposition: must\n    ortyo_status: implemented\nmatrix:\n  replay:\n    ortyo: present\n    hookdeck: present\nsignals:\nobservations:\n  - id: hookdeck-replay\n    product: hookdeck\n    capability: replay\n    state: present\n",
+            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - hooktry\n  - hookdeck\nmatrix_products:\n  - hooktry\n  - hookdeck\ncapabilities:\n  - id: replay\n    disposition: must\n    hooktry_status: implemented\nmatrix:\n  replay:\n    hooktry: present\n    hookdeck: present\nsignals:\nobservations:\n  - id: hookdeck-replay\n    product: hookdeck\n    capability: replay\n    state: present\n",
         );
 
         let report = diff_snapshots(&from, &to);
@@ -775,33 +775,33 @@ mod tests {
     }
 
     #[test]
-    fn ortyo_status_change_is_product_motion() {
+    fn hooktry_status_change_is_product_motion() {
         let from = snapshot(
-            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: provider-templates\n    disposition: should\n    ortyo_status: absent\nmatrix:\n  provider-templates:\n    ortyo: absent\nsignals:\nobservations:\n",
+            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - hooktry\nmatrix_products:\n  - hooktry\ncapabilities:\n  - id: provider-templates\n    disposition: should\n    hooktry_status: absent\nmatrix:\n  provider-templates:\n    hooktry: absent\nsignals:\nobservations:\n",
         );
         let to = snapshot(
-            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: provider-templates\n    disposition: should\n    ortyo_status: implemented\nmatrix:\n  provider-templates:\n    ortyo: present\nsignals:\nobservations:\n",
+            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - hooktry\nmatrix_products:\n  - hooktry\ncapabilities:\n  - id: provider-templates\n    disposition: should\n    hooktry_status: implemented\nmatrix:\n  provider-templates:\n    hooktry: present\nsignals:\nobservations:\n",
         );
 
         let report = diff_snapshots(&from, &to);
         assert_eq!(
-            report.ortyo_status_changes,
+            report.hooktry_status_changes,
             vec![ValueChange {
                 id: "provider-templates".to_owned(),
                 from: "absent".to_owned(),
                 to: "implemented".to_owned(),
             }]
         );
-        assert_eq!(report.matrix_changes[0].kind, "ortyo_motion");
+        assert_eq!(report.matrix_changes[0].kind, "hooktry_motion");
     }
 
     #[test]
     fn new_market_motion_signal_stays_explicit() {
         let from = snapshot(
-            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: mcp-agent\n    disposition: covered\n    ortyo_status: implemented\nmatrix:\nsignals:\nobservations:\n",
+            "snapshot_id: 2026-10-01-a\ncaptured_at: 2026-10-01\nscope_products:\n  - hooktry\nmatrix_products:\n  - hooktry\ncapabilities:\n  - id: mcp-agent\n    disposition: covered\n    hooktry_status: implemented\nmatrix:\nsignals:\nobservations:\n",
         );
         let to = snapshot(
-            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - ortyo\nmatrix_products:\n  - ortyo\ncapabilities:\n  - id: mcp-agent\n    disposition: covered\n    ortyo_status: implemented\nmatrix:\nsignals:\n  - id: competitor-agent-launch\n    capability: mcp-agent\n    class: market_motion\nobservations:\n",
+            "snapshot_id: 2026-10-02-b\ncaptured_at: 2026-10-02\nscope_products:\n  - hooktry\nmatrix_products:\n  - hooktry\ncapabilities:\n  - id: mcp-agent\n    disposition: covered\n    hooktry_status: implemented\nmatrix:\nsignals:\n  - id: competitor-agent-launch\n    capability: mcp-agent\n    class: market_motion\nobservations:\n",
         );
 
         let report = diff_snapshots(&from, &to);

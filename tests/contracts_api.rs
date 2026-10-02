@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use ortyo::{
+use hooktry::{
     domain::{AssertionResult, Contract, Interaction},
     http::{AppState, app},
 };
@@ -29,7 +29,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     let response = router
         .clone()
         .oneshot(
-            Request::get("/_ortyo/interactions")
+            Request::get("/_hooktry/interactions")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -42,7 +42,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     let response = router
         .clone()
         .oneshot(
-            Request::post("/_ortyo/contracts")
+            Request::post("/_hooktry/contracts")
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
@@ -69,7 +69,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
         .clone()
         .oneshot(
             Request::post(format!(
-                "/_ortyo/contracts/{}/assert/{}",
+                "/_hooktry/contracts/{}/assert/{}",
                 contract.id, interaction_id
             ))
             .body(Body::empty())
@@ -85,7 +85,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     let response = router
         .clone()
         .oneshot(
-            Request::get(format!("/_ortyo/assertions/{}", passed.id))
+            Request::get(format!("/_hooktry/assertions/{}", passed.id))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -99,7 +99,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     let response = router
         .clone()
         .oneshot(
-            Request::post("/_ortyo/contracts")
+            Request::post("/_hooktry/contracts")
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
@@ -118,7 +118,7 @@ async fn contract_api_persists_structured_pass_and_fail_assertions() {
     let response = router
         .oneshot(
             Request::post(format!(
-                "/_ortyo/contracts/{}/assert/{}",
+                "/_hooktry/contracts/{}/assert/{}",
                 failing_contract.id, interaction_id
             ))
             .body(Body::empty())

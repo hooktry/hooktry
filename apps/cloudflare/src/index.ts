@@ -43,8 +43,8 @@ export default {
       if (request.method === "GET" && url.pathname === "/healthz") {
         return json({
           ok: true,
-          service: "ortyo-cloudflare",
-          revision: env.ORTYO_RELEASE_SHA ?? null,
+          service: "hooktry-cloudflare",
+          revision: env.HOOKTRY_RELEASE_SHA ?? null,
           github_auth_configured: Boolean(
             env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
           ),
@@ -170,7 +170,7 @@ async function createHook(request: Request, env: Env): Promise<Response> {
   const response = json(provision, 201);
   response.headers.set(
     "set-cookie",
-    `ortyo_anon=${principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${url.protocol === "https:" ? "; Secure" : ""}`,
+    `hooktry_anon=${principal}; Max-Age=${ANONYMOUS_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${url.protocol === "https:" ? "; Secure" : ""}`,
   );
   response.headers.set("cache-control", "no-store");
   return response;
@@ -242,7 +242,7 @@ async function routeClaim(
       throw new AdapterError(401, "unauthorized");
     }
 
-    workspaceId = request.headers.get("x-ortyo-workspace-id");
+    workspaceId = request.headers.get("x-hooktry-workspace-id");
     if (!workspaceId || !validWorkspaceId(workspaceId)) {
       throw new AdapterError(400, "invalid_workspace");
     }
@@ -263,7 +263,7 @@ async function cleanupExpired(env: Env): Promise<void> {
 
   for (const exposureId of await expiredExposureIds(env, now)) {
     const stub = env.EXPOSURES.getByName(exposureId);
-    await stub.fetch("https://ortyo.internal/__expire", { method: "POST" });
+    await stub.fetch("https://hooktry.internal/__expire", { method: "POST" });
 
     const keys = await payloadKeysForExposure(env, exposureId);
     if (keys.length > 0) {

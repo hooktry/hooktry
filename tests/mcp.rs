@@ -1,4 +1,4 @@
-use ortyo::mcp::handle;
+use hooktry::mcp::handle;
 use serde_json::json;
 
 #[tokio::test]
@@ -13,7 +13,7 @@ async fn initialize_advertises_tools_capability() {
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
-    assert_eq!(response["result"]["serverInfo"]["name"], "ortyo");
+    assert_eq!(response["result"]["serverInfo"]["name"], "hooktry");
     assert!(response["result"]["capabilities"]["tools"].is_object());
 }
 

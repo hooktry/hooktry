@@ -9,7 +9,7 @@ use axum::{
     http::{HeaderMap, Uri},
     routing::{get, post},
 };
-use ortyo::{
+use hooktry::{
     approval::ApprovalDecision, execution::HttpExecutionRequest, hosted_client::HostedClient,
 };
 use serde_json::json;
@@ -27,19 +27,19 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
     let addr = listener.local_addr().unwrap();
     let seen = Seen::default();
     let app = Router::new()
-        .route("/_ortyo/hosted/approvals", get(record).post(record))
-        .route("/_ortyo/hosted/approvals/{id}", get(record))
-        .route("/_ortyo/hosted/approvals/{id}/decision", post(record))
-        .route("/_ortyo/hosted/approvals/{id}/execute", post(record))
-        .route("/_ortyo/hosted/executions/{id}", get(record))
+        .route("/_hooktry/hosted/approvals", get(record).post(record))
+        .route("/_hooktry/hosted/approvals/{id}", get(record))
+        .route("/_hooktry/hosted/approvals/{id}/decision", post(record))
+        .route("/_hooktry/hosted/approvals/{id}/execute", post(record))
+        .route("/_hooktry/hosted/executions/{id}", get(record))
         .with_state(seen.clone());
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
 
     let client = HostedClient::from_lookup(format!("http://{addr}"), |key| match key {
-        "ORTYO_TOKEN" => Some("execute-token".to_owned()),
-        "ORTYO_APPROVER_TOKEN" => Some("approve-token".to_owned()),
+        "HOOKTRY_TOKEN" => Some("execute-token".to_owned()),
+        "HOOKTRY_APPROVER_TOKEN" => Some("approve-token".to_owned()),
         _ => None,
     });
     let request = HttpExecutionRequest {
@@ -72,27 +72,27 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
         seen,
         vec![
             (
-                "/_ortyo/hosted/approvals".to_owned(),
+                "/_hooktry/hosted/approvals".to_owned(),
                 "Bearer execute-token".to_owned()
             ),
             (
-                "/_ortyo/hosted/approvals".to_owned(),
+                "/_hooktry/hosted/approvals".to_owned(),
                 "Bearer approve-token".to_owned()
             ),
             (
-                format!("/_ortyo/hosted/approvals/{approval_id}"),
+                format!("/_hooktry/hosted/approvals/{approval_id}"),
                 "Bearer execute-token".to_owned()
             ),
             (
-                format!("/_ortyo/hosted/approvals/{approval_id}/decision"),
+                format!("/_hooktry/hosted/approvals/{approval_id}/decision"),
                 "Bearer approve-token".to_owned()
             ),
             (
-                format!("/_ortyo/hosted/approvals/{approval_id}/execute"),
+                format!("/_hooktry/hosted/approvals/{approval_id}/execute"),
                 "Bearer execute-token".to_owned()
             ),
             (
-                format!("/_ortyo/hosted/executions/{execution_id}"),
+                format!("/_hooktry/hosted/executions/{execution_id}"),
                 "Bearer execute-token".to_owned()
             ),
         ]
@@ -102,7 +102,7 @@ async fn hosted_client_keeps_execute_and_approve_credentials_separate() {
 #[tokio::test]
 async fn hosted_client_never_falls_back_to_execute_token_for_decision() {
     let client = HostedClient::from_lookup("http://127.0.0.1:9", |key| match key {
-        "ORTYO_TOKEN" => Some("execute-token".to_owned()),
+        "HOOKTRY_TOKEN" => Some("execute-token".to_owned()),
         _ => None,
     });
 
@@ -113,21 +113,21 @@ async fn hosted_client_never_falls_back_to_execute_token_for_decision() {
 
     assert_eq!(
         error,
-        "ORTYO_APPROVER_TOKEN is required for approval decisions"
+        "HOOKTRY_APPROVER_TOKEN is required for approval decisions"
     );
 }
 
 #[tokio::test]
 async fn approval_inbox_requires_approver_token_without_execute_fallback() {
     let client = HostedClient::from_lookup("http://127.0.0.1:9", |key| match key {
-        "ORTYO_TOKEN" => Some("execute-token".to_owned()),
+        "HOOKTRY_TOKEN" => Some("execute-token".to_owned()),
         _ => None,
     });
 
     let error = client.approval_inbox().await.unwrap_err();
     assert_eq!(
         error,
-        "ORTYO_APPROVER_TOKEN is required for approval decisions"
+        "HOOKTRY_APPROVER_TOKEN is required for approval decisions"
     );
 }
 
@@ -137,14 +137,14 @@ async fn approver_only_client_can_inspect_before_deciding() {
     let addr = listener.local_addr().unwrap();
     let seen = Seen::default();
     let app = Router::new()
-        .route("/_ortyo/hosted/approvals/{id}", get(record))
+        .route("/_hooktry/hosted/approvals/{id}", get(record))
         .with_state(seen.clone());
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
 
     let client = HostedClient::from_lookup(format!("http://{addr}"), |key| match key {
-        "ORTYO_APPROVER_TOKEN" => Some("approve-token".to_owned()),
+        "HOOKTRY_APPROVER_TOKEN" => Some("approve-token".to_owned()),
         _ => None,
     });
     let approval_id = Uuid::now_v7();
@@ -154,7 +154,7 @@ async fn approver_only_client_can_inspect_before_deciding() {
     assert_eq!(
         seen.requests.lock().unwrap().as_slice(),
         &[(
-            format!("/_ortyo/hosted/approvals/{approval_id}"),
+            format!("/_hooktry/hosted/approvals/{approval_id}"),
             "Bearer approve-token".to_owned()
         )]
     );

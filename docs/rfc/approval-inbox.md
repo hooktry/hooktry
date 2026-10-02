@@ -12,7 +12,7 @@ It does not add a new task, queue, assignment, or workflow model.
 An approver can list the pending approvals for exactly one Workspace:
 
 ```text
-GET /_ortyo/hosted/approvals
+GET /_hooktry/hosted/approvals
 scope: requests:approve
 ```
 
@@ -76,11 +76,11 @@ approval_inbox
 CLI:
 
 ```text
-ORTYO_APPROVER_TOKEN='ortyo_...' \
-  ortyo --base-url https://relay.example approval inbox
+HOOKTRY_APPROVER_TOKEN='hooktry_...' \
+  hooktry --base-url https://relay.example approval inbox
 ```
 
-The MCP process also uses `ORTYO_APPROVER_TOKEN`. The tool takes no credential arguments.
+The MCP process also uses `HOOKTRY_APPROVER_TOKEN`. The tool takes no credential arguments.
 
 ## Lifecycle projection
 

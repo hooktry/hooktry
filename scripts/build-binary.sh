@@ -10,5 +10,5 @@ npm run check
 cd "$root"
 cargo build --release --locked
 
-printf '\nORTYO binary: %s\n' "$root/target/release/ortyo"
-printf 'Run local UI: %s\n' "$root/target/release/ortyo ui"
+printf '\nHOOKTRY binary: %s\n' "$root/target/release/hooktry"
+printf 'Run local UI: %s\n' "$root/target/release/hooktry ui"

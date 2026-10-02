@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ortyo::{
+use hooktry::{
     execution::{ExecutionError, ExecutionOutcome, HttpExecutionRequest},
     execution_store::{DurableExecutionRecord, DurableExecutionState},
     hosted::{HostedRelayState, hosted_relay_app},
@@ -40,7 +40,7 @@ async fn hosted_execute_persists_terminal_rejection_and_returns_queryable_identi
     .await;
 
     let response = client
-        .post(format!("http://{addr}/_ortyo/hosted/execute"))
+        .post(format!("http://{addr}/_hooktry/hosted/execute"))
         .bearer_auth(&credential.token)
         .json(&HttpExecutionRequest {
             method: "GET".to_owned(),
@@ -66,7 +66,7 @@ async fn hosted_execute_persists_terminal_rejection_and_returns_queryable_identi
 
     let durable: DurableExecutionRecord = client
         .get(format!(
-            "http://{addr}/_ortyo/hosted/executions/{execution_id}"
+            "http://{addr}/_hooktry/hosted/executions/{execution_id}"
         ))
         .bearer_auth(&credential.token)
         .send()
@@ -95,7 +95,7 @@ async fn create_workspace(
     slug: &str,
 ) -> Workspace {
     client
-        .post(format!("http://{addr}/_ortyo/admin/workspaces"))
+        .post(format!("http://{addr}/_hooktry/admin/workspaces"))
         .bearer_auth("test-control-token")
         .json(&json!({"slug": slug}))
         .send()
@@ -117,7 +117,7 @@ async fn issue_credential(
 ) -> IssuedApiCredential {
     client
         .post(format!(
-            "http://{addr}/_ortyo/admin/workspaces/{workspace_id}/credentials"
+            "http://{addr}/_hooktry/admin/workspaces/{workspace_id}/credentials"
         ))
         .bearer_auth("test-control-token")
         .json(&json!({

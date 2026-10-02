@@ -7,16 +7,16 @@ AUTH1 separates hosted product identity from relay runtime authority.
 
 ## Authority model
 
-ORTYO now has three distinct credentials:
+HOOKTRY now has three distinct credentials:
 
 ```text
-ORTYO_CONTROL_TOKEN
+HOOKTRY_CONTROL_TOKEN
     bootstrap/admin authority only
         |
         +-- create Workspace
         +-- issue Workspace API credential
 
-ORTYO_TOKEN
+HOOKTRY_TOKEN
     workspace API authority
         |
         +-- exposures:create
@@ -48,10 +48,10 @@ Every new hosted Exposure is persisted with a `workspace_id`. Existing pre-AUTH1
 
 ## Bootstrap
 
-The bootstrap/admin API remains protected by `ORTYO_CONTROL_TOKEN`:
+The bootstrap/admin API remains protected by `HOOKTRY_CONTROL_TOKEN`:
 
 ```http
-POST /_ortyo/admin/workspaces
+POST /_hooktry/admin/workspaces
 Authorization: Bearer <control-token>
 
 {"slug":"acme"}
@@ -60,7 +60,7 @@ Authorization: Bearer <control-token>
 Then issue a credential:
 
 ```http
-POST /_ortyo/admin/workspaces/<workspace-id>/credentials
+POST /_hooktry/admin/workspaces/<workspace-id>/credentials
 Authorization: Bearer <control-token>
 
 {
@@ -73,17 +73,17 @@ Authorization: Bearer <control-token>
 }
 ```
 
-The raw `ortyo_...` API token is returned only in the issuance response. Only its SHA-256 digest is persisted.
+The raw `hooktry_...` API token is returned only in the issuance response. Only its SHA-256 digest is persisted.
 
 ## Hosted Exposure API
 
-User-facing requests use `ORTYO_TOKEN`:
+User-facing requests use `HOOKTRY_TOKEN`:
 
 ```http
-POST /_ortyo/hosted/exposures
-GET  /_ortyo/hosted/exposures
-GET  /_ortyo/hosted/exposures/<id>
-DELETE /_ortyo/hosted/exposures/<id>
+POST /_hooktry/hosted/exposures
+GET  /_hooktry/hosted/exposures
+GET  /_hooktry/hosted/exposures/<id>
+DELETE /_hooktry/hosted/exposures/<id>
 
 Authorization: Bearer <workspace-api-token>
 ```
@@ -103,8 +103,8 @@ Missing/invalid credentials return structured `401` responses. Valid credentials
 The public expose workflow now uses:
 
 ```sh
-export ORTYO_TOKEN=ortyo_...
-ortyo expose 3000 web --public
+export HOOKTRY_TOKEN=hooktry_...
+hooktry expose 3000 web --public
 ```
 
 The CLI uses the workspace credential only for hosted provisioning. It still hands the local daemon only the narrow per-Exposure runtime capability.
@@ -113,7 +113,7 @@ The CLI uses the workspace credential only for hosted provisioning. It still han
 
 Workspace identity and API credential digests use the same configured hosted persistence backend:
 
-- PostgreSQL when `ORTYO_DATABASE_URL` is present
+- PostgreSQL when `HOOKTRY_DATABASE_URL` is present
 - SQLite otherwise
 
 Raw API credentials are never persisted.
@@ -137,13 +137,13 @@ Those can layer over the stable Workspace + scoped credential model later.
 A fresh hosted installation can create its first Workspace without exposing the server-side control token:
 
 ```http
-POST /_ortyo/bootstrap
+POST /_hooktry/bootstrap
 Content-Type: application/json
 
 {"slug":"serhii"}
 ```
 
-The successful response is `201` and contains the Workspace plus one full-scope `initial-cli` credential. The raw `ortyo_...` token is returned in that response only; only its digest is persisted.
+The successful response is `201` and contains the Workspace plus one full-scope `initial-cli` credential. The raw `hooktry_...` token is returned in that response only; only its digest is persisted.
 
 Bootstrap is atomic. Exactly one request can win, including under concurrent requests. After a Workspace exists, the endpoint permanently returns:
 

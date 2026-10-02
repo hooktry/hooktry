@@ -3,7 +3,7 @@
 Status: executable vertical slice  
 Tracking: #108
 
-ORTYO can now separate asking for an action, deciding whether it may run, executing that exact action, and returning execution proof.
+HOOKTRY can now separate asking for an action, deciding whether it may run, executing that exact action, and returning execution proof.
 
 ```text
 Agent credential: requests:execute
@@ -31,9 +31,9 @@ ExecutionRecord
 ApprovedExecution { approval, execution }
 ```
 
-## Why this belongs in ORTYO
+## Why this belongs in HOOKTRY
 
-CONTROL1 governs an ORTYO action at the Boundary. It does not model VM ownership, job scheduling, workflow DAGs, or a generic human-task system.
+CONTROL1 governs an HOOKTRY action at the Boundary. It does not model VM ownership, job scheduling, workflow DAGs, or a generic human-task system.
 
 The approval is a narrow capability for one exact hosted HTTP execution attempt.
 
@@ -42,7 +42,7 @@ The approval is a narrow capability for one exact hosted HTTP execution attempt.
 Create an approval request:
 
 ```text
-POST /_ortyo/hosted/approvals
+POST /_hooktry/hosted/approvals
 scope: requests:execute
 body: HttpExecutionRequest
 ```
@@ -50,7 +50,7 @@ body: HttpExecutionRequest
 Inspect an approver inbox:
 
 ```text
-GET /_ortyo/hosted/approvals
+GET /_hooktry/hosted/approvals
 scope: requests:approve
 returns: pending approvals for the caller's Workspace
 ```
@@ -58,7 +58,7 @@ returns: pending approvals for the caller's Workspace
 Inspect one approval:
 
 ```text
-GET /_ortyo/hosted/approvals/{approval_id}
+GET /_hooktry/hosted/approvals/{approval_id}
 scope: requests:execute OR requests:approve
 ```
 
@@ -67,7 +67,7 @@ The pending inbox is defined by CONTROL2 in [approval-inbox.md](./approval-inbox
 Decide:
 
 ```text
-POST /_ortyo/hosted/approvals/{approval_id}/decision
+POST /_hooktry/hosted/approvals/{approval_id}/decision
 scope: requests:approve
 
 {"decision":"approve"}
@@ -77,7 +77,7 @@ scope: requests:approve
 Execute an approved action:
 
 ```text
-POST /_ortyo/hosted/approvals/{approval_id}/execute
+POST /_hooktry/hosted/approvals/{approval_id}/execute
 scope: requests:execute
 body: the exact HttpExecutionRequest that was approved
 ```
@@ -156,7 +156,7 @@ Approval IDs are workspace-scoped. Cross-workspace inspection, decision, or cons
 
 ApprovalRecord state is durable in the same hosted SQLite/Postgres persistence boundary as other hosted control-plane state.
 
-EXEC5 now reserves a durable execution record before an approved action is consumed, then completes that record with the terminal EXEC4 outcome. Therefore a consumed approval's `execution_id` is queryable at `GET /_ortyo/hosted/executions/{execution_id}`. If the process stops before terminal proof is committed, the durable execution remains `started` rather than inventing an outcome.
+EXEC5 now reserves a durable execution record before an approved action is consumed, then completes that record with the terminal EXEC4 outcome. Therefore a consumed approval's `execution_id` is queryable at `GET /_hooktry/hosted/executions/{execution_id}`. If the process stops before terminal proof is committed, the durable execution remains `started` rather than inventing an outcome.
 
 ## Out of scope
 

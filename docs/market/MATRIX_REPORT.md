@@ -1,7 +1,7 @@
-# Ortyo MCIF capability matrix
+# Hooktry MCIF capability matrix
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.4 MATRIX
+DWC: MCIF/HOOKTRY.4 MATRIX
 
 This is a decision projection over the canonical market evidence. It is **not** an overall product score.
 
@@ -9,7 +9,7 @@ Legend: **P** present, **~** partial, **A** verified absent, **?** unknown / not
 
 ## Primary decision matrix
 
-| Capability | Ortyo | Webhook.site | Hookdeck | Webhook Relay | Svix | Beeceptor | webhooks.cc | Hooklistener | Webhooker | Hook0 | RequestBin |
+| Capability | Hooktry | Webhook.site | Hookdeck | Webhook Relay | Svix | Beeceptor | webhooks.cc | Hooklistener | Webhooker | Hook0 | RequestBin |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Instant public endpoint | P | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
 | No-signup ephemeral start | P | ? | ? | ? | ? | ? | ? | ? | ? | ? | ? |
@@ -41,11 +41,11 @@ Legend: **P** present, **~** partial, **A** verified absent, **?** unknown / not
 | DLQ | A | ? | ? | ? | ? | ? | ? | ? | P | ? | ? |
 | API/service mocking | ~ | ? | ? | ? | ? | P | ? | ? | ? | ? | P |
 
-`P*` means the capability exists in Ortyo but the current human-facing depth is materially below the primary-market reference bar.
+`P*` means the capability exists in Hooktry but the current human-facing depth is materially below the primary-market reference bar.
 
 ## Important correction from this pass
 
-The previous depth pass described Ortyo as occupying a distinct verification-first center. That remains a useful description of Ortyo's architecture, but it was too broad as a differentiation claim.
+The previous depth pass described Hooktry as occupying a distinct verification-first center. That remains a useful description of Hooktry's architecture, but it was too broad as a differentiation claim.
 
 **webhooks.cc** already exposes isolated/ephemeral endpoints, bounded waits, expected request counts, structured request assertions, structured diffs, deterministic cleanup, provider templates/signing, and CI-focused workflows.
 
@@ -53,9 +53,9 @@ The previous depth pass described Ortyo as occupying a distinct verification-fir
 
 Therefore **assertions, suites, and CI automation are no longer sufficient differentiation by themselves**.
 
-## Sharpened Ortyo differentiation hypothesis
+## Sharpened Hooktry differentiation hypothesis
 
-The remaining unusual combination in Ortyo is deeper **temporal and causal evidence semantics**:
+The remaining unusual combination in Hooktry is deeper **temporal and causal evidence semantics**:
 
 ```text
 canonical Interaction identity
@@ -70,7 +70,7 @@ canonical Interaction identity
 
 The stronger question is:
 
-> Can Ortyo make asynchronous multi-event integration behavior explainable and deterministic in ways that simpler request assertions and replay suites cannot?
+> Can Hooktry make asynchronous multi-event integration behavior explainable and deterministic in ways that simpler request assertions and replay suites cannot?
 
 That is narrower and more defensible, but still requires first-party demand evidence.
 

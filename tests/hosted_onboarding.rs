@@ -1,6 +1,6 @@
 use std::fs;
 
-use ortyo::{
+use hooktry::{
     hosted::{HostedRelayState, hosted_relay_app},
     hosted_identity::{ApiScope, HostedIdentityStore, IdentityError},
     relay::RelayBroker,
@@ -27,7 +27,7 @@ async fn bootstrap_issues_first_token_once_and_token_is_immediately_usable() {
 
     let client = reqwest::Client::new();
     let bootstrap: serde_json::Value = client
-        .post(format!("http://{addr}/_ortyo/bootstrap"))
+        .post(format!("http://{addr}/_hooktry/bootstrap"))
         .json(&serde_json::json!({"slug": "serhii"}))
         .send()
         .await
@@ -39,12 +39,12 @@ async fn bootstrap_issues_first_token_once_and_token_is_immediately_usable() {
         .unwrap();
 
     let token = bootstrap["credential"]["token"].as_str().unwrap();
-    assert!(token.starts_with("ortyo_"));
+    assert!(token.starts_with("hooktry_"));
     assert_eq!(bootstrap["workspace"]["slug"], "serhii");
     assert_eq!(bootstrap["credential"]["name"], "initial-cli");
 
     let provision = client
-        .post(format!("http://{addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{addr}/_hooktry/hosted/exposures"))
         .bearer_auth(token)
         .json(&serde_json::json!({"name": "web", "target_port": 3000}))
         .send()
@@ -53,7 +53,7 @@ async fn bootstrap_issues_first_token_once_and_token_is_immediately_usable() {
     assert_eq!(provision.status(), reqwest::StatusCode::CREATED);
 
     let second = client
-        .post(format!("http://{addr}/_ortyo/bootstrap"))
+        .post(format!("http://{addr}/_hooktry/bootstrap"))
         .json(&serde_json::json!({"slug": "attacker"}))
         .send()
         .await
@@ -65,7 +65,7 @@ async fn bootstrap_issues_first_token_once_and_token_is_immediately_usable() {
 
 #[test]
 fn bootstrap_is_durable_and_raw_token_is_not_persisted() {
-    let path = std::env::temp_dir().join(format!("ortyo-onboard-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!("hooktry-onboard-{}.db", Uuid::now_v7()));
     let store = HostedIdentityStore::open(&path).unwrap();
     let (workspace, credential) = store
         .bootstrap_first_workspace("serhii", "initial-cli")

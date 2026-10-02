@@ -10,7 +10,7 @@ HOSTED1 connects the existing relay primitives into a hosted control-plane contr
 A runtime asks the hosted control plane for a relay exposure:
 
 ```http
-POST /_ortyo/hosted/exposures
+POST /_hooktry/hosted/exposures
 Content-Type: application/json
 
 {
@@ -27,7 +27,7 @@ The response contains the complete machine contract needed by the runtime:
   "name": "github",
   "public_url": "https://relay.example/e/...",
   "relay_addr": "relay.example:7443",
-  "runtime_capability": "ortyo_rt_...",
+  "runtime_capability": "hooktry_rt_...",
   "capability_expires_at_unix_seconds": 0,
   "target_port": 3000,
   "mode": "relay",
@@ -52,7 +52,7 @@ RelayBroker
     |
 outbound runtime connection + capability
     |
-local ORTYO Boundary
+local HOOKTRY Boundary
     |
 127.0.0.1:target_port
 ```

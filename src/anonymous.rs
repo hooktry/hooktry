@@ -45,8 +45,8 @@ pub const ANONYMOUS_ACTIVE_LIMIT: u32 = 3;
 pub const ANONYMOUS_MAX_BODY_BYTES: usize = 5 * 1024 * 1024;
 pub const ANONYMOUS_MAX_RETAINED_BYTES: u64 = 50 * 1024 * 1024;
 
-const PRINCIPAL_COOKIE: &str = "ortyo_anon";
-const PRINCIPAL_HEADER: &str = "x-ortyo-anonymous-principal";
+const PRINCIPAL_COOKIE: &str = "hooktry_anon";
+const PRINCIPAL_HEADER: &str = "x-hooktry-anonymous-principal";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AnonymousExposureSummary {
@@ -1481,7 +1481,7 @@ fn anonymous_principal(headers: &HeaderMap) -> Option<String> {
 }
 
 fn valid_principal(value: &str) -> bool {
-    value.starts_with("ortyo_ap_") && value.len() == "ortyo_ap_".len() + 64
+    value.starts_with("hooktry_ap_") && value.len() == "hooktry_ap_".len() + 64
 }
 
 fn bearer_token(headers: &HeaderMap) -> Option<&str> {
@@ -1521,7 +1521,7 @@ fn token_digest(token: &str) -> [u8; 32] {
 fn random_principal() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill_bytes(&mut bytes);
-    format!("ortyo_ap_{}", hex_encode(&bytes))
+    format!("hooktry_ap_{}", hex_encode(&bytes))
 }
 
 fn random_capability(prefix: &str) -> String {
@@ -1595,7 +1595,7 @@ mod tests {
     #[tokio::test]
     async fn principal_is_limited_to_three_active_exposures() {
         let service =
-            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
+            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://hooktry.test");
         let principal = random_principal();
         for _ in 0..ANONYMOUS_ACTIVE_LIMIT {
             service
@@ -1612,7 +1612,7 @@ mod tests {
     #[tokio::test]
     async fn body_budget_and_request_budget_are_enforced() {
         let service =
-            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://ortyo.test");
+            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://hooktry.test");
         let provision = service.provision(None).await.unwrap();
         let hook_token = provision
             .hook_url
@@ -1687,7 +1687,7 @@ mod tests {
         let service = AnonymousExposureService::with_ports(
             Arc::new(AnonymousExposureStore::default()),
             stream.clone(),
-            "https://ortyo.test",
+            "https://hooktry.test",
         );
         let provision = service.provision(None).await.unwrap();
         let hook_token = provision.hook_url.rsplit('/').next().unwrap();
@@ -1712,7 +1712,7 @@ mod tests {
 
     #[test]
     fn websocket_url_tracks_public_scheme() {
-        assert_eq!(websocket_base_url("https://ortyo.test"), "wss://ortyo.test");
+        assert_eq!(websocket_base_url("https://hooktry.test"), "wss://hooktry.test");
         assert_eq!(
             websocket_base_url("http://127.0.0.1:8080"),
             "ws://127.0.0.1:8080"

@@ -1,22 +1,22 @@
-# Ortyo market model
+# Hooktry market model
 
 Checked: 2026-10-02
 
-Ortyo applies the portfolio-wide Market Capability Intelligence Framework (MCIF) from `sergii/projects/market-capability-intelligence`.
+Hooktry applies the portfolio-wide Market Capability Intelligence Framework (MCIF) from `sergii/projects/market-capability-intelligence`.
 
 ## Primary cohort
 
-Ortyo's primary market is **webhook product development, testing, and pilot**.
+Hooktry's primary market is **webhook product development, testing, and pilot**.
 
 The first user job is:
 
 > Create a reachable webhook endpoint, observe what a real provider sends, iterate on the receiving integration, replay or reproduce the behavior, and prove that the integration works before or during an early pilot.
 
-This is the anchor for competitor selection. Products that can plausibly replace Ortyo for this job belong in the primary cohort even when their long-term business expands into production delivery, API mocking, or workflow automation.
+This is the anchor for competitor selection. Products that can plausibly replace Hooktry for this job belong in the primary cohort even when their long-term business expands into production delivery, API mocking, or workflow automation.
 
 ## Vector invariant
 
-Every Ortyo expansion must strengthen the webhook/integration development lifecycle:
+Every Hooktry expansion must strengthen the webhook/integration development lifecycle:
 
 ```text
 receive / capture
@@ -27,7 +27,7 @@ receive / capture
 
 and preserve canonical Interaction/evidence semantics.
 
-If a capability does not strengthen this lifecycle, it remains an integration, replaceable substrate, or separate product rather than silently redefining Ortyo.
+If a capability does not strengthen this lifecycle, it remains an integration, replaceable substrate, or separate product rather than silently redefining Hooktry.
 
 ## Cohort interpretation
 
@@ -38,7 +38,7 @@ If a capability does not strengthen this lifecycle, it remains an integration, r
 - **adjacent: reachability** - tunnels and public exposure used to get traffic to local/private services
 - **adjacent: multi-protocol** - expand the same evidence lifecycle beyond HTTP webhooks
 - **option: agent control** - approval-controlled external actions and execution around integration work
-- **substrate: managed compute** - sandboxes/VMs/workspaces used underneath Ortyo, not product competitors
+- **substrate: managed compute** - sandboxes/VMs/workspaces used underneath Hooktry, not product competitors
 
 A product may belong to several cohorts.
 
@@ -46,7 +46,7 @@ A product may belong to several cohorts.
 
 A product spanning the primary cohort and another cohort is **bridge evidence**. It shows that two jobs can coexist in one workflow, but it does not automatically redefine the primary market or justify roadmap expansion.
 
-Beeceptor is the clearest current bridge between Ortyo's primary webhook-development cohort and the adjacent API-virtualization vector: it combines request inspection and history with programmable responses, stateful mocking, proxy/callouts, and failure/latency simulation.
+Beeceptor is the clearest current bridge between Hooktry's primary webhook-development cohort and the adjacent API-virtualization vector: it combines request inspection and history with programmable responses, stateful mocking, proxy/callouts, and failure/latency simulation.
 
 Vercel Labs `emulate` is different: it is an adjacent specialist rather than a primary webhook substitute. It provides local/stateful emulation of third-party APIs, custom emulators, seeds/resets, persistence, and request/state inspection for development, CI, and no-network sandboxes.
 
@@ -93,7 +93,7 @@ The agent surface itself is therefore not a durable differentiator. Hookdeck, We
 
 Assertions, replay suites, MCP, CI wiring, bounded waits, reproducible test environments, and structured evidence are no longer sufficient differentiation by themselves: current competitors already expose meaningful parts of that surface.
 
-Temporal-depth research shows competitors already cover reusable suites, request-local contracts, expected counts, timestamp-sorted multi-event capture, and bounded waits. Ortyo's remaining potential differentiation is therefore the **deeper temporal and causal evidence semantics**:
+Temporal-depth research shows competitors already cover reusable suites, request-local contracts, expected counts, timestamp-sorted multi-event capture, and bounded waits. Hooktry's remaining potential differentiation is therefore the **deeper temporal and causal evidence semantics**:
 
 - canonical evidence rather than log-only inspection
 - portable Recording/Replay
@@ -104,18 +104,18 @@ Temporal-depth research shows competitors already cover reusable suites, request
 - persisted assertion evidence and explainable outcomes
 - one model shared by HTTP, CLI, MCP, local runtime, and hosted runtime
 
-Public production incidents now validate duplicate, ordering, and idempotency failure classes directly, but the exact Ortyo temporal/causal DSL still requires first-party usage evidence; problem validity does not automatically validate the abstraction.
+Public production incidents now validate duplicate, ordering, and idempotency failure classes directly, but the exact Hooktry temporal/causal DSL still requires first-party usage evidence; problem validity does not automatically validate the abstraction.
 
 ## Files
 
 - `scope.yaml` - bounded market, cohort roles, products, stopping rule
 - `vectors.yaml` - exploit/explore vectors and activation/stop triggers
-- `capabilities.yaml` - normalized capability ontology and initial Ortyo overlay
+- `capabilities.yaml` - normalized capability ontology and initial Hooktry overlay
 - `depth-profiles.yaml` - observable dimensions for comparing capability depth
 - `personas.yaml` - primary users and jobs-to-be-done
 - `scenarios.yaml` - mechanism-independent end-to-end webhook outcomes
 - `DEPTH_REPORT.md` - primary-cohort depth comparison and gap analysis
-- `BOUNDARY_MODEL.md` - Ortyo's capability topology and bridge-product interpretation
+- `BOUNDARY_MODEL.md` - Hooktry's capability topology and bridge-product interpretation
 - `signals.yaml` - direct demand, demand proxies, and market-motion evidence
 - `DEMAND_REPORT.md` - verification-first demand analysis and contradictory evidence
 - `priorities.yaml` - evidence-backed near-term dispositions with confidence
@@ -131,14 +131,14 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `FIRST_PARTY_PROOF.md` - thin product evidence loop for duplicate/order temporal primitives
 - `DOGFOOD_PROOF.md` - end-to-end buggy/fixed temporal probe acceptance and its evidence limits
 - `LIVE_INTEGRATION_PROOF.md` - real approval-outbox webhook workflow protected by Scenario exact-count/idempotency/settle semantics
-- `CROSS_PROJECT_PROOF.md` - Operational consumes a pinned Ortyo executable across repository/process/HTTP boundaries
+- `CROSS_PROJECT_PROOF.md` - Operational consumes a pinned Hooktry executable across repository/process/HTTP boundaries
 - `usage-evidence.yaml` - structured self-dogfood, first-party portfolio, and future external-customer usage evidence
 - `competitors.yaml` - product positioning and authoritative sources
 - `observations/seed.yaml` - initial atomic market evidence
 
 ## Current decision
 
-Public demand evidence now supports the primary capture/inspect/replay/local-development loop and gives moderate support to deterministic CI outcomes. It does not yet directly validate Ortyo's full Contract/Scenario/cardinality/ordering surface.
+Public demand evidence now supports the primary capture/inspect/replay/local-development loop and gives moderate support to deterministic CI outcomes. It does not yet directly validate Hooktry's full Contract/Scenario/cardinality/ordering surface.
 
 The current sequencing rule is therefore:
 
@@ -172,9 +172,9 @@ The validator treats `matrix.yaml` as a projection over atomic evidence rather t
 Current invariants include:
 
 - capability, product, cohort, scenario, signal, priority, and vector references must resolve
-- capability dispositions and Ortyo implementation states use the canonical vocabularies
+- capability dispositions and Hooktry implementation states use the canonical vocabularies
 - matrix states are limited to `present | partial | absent | unknown`
-- Ortyo matrix cells must agree with `capabilities.yaml`
+- Hooktry matrix cells must agree with `capabilities.yaml`
 - every external non-`unknown` matrix cell requires a current atomic observation with the same state
 - observations require date, applicability, freshness, confidence, assertion, and source URL
 - direct-demand signals require an explicit `supports | contradicts | mixed` direction
@@ -186,7 +186,7 @@ Missing evidence is represented as `unknown`, not inferred as absence.
 
 Market snapshots live under `docs/market/snapshots/` and are append-only.
 
-The baseline is `2026-10-01-baseline.yaml`. A snapshot is self-contained enough to compare future market states without reconstructing old Git trees: it records scope products, matrix products, capability dispositions and Ortyo status, the evidence-backed matrix, signal metadata, and atomic observation metadata.
+The baseline is `2026-10-01-baseline.yaml`. A snapshot is self-contained enough to compare future market states without reconstructing old Git trees: it records scope products, matrix products, capability dispositions and Hooktry status, the evidence-backed matrix, signal metadata, and atomic observation metadata.
 
 Validation:
 
@@ -220,7 +220,7 @@ The analyzer deliberately separates:
 - **research regression** - a previously evidenced cell becomes `unknown`
 - **observed state change** - two non-`unknown` external states differ across snapshots
 - **market motion signal** - an explicitly recorded signal with `class: market_motion`
-- **Ortyo motion** - Ortyo implementation or matrix state changes
+- **Hooktry motion** - Hooktry implementation or matrix state changes
 - **decision impact** - changes touching in-scope capability dispositions or newly recorded direct-demand/market-motion signals
 
 Do not call a matrix evidence-resolution event "market motion" unless independent evidence establishes that the product itself changed.
@@ -251,6 +251,6 @@ A product priority can choose the next evidence source explicitly.
 next_evidence: first_party_usage
 ```
 
-This is used when desk research has established the problem sufficiently and the remaining uncertainty concerns Ortyo's own abstraction or workflow.
+This is used when desk research has established the problem sufficiently and the remaining uncertainty concerns Hooktry's own abstraction or workflow.
 
 `market-research-debt` keeps those unknown competitor cells visible in coverage totals but removes them from the top external-research queue.

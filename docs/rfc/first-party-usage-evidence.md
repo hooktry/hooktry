@@ -4,7 +4,7 @@ Status: implemented thin proof / internal opt-in collector
 
 ## Purpose
 
-FIRST-PARTY-PROOF measures whether Ortyo's existing temporal verification primitives are actually exercised.
+FIRST-PARTY-PROOF measures whether Hooktry's existing temporal verification primitives are actually exercised.
 
 It is not general product analytics and must not become a second evidence store for webhook content.
 
@@ -16,7 +16,7 @@ Interaction evidence
   = may contain request/response data
 
 Usage evidence
-  = which Ortyo verification shape ran and whether it passed
+  = which Hooktry verification shape ran and whether it passed
   = must not contain boundary payloads or product identifiers
 ```
 
@@ -39,9 +39,9 @@ No sink is configured by default.
 
 Supported sinks:
 
-1. explicit local JSONL through `ORTYO_USAGE_LOG`
-2. explicit HTTP POST through `ORTYO_USAGE_ENDPOINT`
-3. optional bearer auth for the HTTP sink through `ORTYO_USAGE_TOKEN`
+1. explicit local JSONL through `HOOKTRY_USAGE_LOG`
+2. explicit HTTP POST through `HOOKTRY_USAGE_ENDPOINT`
+3. optional bearer auth for the HTTP sink through `HOOKTRY_USAGE_TOKEN`
 
 Delivery is best-effort and never changes Scenario outcome or process exit semantics.
 

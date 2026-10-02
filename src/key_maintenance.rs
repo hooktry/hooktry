@@ -18,37 +18,37 @@ pub struct KeyMaintenanceConfig {
 
 impl KeyMaintenanceConfig {
     pub fn from_lookup(mut lookup: impl FnMut(&str) -> Option<String>) -> Result<Self, String> {
-        let database_url = lookup("ORTYO_DATABASE_URL").filter(|url| !url.trim().is_empty());
+        let database_url = lookup("HOOKTRY_DATABASE_URL").filter(|url| !url.trim().is_empty());
         if database_url
             .as_ref()
             .is_some_and(|url| !url.starts_with("postgres://") && !url.starts_with("postgresql://"))
         {
-            return Err("ORTYO_DATABASE_URL must be a PostgreSQL URL".to_owned());
+            return Err("HOOKTRY_DATABASE_URL must be a PostgreSQL URL".to_owned());
         }
 
-        let active_key = lookup("ORTYO_SECRETS_KEY")
+        let active_key = lookup("HOOKTRY_SECRETS_KEY")
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| "ORTYO_SECRETS_KEY is required".to_owned())
+            .ok_or_else(|| "HOOKTRY_SECRETS_KEY is required".to_owned())
             .and_then(|value| {
                 decode_master_key(&value).map_err(|_| {
-                    "ORTYO_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
+                    "HOOKTRY_SECRETS_KEY must be exactly 64 hexadecimal characters".to_owned()
                 })
             })?;
-        let active_version = lookup("ORTYO_SECRETS_KEY_VERSION")
+        let active_version = lookup("HOOKTRY_SECRETS_KEY_VERSION")
             .filter(|value| !value.trim().is_empty())
-            .map(|value| parse_positive_key_version("ORTYO_SECRETS_KEY_VERSION", &value))
+            .map(|value| parse_positive_key_version("HOOKTRY_SECRETS_KEY_VERSION", &value))
             .transpose()?
             .unwrap_or(1);
-        let previous = lookup("ORTYO_SECRETS_PREVIOUS_KEYS")
+        let previous = lookup("HOOKTRY_SECRETS_PREVIOUS_KEYS")
             .filter(|value| !value.trim().is_empty())
             .map(|value| parse_previous_secret_keys(&value))
             .transpose()?
             .unwrap_or_default();
         let keyring =
             VersionedKeyring::new(active_version, active_key, previous).map_err(keyring_error)?;
-        let db_path = lookup("ORTYO_HOSTED_DB_PATH")
+        let db_path = lookup("HOOKTRY_HOSTED_DB_PATH")
             .filter(|path| !path.trim().is_empty())
-            .unwrap_or_else(|| "ortyo-hosted.db".to_owned());
+            .unwrap_or_else(|| "hooktry-hosted.db".to_owned());
 
         Ok(Self {
             database_url,
@@ -156,7 +156,7 @@ impl KeyMaintenance {
         }
         if self.keyring.key(from_version).is_none() {
             return Err(format!(
-                "key version {from_version} is not configured in ORTYO_SECRETS_PREVIOUS_KEYS"
+                "key version {from_version} is not configured in HOOKTRY_SECRETS_PREVIOUS_KEYS"
             ));
         }
 
@@ -243,12 +243,12 @@ fn parse_previous_secret_keys(value: &str) -> Result<Vec<(i32, [u8; 32])>, Strin
         .filter(|entry| !entry.is_empty())
         .map(|entry| {
             let (version, key) = entry.split_once(':').ok_or_else(|| {
-                "ORTYO_SECRETS_PREVIOUS_KEYS must contain version:64hex entries".to_owned()
+                "HOOKTRY_SECRETS_PREVIOUS_KEYS must contain version:64hex entries".to_owned()
             })?;
             let version =
-                parse_positive_key_version("ORTYO_SECRETS_PREVIOUS_KEYS version", version)?;
+                parse_positive_key_version("HOOKTRY_SECRETS_PREVIOUS_KEYS version", version)?;
             let key = decode_master_key(key).map_err(|_| {
-                "ORTYO_SECRETS_PREVIOUS_KEYS keys must be exactly 64 hexadecimal characters"
+                "HOOKTRY_SECRETS_PREVIOUS_KEYS keys must be exactly 64 hexadecimal characters"
                     .to_owned()
             })?;
             Ok((version, key))
@@ -276,17 +276,17 @@ mod tests {
         let key = "22".repeat(32);
         let previous = format!("1:{}", "11".repeat(32));
         let config = KeyMaintenanceConfig::from_lookup(|name| match name {
-            "ORTYO_SECRETS_KEY" => Some(key.clone()),
-            "ORTYO_SECRETS_KEY_VERSION" => Some("2".to_owned()),
-            "ORTYO_SECRETS_PREVIOUS_KEYS" => Some(previous.clone()),
-            "ORTYO_HOSTED_DB_PATH" => Some("/tmp/ortyo-key-maintenance.db".to_owned()),
+            "HOOKTRY_SECRETS_KEY" => Some(key.clone()),
+            "HOOKTRY_SECRETS_KEY_VERSION" => Some("2".to_owned()),
+            "HOOKTRY_SECRETS_PREVIOUS_KEYS" => Some(previous.clone()),
+            "HOOKTRY_HOSTED_DB_PATH" => Some("/tmp/hooktry-key-maintenance.db".to_owned()),
             _ => None,
         })
         .unwrap();
 
         assert_eq!(config.keyring.active_version(), 2);
         assert_eq!(config.keyring.key(1), Some(&[0x11; 32]));
-        assert_eq!(config.db_path, "/tmp/ortyo-key-maintenance.db");
+        assert_eq!(config.db_path, "/tmp/hooktry-key-maintenance.db");
         assert!(config.database_url.is_none());
     }
 }

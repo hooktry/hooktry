@@ -491,5 +491,5 @@ fn random_token() -> String {
         write!(&mut encoded, "{byte:02x}").expect("write to String cannot fail");
     }
 
-    format!("ortyo_rt_{encoded}")
+    format!("hooktry_rt_{encoded}")
 }

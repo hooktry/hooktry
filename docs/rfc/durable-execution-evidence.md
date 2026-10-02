@@ -3,11 +3,11 @@
 Status: executable vertical slice  
 Tracking: #113
 
-EXEC5 makes the EXEC4 lifecycle durable and queryable without turning ORTYO into a workflow engine.
+EXEC5 makes the EXEC4 lifecycle durable and queryable without turning HOOKTRY into a workflow engine.
 
 ## Contract
 
-Before provider work starts, ORTYO persists a narrow lifecycle reservation:
+Before provider work starts, HOOKTRY persists a narrow lifecycle reservation:
 
 ```text
 DurableExecutionRecord
@@ -43,7 +43,7 @@ The terminal projection reconstructs the exact EXEC4 `ExecutionRecord`.
 Query one execution:
 
 ```text
-GET /_ortyo/hosted/executions/{execution_id}
+GET /_hooktry/hosted/executions/{execution_id}
 scope: requests:execute
 ```
 
@@ -53,7 +53,7 @@ No list/search endpoint is added in this slice.
 
 ## Direct hosted execution
 
-`POST /_ortyo/hosted/execute` now:
+`POST /_hooktry/hosted/execute` now:
 
 1. allocates an UUIDv7 execution ID
 2. persists `state=started`
@@ -95,7 +95,7 @@ complete durable execution
 
 This means that once an ApprovalRecord is durably `consumed` and contains an `execution_id`, a durable execution reservation with that identity already exists.
 
-If approval consumption fails because the request is pending, denied, consumed, mismatched, or belongs to another Workspace, ORTYO best-effort discards the unlinked `started` reservation.
+If approval consumption fails because the request is pending, denied, consumed, mismatched, or belongs to another Workspace, HOOKTRY best-effort discards the unlinked `started` reservation.
 
 ## Crash semantics
 
@@ -103,9 +103,9 @@ If approval consumption fails because the request is pending, denied, consumed, 
 
 It means only:
 
-> ORTYO durably reserved/admitted this execution identity, but no terminal proof was committed.
+> HOOKTRY durably reserved/admitted this execution identity, but no terminal proof was committed.
 
-This distinction matters after a process crash. ORTYO does not guess whether the external side effect happened.
+This distinction matters after a process crash. HOOKTRY does not guess whether the external side effect happened.
 
 A crash after approval consumption but before terminal persistence therefore leaves useful, honest evidence:
 
@@ -150,7 +150,7 @@ DOGFOOD3 is extended so the production self-proof:
 
 1. waits until the public `/healthz.revision` matches the current `RENDER_GIT_COMMIT`
 2. runs ask -> approve -> exact act
-3. queries `GET /_ortyo/hosted/executions/{execution_id}`
+3. queries `GET /_hooktry/hosted/executions/{execution_id}`
 4. requires `state=completed`
 5. requires the durable terminal projection to equal the immediate `ApprovedExecution.execution`
 6. then proves consumed-approval replay denial

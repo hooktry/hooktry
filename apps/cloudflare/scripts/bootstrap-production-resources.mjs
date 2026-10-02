@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 const token = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 
-const D1_NAME = "ortyo-cloudflare";
-const R2_NAME = "ortyo-payloads";
+const D1_NAME = "hooktry-cloudflare";
+const R2_NAME = "hooktry-payloads";
 const CONFIG_PATH = "wrangler.production.generated.jsonc";
 
 const d1List = await cf(`/accounts/${accountId}/d1/database?per_page=100`);

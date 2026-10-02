@@ -2,7 +2,7 @@
 
 DWC: PROD/RELEASE1.1 RELEASE1 - first public release acceptance
 
-This is the currently known production gate list for ORTYO's first public release. It is intentionally short and evidence-driven. A checked item means the production behavior has been proven, not merely implemented.
+This is the currently known production gate list for HOOKTRY's first public release. It is intentionally short and evidence-driven. A checked item means the production behavior has been proven, not merely implemented.
 
 ## Release candidate
 
@@ -20,11 +20,11 @@ KEYROT2 is blocking for the first public release. See [KEYROT2 - First Productio
 - [ ] A fresh 32-byte production root key v2 is generated through a secure operator path.
 - [ ] v2 is introduced as active while v1 remains configured as previous.
 - [ ] Production startup reports `master_key_version=2`.
-- [ ] `ortyo key status` is captured without key material.
-- [ ] `ortyo key rewrap 1` dry-run matches expectations.
-- [ ] `ortyo key rewrap 1 --apply` completes without unresolved candidates.
-- [ ] `ortyo key retire-check 1` reports `safe_to_retire=true`.
-- [ ] v1 is removed from runtime `ORTYO_SECRETS_PREVIOUS_KEYS`.
+- [ ] `hooktry key status` is captured without key material.
+- [ ] `hooktry key rewrap 1` dry-run matches expectations.
+- [ ] `hooktry key rewrap 1 --apply` completes without unresolved candidates.
+- [ ] `hooktry key retire-check 1` reports `safe_to_retire=true`.
+- [ ] v1 is removed from runtime `HOOKTRY_SECRETS_PREVIOUS_KEYS`.
 - [ ] Production is redeployed successfully with v2 active.
 - [ ] Final key status shows no dependency on v1.
 - [ ] v1 recovery material is retained only for the explicit rollback/recovery window and is not present in Git, logs, issues, PRs, or release evidence.

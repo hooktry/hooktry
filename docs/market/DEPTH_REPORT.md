@@ -1,7 +1,7 @@
-# Ortyo MCIF depth report - primary webhook cohort
+# Hooktry MCIF depth report - primary webhook cohort
 
 Checked: 2026-10-01
-DWC: MCIF/ORTYO.2 DEPTH
+DWC: MCIF/HOOKTRY.2 DEPTH
 
 This report compares where primary-cohort products go deep. It intentionally does not calculate an aggregate score.
 
@@ -11,7 +11,7 @@ Labels are summaries of independently evidenced dimensions, not rankings. `unkno
 
 | Product | Capture / inspect | Sender response / faults | Local dev | Replay / provider testing | CI / agent | Deterministic verification | Reliable delivery |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Ortyo** | present | basic | deep | present | deep | **deep** | basic / emerging |
+| **Hooktry** | present | basic | deep | present | deep | **deep** | basic / emerging |
 | Webhook.site | deep | deep | deep | present | present | unknown | basic |
 | Hookdeck | deep | present | deep | deep | present | basic | **deep** |
 | Webhook Relay | deep | present | deep | deep | deep | present | **deep** |
@@ -33,7 +33,7 @@ The primary cohort currently clusters around three established centers.
 
 **Delivery-first** products extend the same entry point toward routing, transformations, retries, DLQ/failure recovery, signing, tenant controls, and operational visibility. Hookdeck, Webhook Relay, Svix, Hook0, and Webhooker are strong references.
 
-Ortyo's current center is **verification-first**, but this pass shows that verification is no longer an uncontested category:
+Hooktry's current center is **verification-first**, but this pass shows that verification is no longer an uncontested category:
 
 ```text
 Interaction
@@ -49,7 +49,7 @@ Interaction
   -> deterministic CI result
 ```
 
-webhooks.cc already exposes isolated endpoints, count/timeout-based capture, request assertions with structured diffs, and deterministic cleanup. Hooklistener exposes reusable replay cases, response assertions, suites, and durable run reports. Hookdeck, Webhook Relay, and Beeceptor also have meaningful CI/automation depth, but the current evidence supports only partial deterministic-CI semantics relative to Ortyo's stronger behavior-vs-infrastructure outcome contract.
+webhooks.cc already exposes isolated endpoints, count/timeout-based capture, request assertions with structured diffs, and deterministic cleanup. Hooklistener exposes reusable replay cases, response assertions, suites, and durable run reports. Hookdeck, Webhook Relay, and Beeceptor also have meaningful CI/automation depth, but the current evidence supports only partial deterministic-CI semantics relative to Hooktry's stronger behavior-vs-infrastructure outcome contract.
 
 Temporal-depth research narrows this again: webhooks.cc already supports count-bounded multi-event capture, timestamp-sorted request sequences, timeout horizons, reusable test flows, and structured request assertions; Hooklistener supports assertion-bearing replay cases, suites, bounded waits, and durable run reports. The remaining hypothesis is therefore **ranged cardinality plus proof of no extra events, durable observed-order assertions, hard horizon plus quiet/settle windows, normalized correlation/causation/idempotency context, and explainable behavior-vs-infrastructure outcomes.** This remains a hypothesis until supported by first-party demand evidence.
 
@@ -74,7 +74,7 @@ This is part of the primary job, not optional polish.
 
 ### Configurable sender response - MUST
 
-A webhook tester frequently needs to control sender-visible status, headers, body, and delay. Ortyo does not yet have evidence for a first-class configurable response policy on the anonymous Hook path.
+A webhook tester frequently needs to control sender-visible status, headers, body, and delay. Hooktry does not yet have evidence for a first-class configurable response policy on the anonymous Hook path.
 
 Start narrow: Exposure/Hook response policy before a general-purpose mock engine.
 
@@ -84,7 +84,7 @@ The underlying Recording/Replay primitive exists. The missing depth is the produ
 
 ### Search/filter over retained evidence - MUST after inspector basics
 
-Ortyo has structured evidence but not yet a mature human search/filter surface. This becomes table stakes once history is more than a handful of requests.
+Hooktry has structured evidence but not yet a mature human search/filter surface. This becomes table stakes once history is more than a handful of requests.
 
 ## High-value next capabilities
 
@@ -92,17 +92,17 @@ Ortyo has structured evidence but not yet a mature human search/filter surface. 
 
 **Failure/latency simulation - SHOULD.** This is a natural extension of configurable responses and directly tests sender retry behavior. Avoid jumping immediately to full service virtualization.
 
-**Attempt comparison / behavioral diff - SHOULD.** Ortyo's canonical evidence gives it a natural basis for semantic comparison of attempts or baseline/candidate behavior.
+**Attempt comparison / behavioral diff - SHOULD.** Hooktry's canonical evidence gives it a natural basis for semantic comparison of attempts or baseline/candidate behavior.
 
 ## Explicit non-priorities for now
 
-**Full production delivery - WATCH.** The market validates this as a plausible depth vector, but it adds queues, durable retries, DLQ, rate controls, tenant isolation, delivery guarantees, and operational support. Deepen when users carry stable Ortyo endpoints into pilots and ask Ortyo to survive outages.
+**Full production delivery - WATCH.** The market validates this as a plausible depth vector, but it adds queues, durable retries, DLQ, rate controls, tenant isolation, delivery guarantees, and operational support. Deepen when users carry stable Hooktry endpoints into pilots and ask Hooktry to survive outages.
 
 **Full API/service virtualization - WATCH.** First implement webhook-specific response/fault behavior. Expand only if users repeatedly need broader dependency simulation.
 
-**Generic tunneling - ADJACENT/SUBSTRATE.** Ortyo needs reachability sufficient for the webhook lifecycle, not generic networking breadth.
+**Generic tunneling - ADJACENT/SUBSTRATE.** Hooktry needs reachability sufficient for the webhook lifecycle, not generic networking breadth.
 
-**Generic managed compute - SUBSTRATE/OPTION.** Compute matters only when it improves reproducible integration behavior through Ortyo evidence.
+**Generic managed compute - SUBSTRATE/OPTION.** Compute matters only when it improves reproducible integration behavior through Hooktry evidence.
 
 ## Strategic trigger map
 
@@ -133,4 +133,4 @@ PRIMARY WEDGE DOES NOT WORK
 3. Surface replay directly from captured requests.
 4. Add history/search/filter ergonomics.
 5. Add the first provider template + signing slice.
-6. Deepen Scenario/CI/diff where Ortyo can distinguish itself.
+6. Deepen Scenario/CI/diff where Hooktry can distinguish itself.

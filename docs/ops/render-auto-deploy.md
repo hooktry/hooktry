@@ -2,7 +2,7 @@
 
 DWC: PROD/DEPLOY1.2 DEPLOY1 - GitHub -> Render commit-trigger proof
 
-ORTYO production is expected to deploy from the `main` branch through the connected GitHub provider.
+HOOKTRY production is expected to deploy from the `main` branch through the connected GitHub provider.
 
 Acceptance criteria:
 

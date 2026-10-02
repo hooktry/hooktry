@@ -15,7 +15,7 @@ const DISPOSITIONS: &[&str] = &[
     "out_of_scope",
     "covered",
 ];
-const ORTYO_STATUSES: &[&str] = &["implemented", "partial", "absent", "unknown", "planned"];
+const HOOKTRY_STATUSES: &[&str] = &["implemented", "partial", "absent", "unknown", "planned"];
 const SIGNAL_CLASSES: &[&str] = &["direct_demand", "demand_proxy", "market_motion"];
 const DIRECT_DEMAND_DIRECTIONS: &[&str] = &["supports", "contradicts", "mixed"];
 
@@ -34,7 +34,7 @@ struct Counts {
 struct Capability {
     id: String,
     disposition: String,
-    ortyo_status: String,
+    hooktry_status: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -203,11 +203,11 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
     let scope_products = unique_set(label, "scope product", &snapshot.scope_products, errors);
     let matrix_products = unique_set(label, "matrix product", &snapshot.matrix_products, errors);
 
-    if !scope_products.contains("ortyo") {
-        errors.push(format!("{label}: scope_products must contain ortyo"));
+    if !scope_products.contains("hooktry") {
+        errors.push(format!("{label}: scope_products must contain hooktry"));
     }
-    if !matrix_products.contains("ortyo") {
-        errors.push(format!("{label}: matrix_products must contain ortyo"));
+    if !matrix_products.contains("hooktry") {
+        errors.push(format!("{label}: matrix_products must contain hooktry"));
     }
     for product in &matrix_products {
         if !scope_products.contains(*product) {
@@ -238,10 +238,10 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
                 capability.id, capability.disposition
             ));
         }
-        if !ORTYO_STATUSES.contains(&capability.ortyo_status.as_str()) {
+        if !HOOKTRY_STATUSES.contains(&capability.hooktry_status.as_str()) {
             errors.push(format!(
-                "{label}: capability {} has invalid ortyo_status {}",
-                capability.id, capability.ortyo_status
+                "{label}: capability {} has invalid hooktry_status {}",
+                capability.id, capability.hooktry_status
             ));
         }
     }
@@ -277,8 +277,8 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
             }
         }
 
-        if let Some(state) = row.get("ortyo") {
-            let expected = match capability.ortyo_status.as_str() {
+        if let Some(state) = row.get("hooktry") {
+            let expected = match capability.hooktry_status.as_str() {
                 "implemented" => "present",
                 "partial" => "partial",
                 "absent" => "absent",
@@ -287,7 +287,7 @@ fn validate_snapshot(label: &str, snapshot: &Snapshot, errors: &mut Vec<String>)
             };
             if !expected.is_empty() && state != expected {
                 errors.push(format!(
-                    "{label}: ortyo/{capability_id}={state}, expected {expected} from snapshot ortyo_status"
+                    "{label}: hooktry/{capability_id}={state}, expected {expected} from snapshot hooktry_status"
                 ));
             }
         }
@@ -514,7 +514,7 @@ fn parse_snapshot(text: &str) -> Snapshot {
                 {
                     match key.as_str() {
                         "disposition" => item.disposition = value,
-                        "ortyo_status" => item.ortyo_status = value,
+                        "hooktry_status" => item.hooktry_status = value,
                         _ => {}
                     }
                 }

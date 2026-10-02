@@ -1,7 +1,7 @@
-# Ortyo MCIF research sprint 1
+# Hooktry MCIF research sprint 1
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.9 RESEARCH
+DWC: MCIF/HOOKTRY.9 RESEARCH
 
 ## Goal
 
@@ -62,13 +62,13 @@ The unresolved cells remain `unknown`. Failure to find current official evidence
 
 Hookdeck and Beeceptor both expose meaningful payload/history search. Webhook Relay exposes structured log filters for status, destination/output, and time range, but the current official evidence does not establish equivalent payload-content search.
 
-Result: Ortyo's `search-filter` remains a `must` and remains an implementation-depth gap because Ortyo is still `partial`.
+Result: Hooktry's `search-filter` remains a `must` and remains an implementation-depth gap because Hooktry is still `partial`.
 
 ### Custom sender response
 
 Webhook Relay exposes static status/body/header responses and dynamic output-driven responses. Hookdeck exposes customizable synchronous response bodies and provider-aware response behavior, but the researched docs do not establish the same full generic status/header/delay surface.
 
-Result: `custom-response` remains `must`; Ortyo's partial implementation still deserves current-horizon work.
+Result: `custom-response` remains `must`; Hooktry's partial implementation still deserves current-horizon work.
 
 ### Failure simulation
 
@@ -96,7 +96,7 @@ Result: `signature-verification` remains `should` / next and is now more strongl
 
 No disposition changed in this sprint.
 
-No Ortyo implementation status changed in this sprint.
+No Hooktry implementation status changed in this sprint.
 
 No new market-motion signal was recorded.
 
@@ -107,7 +107,7 @@ The changes are **research resolution**:
 - atomic observations: 69 -> 80
 - matrix research resolutions: 11
 - observed market-state changes: 0
-- Ortyo motion: 0
+- Hooktry motion: 0
 
 This is exactly the distinction enforced by `market-trend`: learning what a competitor already supports is not proof that the competitor just changed.
 

@@ -26,7 +26,7 @@ describe("AUTH1 GitHub claim flow", () => {
       "/view/vw_12345678901234567890123456789012?claim=1";
     const response = await startGitHubOAuth(
       new Request(
-        `https://ortyo.test/api/v1/auth/github/start?return_to=${encodeURIComponent(returnTo)}`,
+        `https://hooktry.test/api/v1/auth/github/start?return_to=${encodeURIComponent(returnTo)}`,
       ),
       bindings,
     );
@@ -38,7 +38,7 @@ describe("AUTH1 GitHub claim flow", () => {
     expect(location.searchParams.get("client_id")).toBe("test-github-client");
     expect(location.searchParams.has("scope")).toBe(false);
     expect(location.searchParams.get("redirect_uri")).toBe(
-      "https://ortyo.test/api/v1/auth/github/callback",
+      "https://hooktry.test/api/v1/auth/github/callback",
     );
 
     const state = location.searchParams.get("state");
@@ -49,8 +49,8 @@ describe("AUTH1 GitHub claim flow", () => {
     );
 
     const cookie = requiredHeader(response, "set-cookie");
-    expect(cookie).toContain(`ortyo_oauth_state=${state}`);
-    expect(cookie).toContain("ortyo_oauth_pkce=");
+    expect(cookie).toContain(`hooktry_oauth_state=${state}`);
+    expect(cookie).toContain("hooktry_oauth_pkce=");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
     expect(cookie).toContain("Secure");
@@ -64,7 +64,7 @@ describe("AUTH1 GitHub claim flow", () => {
   it("rejects cross-origin OAuth return targets", async () => {
     const response = await worker.fetch(
       new Request(
-        "https://ortyo.test/api/v1/auth/github/start?return_to=https%3A%2F%2Fevil.example%2Fsteal",
+        "https://hooktry.test/api/v1/auth/github/start?return_to=https%3A%2F%2Fevil.example%2Fsteal",
       ),
       bindings,
     );
@@ -80,11 +80,11 @@ describe("AUTH1 GitHub claim flow", () => {
 
     expect(first.response.status).toBe(302);
     expect(requiredHeader(first.response, "location")).toBe(
-      "https://ortyo.test/view/vw_12345678901234567890123456789012?claim=1",
+      "https://hooktry.test/view/vw_12345678901234567890123456789012?claim=1",
     );
 
     const firstSession = await sessionResponse(
-      new Request("https://ortyo.test/api/v1/session", {
+      new Request("https://hooktry.test/api/v1/session", {
         headers: { cookie: first.sessionCookie },
       }),
       bindings,
@@ -145,7 +145,7 @@ describe("AUTH1 GitHub claim flow", () => {
   it("consumes OAuth state exactly once", async () => {
     const start = await startGitHubOAuth(
       new Request(
-        "https://ortyo.test/api/v1/auth/github/start?return_to=%2F",
+        "https://hooktry.test/api/v1/auth/github/start?return_to=%2F",
       ),
       bindings,
     );
@@ -154,14 +154,14 @@ describe("AUTH1 GitHub claim flow", () => {
     if (!state) throw new Error("missing OAuth state");
 
     const cookies = requiredHeader(start, "set-cookie");
-    const pkce = cookies.match(/ortyo_oauth_pkce=([^;,]+)/)?.[1];
+    const pkce = cookies.match(/hooktry_oauth_pkce=([^;,]+)/)?.[1];
     if (!pkce) throw new Error("missing OAuth PKCE cookie");
 
     const callback = new Request(
-      `https://ortyo.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
+      `https://hooktry.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
       {
         headers: {
-          cookie: `ortyo_oauth_state=${state}; ortyo_oauth_pkce=${pkce}`,
+          cookie: `hooktry_oauth_state=${state}; hooktry_oauth_pkce=${pkce}`,
         },
       },
     );
@@ -183,7 +183,7 @@ describe("AUTH1 GitHub claim flow", () => {
 
   it("claims an existing anonymous Hook with the authenticated personal workspace and preserves the Hook", async () => {
     const create = await worker.fetch(
-      new Request("https://ortyo.test/api/v1/hooks", {
+      new Request("https://hooktry.test/api/v1/hooks", {
         method: "POST",
       }),
       bindings,
@@ -205,7 +205,7 @@ describe("AUTH1 GitHub claim flow", () => {
     );
 
     const session = await sessionResponse(
-      new Request("https://ortyo.test/api/v1/session", {
+      new Request("https://hooktry.test/api/v1/session", {
         headers: { cookie: auth.sessionCookie },
       }),
       bindings,
@@ -276,7 +276,7 @@ async function login(returnTo: string): Promise<{
 }> {
   const start = await startGitHubOAuth(
     new Request(
-      `https://ortyo.test/api/v1/auth/github/start?return_to=${encodeURIComponent(returnTo)}`,
+      `https://hooktry.test/api/v1/auth/github/start?return_to=${encodeURIComponent(returnTo)}`,
     ),
     bindings,
   );
@@ -285,15 +285,15 @@ async function login(returnTo: string): Promise<{
   if (!state) throw new Error("missing OAuth state");
 
   const startCookies = requiredHeader(start, "set-cookie");
-  const pkce = startCookies.match(/ortyo_oauth_pkce=([^;,]+)/)?.[1];
+  const pkce = startCookies.match(/hooktry_oauth_pkce=([^;,]+)/)?.[1];
   if (!pkce) throw new Error("missing OAuth PKCE cookie");
 
   const response = await finishGitHubOAuth(
     new Request(
-      `https://ortyo.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
+      `https://hooktry.test/api/v1/auth/github/callback?code=test-code&state=${encodeURIComponent(state)}`,
       {
         headers: {
-          cookie: `ortyo_oauth_state=${state}; ortyo_oauth_pkce=${pkce}`,
+          cookie: `hooktry_oauth_state=${state}; hooktry_oauth_pkce=${pkce}`,
         },
       },
     ),
@@ -302,12 +302,12 @@ async function login(returnTo: string): Promise<{
   );
 
   const cookies = requiredHeader(response, "set-cookie");
-  const match = cookies.match(/ortyo_session=([^;,]+)/);
+  const match = cookies.match(/hooktry_session=([^;,]+)/);
   if (!match) throw new Error(`missing session cookie: ${cookies}`);
 
   return {
     response,
-    sessionCookie: `ortyo_session=${match[1]}`,
+    sessionCookie: `hooktry_session=${match[1]}`,
   };
 }
 

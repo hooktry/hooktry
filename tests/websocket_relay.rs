@@ -3,7 +3,7 @@ mod common;
 use std::time::Duration;
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, ExposureTarget, Origin},
     exposure::CreateExposure,
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
@@ -48,7 +48,7 @@ async fn websocket_runtime_carries_public_request_to_local_boundary() {
 
     let credential = common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
     let provision: ProvisionedExposure = reqwest::Client::new()
-        .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{hosted_addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "webhook",
@@ -66,7 +66,7 @@ async fn websocket_runtime_carries_public_request_to_local_boundary() {
     assert_eq!(
         provision.runtime_url,
         format!(
-            "ws://{hosted_addr}/_ortyo/runtime/{}",
+            "ws://{hosted_addr}/_hooktry/runtime/{}",
             provision.exposure_id
         )
     );
@@ -164,7 +164,7 @@ async fn websocket_runtime_rejects_invalid_bearer_capability() {
             .unwrap();
     });
 
-    let runtime_url = format!("ws://{hosted_addr}/_ortyo/runtime/{exposure_id}");
+    let runtime_url = format!("ws://{hosted_addr}/_hooktry/runtime/{exposure_id}");
     let result = run_websocket_runtime(
         &runtime_url,
         exposure_id,

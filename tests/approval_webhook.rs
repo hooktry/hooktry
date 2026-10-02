@@ -10,7 +10,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     routing::post,
 };
-use ortyo::{
+use hooktry::{
     approval_webhook::{
         APPROVAL_WEBHOOK_SECRET_NAME, ensure_webhook_secret, process_one_for_test,
         retry_delay_ms_for_test,
@@ -46,7 +46,7 @@ async fn webhook_delivery_uses_redacted_approval_and_idempotency_key() {
     let state = HostedRelayState::websocket_only(
         RelayBroker::default(),
         CapabilityStore::default(),
-        "http://ortyo.example",
+        "http://hooktry.example",
         "control-token",
     );
     ensure_webhook_secret(
@@ -86,7 +86,7 @@ async fn webhook_delivery_uses_redacted_approval_and_idempotency_key() {
         .unwrap()
         .parse::<Uuid>()
         .unwrap();
-    assert_eq!(headers["x-ortyo-event"], "approval_requested");
+    assert_eq!(headers["x-hooktry-event"], "approval_requested");
     assert_eq!(body["event"], "approval_requested");
     assert_eq!(body["notification_id"], notification_id.to_string());
     assert_eq!(body["approval_id"], approval.approval_id.to_string());
@@ -123,7 +123,7 @@ async fn webhook_delivery_uses_redacted_approval_and_idempotency_key() {
 #[tokio::test]
 async fn webhook_url_is_encrypted_at_rest() {
     let path = std::env::temp_dir().join(format!(
-        "ortyo-approval-webhook-secret-{}.db",
+        "hooktry-approval-webhook-secret-{}.db",
         Uuid::now_v7()
     ));
     let workspace_id = Uuid::now_v7();

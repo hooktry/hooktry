@@ -7,7 +7,7 @@ export interface Env {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   USAGE_INGEST_TOKEN?: string;
-  ORTYO_RELEASE_SHA?: string;
+  HOOKTRY_RELEASE_SHA?: string;
 }
 
 export interface AnonymousExposureRow {

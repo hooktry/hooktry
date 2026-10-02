@@ -3,7 +3,7 @@ mod common;
 use std::time::Duration;
 
 use axum::{Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{ExposureAccess, ExposureMode, ExposureTarget, Origin},
     exposure::CreateExposure,
     hosted::{HostedRelayState, ProvisionedExposure, hosted_relay_app},
@@ -57,7 +57,7 @@ async fn provisioned_hosted_exposure_reaches_local_target_through_boundary() {
 
     let credential = common::issue_full_access_token(&format!("http://{hosted_addr}")).await;
     let provision: ProvisionedExposure = reqwest::Client::new()
-        .post(format!("http://{hosted_addr}/_ortyo/hosted/exposures"))
+        .post(format!("http://{hosted_addr}/_hooktry/hosted/exposures"))
         .bearer_auth(&credential.token)
         .json(&serde_json::json!({
             "name": "github",
@@ -170,7 +170,7 @@ async fn socket_disconnect_removes_runtime_registration() {
     let mut unavailable = false;
     for _ in 0..20 {
         match broker.ingress(request_for(exposure_id)).await {
-            Err(ortyo::relay::RelayError::RuntimeUnavailable) => {
+            Err(hooktry::relay::RelayError::RuntimeUnavailable) => {
                 unavailable = true;
                 break;
             }
@@ -184,8 +184,8 @@ async fn socket_disconnect_removes_runtime_registration() {
     );
 }
 
-fn request_for(exposure_id: uuid::Uuid) -> ortyo::relay::RelayRequest {
-    ortyo::relay::RelayRequest {
+fn request_for(exposure_id: uuid::Uuid) -> hooktry::relay::RelayRequest {
+    hooktry::relay::RelayRequest {
         id: uuid::Uuid::now_v7(),
         exposure_id,
         method: "GET".to_owned(),

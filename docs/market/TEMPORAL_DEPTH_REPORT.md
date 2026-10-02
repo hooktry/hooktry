@@ -1,7 +1,7 @@
-# Ortyo MCIF temporal-depth report
+# Hooktry MCIF temporal-depth report
 
 Checked: 2026-10-01  
-DWC: MCIF/ORTYO.11 TEMPORAL-DEPTH
+DWC: MCIF/HOOKTRY.11 TEMPORAL-DEPTH
 
 ## Question
 
@@ -9,7 +9,7 @@ The previous research pass established that CI wiring, bounded waits, reproducib
 
 This pass asks the narrower question:
 
-> Do primary competitors already expose temporal and causal assertion semantics deep enough to invalidate Ortyo's remaining differentiation hypothesis?
+> Do primary competitors already expose temporal and causal assertion semantics deep enough to invalidate Hooktry's remaining differentiation hypothesis?
 
 The evaluated dimensions are:
 
@@ -48,7 +48,7 @@ Current official evidence supports:
 - **ordering: unknown** - no current official evidence establishes ordering assertions between matching integration events
 - **correlation-context: unknown** - datastore variables and request metadata exist, but no current official evidence establishes normalized correlation/idempotency matching semantics
 
-Hooklistener is therefore closer to a reusable regression-suite model than to Ortyo's temporal multi-event evidence model.
+Hooklistener is therefore closer to a reusable regression-suite model than to Hooktry's temporal multi-event evidence model.
 
 ## Webhook Relay
 
@@ -73,7 +73,7 @@ The following are **not** defensible differentiators by themselves:
 - durable test run reports
 - agentic send/wait/inspect loops
 
-## Remaining Ortyo hypothesis
+## Remaining Hooktry hypothesis
 
 The currently less-common combination is:
 
@@ -88,7 +88,7 @@ ranged cardinality
 
 This can be summarized as:
 
-> Ortyo should not differentiate by "webhook tests in CI." It should differentiate, if demand validates it, by explaining and proving asynchronous multi-event behavior under time, order, duplication, and causal context.
+> Hooktry should not differentiate by "webhook tests in CI." It should differentiate, if demand validates it, by explaining and proving asynchronous multi-event behavior under time, order, duplication, and causal context.
 
 ## Critical caveat
 
@@ -99,7 +99,7 @@ A technically distinctive temporal model can still be a poor product investment 
 The next evidence burden is therefore split:
 
 1. continue competitor research only where it can invalidate the remaining temporal/causal claim
-2. collect first-party Ortyo usage evidence for duplicates, ordering, settle windows, and correlation/idempotency failures
+2. collect first-party Hooktry usage evidence for duplicates, ordering, settle windows, and correlation/idempotency failures
 
 ## Projection effect
 

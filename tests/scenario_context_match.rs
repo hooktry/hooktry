@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
 use axum::{Json, Router, body::Bytes, http::StatusCode, routing::post};
-use ortyo::{
+use hooktry::{
     domain::{Scenario, ScenarioOutcome, ScenarioRun},
     exposure::{ExposureService, LocalExposureProvider, RelayExposureProvider},
     http::{AppState, app},
@@ -13,7 +13,7 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
     let (base_url, target_port) = system().await;
     let client = reqwest::Client::new();
     let scenario: Scenario = client
-        .post(format!("{base_url}/_ortyo/scenarios"))
+        .post(format!("{base_url}/_hooktry/scenarios"))
         .json(&json!({
             "name": "correlated payment",
             "port": target_port,
@@ -37,7 +37,7 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
         .unwrap();
 
     let run: ScenarioRun = client
-        .post(format!("{base_url}/_ortyo/scenarios/{}/start", scenario.id))
+        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
         .send()
         .await
         .unwrap()
@@ -68,7 +68,7 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
     let started = Instant::now();
     let outcome: ScenarioOutcome = client
         .post(format!(
-            "{base_url}/_ortyo/scenario-runs/{}/complete",
+            "{base_url}/_hooktry/scenario-runs/{}/complete",
             run.id
         ))
         .send()
@@ -87,7 +87,7 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
     assert_eq!(check.assertion_ids.len(), 2);
 
     let interactions: Vec<serde_json::Value> = client
-        .get(format!("{base_url}/_ortyo/interactions"))
+        .get(format!("{base_url}/_hooktry/interactions"))
         .send()
         .await
         .unwrap()
@@ -127,19 +127,19 @@ async fn system() -> (String, u16) {
         axum::serve(target_listener, target).await.unwrap();
     });
 
-    let ortyo_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let ortyo_port = ortyo_listener.local_addr().unwrap().port();
-    let base_url = format!("http://127.0.0.1:{ortyo_port}");
+    let hooktry_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let hooktry_port = hooktry_listener.local_addr().unwrap().port();
+    let base_url = format!("http://127.0.0.1:{hooktry_port}");
     let exposures = ExposureService::with_providers(
         Arc::new(LocalExposureProvider::new(&base_url)),
-        Arc::new(RelayExposureProvider::new("https://relay.ortyo.test")),
+        Arc::new(RelayExposureProvider::new("https://relay.hooktry.test")),
     );
     let state = AppState {
         exposures,
         ..AppState::default()
     };
     tokio::spawn(async move {
-        axum::serve(ortyo_listener, app(state)).await.unwrap();
+        axum::serve(hooktry_listener, app(state)).await.unwrap();
     });
 
     (base_url, target_port)
