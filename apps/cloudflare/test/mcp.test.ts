@@ -12,7 +12,7 @@ function fetchWorker(request: Request): Promise<Response> {
 
 describe("PLUGIN1 remote MCP", () => {
   it("discovers the curated no-auth tool", async () => {
-    const response = await worker.fetch(
+    const response = await fetchWorker(
       new Request("https://mcp.hooktry.com/mcp", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -41,7 +41,7 @@ describe("PLUGIN1 remote MCP", () => {
   });
 
   it("creates a usable webhook without leaking viewer or claim capabilities", async () => {
-    const response = await fetchWorker(
+    const response = await worker.fetch(
       new Request("https://mcp.hooktry.com/mcp", {
         method: "POST",
         headers: { "content-type": "application/json" },
