@@ -20,6 +20,7 @@ pub mod key_maintenance;
 pub mod keyring;
 pub mod local;
 pub mod mcp;
+pub mod mcp_remote;
 pub mod recording;
 pub mod relay;
 pub mod relay_auth;
