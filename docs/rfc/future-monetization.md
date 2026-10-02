@@ -25,6 +25,17 @@ That suggests a monetization model centered on:
 
 The product experience that motivated this thesis is simple: an ephemeral or time-limited service can be sufficient while experimenting, but once a user depends on stable state, long-lived identity, history, and recovery guarantees, continuity itself becomes the thing worth paying for.
 
+## Runtime-profile boundary
+
+Pricing must not collapse anonymous lifecycle, Community OSS, and authenticated Free into one concept.
+
+- Community Local is an OSS/runtime profile.
+- Anonymous Cloud is a temporary ownership/lifecycle profile.
+- authenticated Free is an account/workspace pricing policy.
+- paid Cloud adds reliance-oriented guarantees.
+
+See [PROFILE1 - Product Runtime Profiles and Retention Boundaries](product-runtime-profiles.md).
+
 ## Product principle
 
 Hooktry should avoid artificial degradation of correctness or security in the free tier.

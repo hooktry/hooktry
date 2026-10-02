@@ -34,6 +34,14 @@ A browser cookie or anonymous client id is a convenience principal for rediscove
 
 Claim transfers the existing Exposure and its retained history into an authenticated user/workspace without changing the public URL.
 
+## Product-profile boundary
+
+Anonymous Cloud is a no-install managed profile with bounded temporary cloud retention. It is distinct from Community Local plus a zero-persistent-history relay.
+
+Anonymous is also not the Free pricing tier. Anonymous describes ownership/lifecycle before authentication; authenticated Free is a separate workspace policy with its own future quotas and retention.
+
+See [PROFILE1 - Product Runtime Profiles and Retention Boundaries](product-runtime-profiles.md).
+
 ## Initial anonymous policy
 
 Start close to the useful part of Webhook.site's free model while preserving stronger abuse controls:

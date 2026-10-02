@@ -142,6 +142,14 @@ Read, ingress, and claim capabilities remain separate.
 
 LOCAL1 does not turn the browser session into ownership authority.
 
+## Community profile boundary
+
+LOCAL1 is the durable local half of the Community profile.
+
+An optional future managed relay may give this local runtime a public URL, but managed reachability must not silently move durable Hook/Interaction history into Hooktry Cloud. The Community relay profile keeps payload/history persistence local.
+
+See [PROFILE1 - Product Runtime Profiles and Retention Boundaries](product-runtime-profiles.md).
+
 ## Non-goals
 
 LOCAL1 does not yet provide:
