@@ -138,6 +138,10 @@ describe("CF1 ephemeral Hook conformance", () => {
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
 
+    const initialSnapshot = await withStage("viewer-snapshot", inbox.next());
+    expect(initialSnapshot.type).toBe("snapshot");
+    expect(initialSnapshot.interactions).toEqual([]);
+
     const first = await withStage("first-capture", fetchWorker(
       new Request(`${provision.hook_url}/stripe?delivery=42`, {
         method: "POST",
@@ -276,6 +280,10 @@ describe("CF1 ephemeral Hook conformance", () => {
     const ready = await withStage("direct-viewer-ready", inbox.next());
     expect(ready.type).toBe("ready");
     expect(ready.exposure.exposure_id).toBe(provision.exposure_id);
+
+    const initialSnapshot = await withStage("direct-viewer-snapshot", inbox.next());
+    expect(initialSnapshot.type).toBe("snapshot");
+    expect(initialSnapshot.interactions).toEqual([]);
 
     await withStage(
       "direct-evict",
