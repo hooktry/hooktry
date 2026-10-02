@@ -25,6 +25,29 @@ export async function createHook(): Promise<HookProvision> {
   return (await response.json()) as HookProvision;
 }
 
+export async function exchangeHandoff(
+  handoffToken: string,
+): Promise<HookProvision> {
+  const response = await fetch(apiUrl("/api/v1/handoffs/exchange"), {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ handoff_token: handoffToken }),
+  });
+
+  if (!response.ok) {
+    const detail = await errorDetail(response);
+    throw new Error(
+      `Unable to open Hook handoff (${response.status}): ${detail}`,
+    );
+  }
+
+  return (await response.json()) as HookProvision;
+}
+
 export async function authSession(): Promise<AuthSession> {
   const response = await fetch(apiUrl("/api/v1/session"), {
     credentials: "same-origin",
