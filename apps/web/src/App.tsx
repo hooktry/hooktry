@@ -749,7 +749,7 @@ function Inspector({
   const body = prettyBody(interaction);
 
   return (
-    <section className="panel inspector-panel">
+    <section className="panel inspector-panel inspector-panel-selected">
       <div className="inspector-head">
         <div>
           <div className="request-line">
