@@ -102,6 +102,7 @@ jobs:
         env:
           HOOKTRY_BASE_URL: ${{ steps.bootstrap.outputs.base_url }}
           HOOKTRY_D1_DATABASE_ID: ${{ steps.bootstrap.outputs.database_id }}
+          HOOKTRY_R2_BUCKET: hooktry-payloads
           HOOKTRY_EXPECTED_RELEASE_SHA: ${{ github.sha }}
           HOOKTRY_EXPECT_GITHUB_AUTH: "1"
           HOOKTRY_USAGE_INGEST_TOKEN: ${{ secrets.ORTYO_USAGE_INGEST_TOKEN }}

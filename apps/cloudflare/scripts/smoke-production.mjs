@@ -5,6 +5,8 @@ const claimToken = required("HOOKTRY_CLAIM_INTERNAL_TOKEN");
 const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 const databaseId = required("HOOKTRY_D1_DATABASE_ID");
+const r2Bucket = required("HOOKTRY_R2_BUCKET");
+const mcpUrl = process.env.HOOKTRY_MCP_URL?.trim() || null;
 const workspaceId = "0199a2b3-c4d5-7e6f-8a9b-0c1d2e3f4a5b";
 const expectedReleaseSha = process.env.HOOKTRY_EXPECTED_RELEASE_SHA?.trim() || null;
 const expectGitHubAuth = process.env.HOOKTRY_EXPECT_GITHUB_AUTH === "1";
@@ -17,6 +19,9 @@ const interactions = [];
 
 try {
   await waitForHealth();
+  if (mcpUrl) {
+    await verifyMcp();
+  }
   if (expectGitHubAuth) {
     oauthStateDigest = await verifyGitHubAuthStart();
   }
@@ -133,6 +138,51 @@ try {
       process.exitCode = 1;
     });
   }
+}
+
+async function verifyMcp() {
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 0;
+  let lastError = "unreachable";
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(mcpUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/list",
+          params: {},
+        }),
+      });
+      lastStatus = response.status;
+      if (response.ok) {
+        const payload = await response.json();
+        const tools = payload?.result?.tools;
+        assert(Array.isArray(tools), "MCP tools/list did not return tools");
+        assert(
+          tools.some((tool) => tool?.name === "create_webhook_endpoint"),
+          "MCP create_webhook_endpoint tool missing",
+        );
+        console.log("PLUGIN1 acceptance passed: mcp.hooktry.com -> tools/list");
+        return;
+      }
+      lastError = await response.text();
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(
+    `MCP custom domain did not converge; last status: ${lastStatus}; last error: ${lastError}`,
+  );
 }
 
 async function verifyUsageIngest(eventId) {
@@ -286,13 +336,13 @@ async function cleanup(exposureId, captured) {
     const objectPath = key.split("/").map(encodeURIComponent).join("/");
 
     await cf(
-      `/accounts/${accountId}/r2/buckets/hooktry-payloads/objects/${objectPath}`,
+      `/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects/${objectPath}`,
       { method: "DELETE" },
       true,
     );
 
     const listed = await cf(
-      `/accounts/${accountId}/r2/buckets/hooktry-payloads/objects?prefix=${encodeURIComponent(key)}`,
+      `/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects?prefix=${encodeURIComponent(key)}`,
     );
     assert(
       !(listed.result ?? []).some((object) => object.key === key),
