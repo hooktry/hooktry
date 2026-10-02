@@ -369,7 +369,24 @@ kbd,
 }
 
 .button.secondary {
-  background: #171b21;
+  border-color: #3b4350;
+  background: #191e25;
+  color: #c9cfd7;
+}
+
+.button.secondary:hover:not(:disabled) {
+  border-color: #566171;
+  background: #20262e;
+  color: #f0f2f4;
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(217, 255, 100, 0.7);
+  outline-offset: 2px;
+}
+
+.new-hook-button {
+  min-width: 92px;
 }
 
 .button.ghost {
@@ -563,25 +580,37 @@ kbd,
 
 .modal-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border: 1px solid #343a44;
-  border-radius: 6px;
-  background: #171b21;
-  color: #aeb5bf;
+  border: 1px solid #303744;
+  border-radius: 8px;
+  background: rgba(23, 27, 33, 0.72);
+  color: #9da6b2;
   cursor: pointer;
-  font-size: 23px;
-  line-height: 1;
+}
+
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .modal-close:hover:not(:disabled) {
-  border-color: #4a5360;
-  background: #1d2229;
-  color: #f0f2f4;
+  border-color: #566171;
+  background: #20262e;
+  color: #f3f5f7;
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid rgba(217, 255, 100, 0.7);
+  outline-offset: 2px;
 }
 
 .modal-close:disabled {
@@ -591,9 +620,22 @@ kbd,
 
 .modal-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
   margin-top: 24px;
+}
+
+.modal-action-button {
+  height: 44px;
+  min-width: 108px;
+  padding: 0 18px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.modal-create-button {
+  min-width: 214px;
 }
 
 .workspace-grid {
@@ -861,6 +903,33 @@ kbd,
 
 .body-view[data-encoding="hex"] {
   color: #c4ad76;
+}
+
+.body-empty-state {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 22px 16px;
+  background: #0e1115;
+}
+
+.body-empty-state strong {
+  color: #9ea7b3;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.body-empty-state span {
+  color: #58616e;
+  font-family: "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, monospace;
+  font-size: 9px;
+}
+
+.inspector-copy-button {
+  min-width: 82px;
 }
 
 .kv-table {
@@ -1283,6 +1352,16 @@ kbd,
 
   .modal-actions {
     flex-direction: row;
+    align-items: stretch;
+  }
+
+  .modal-action-button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .modal-create-button {
+    flex: 1.7 1 0;
   }
 
   .metric-value {
