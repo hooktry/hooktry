@@ -400,6 +400,11 @@ kbd,
   min-width: 92px;
 }
 
+.inline-new-hook {
+  height: 30px;
+  margin-left: 8px;
+}
+
 .button.ghost {
   border-color: transparent;
   background: transparent;
@@ -451,10 +456,7 @@ kbd,
 }
 
 .hook-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 28px;
+  display: block;
   width: 100%;
 }
 
@@ -522,8 +524,10 @@ kbd,
 .hook-id-label {
   flex: 0 0 auto;
   color: #616b77;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: 0.05em;
 }
 
 .hook-id {
@@ -601,9 +605,10 @@ kbd,
 
 .viewer-capability-label {
   color: #7d8794;
-  font-size: 10px;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+  font-size: 9px;
   font-weight: 650;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 .viewer-capability-badge {
