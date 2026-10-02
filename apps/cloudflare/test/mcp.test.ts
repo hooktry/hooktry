@@ -31,6 +31,11 @@ describe("PLUGIN1 remote MCP", () => {
     const body = await response.json() as any;
     expect(body.result.tools).toHaveLength(1);
     expect(body.result.tools[0].name).toBe("create_webhook_endpoint");
+    expect(body.result.tools[0].outputSchema.properties.view_url).toEqual({
+      type: "string",
+      format: "uri",
+    });
+    expect(body.result.tools[0].outputSchema.required).toContain("view_url");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
