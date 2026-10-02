@@ -35,7 +35,7 @@ import type {
 } from "./types";
 
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
-type InspectorTab = "body" | "headers" | "metadata";
+type InspectorTab = "body" | "query" | "headers" | "metadata";
 
 export function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname);
@@ -890,6 +890,40 @@ function Inspector({
   }
 
   const body = prettyBody(interaction);
+  const activeTab: InspectorTab =
+    tab === "query" && !interaction.query ? "body" : tab;
+  const queryEntries = interaction.query
+    ? Array.from(new URLSearchParams(interaction.query).entries())
+    : [];
+
+  const copyTarget =
+    activeTab === "body"
+      ? { label: "body", value: body }
+      : activeTab === "query"
+        ? {
+            label: "query",
+            value: queryEntries.map(([name, value]) => `${name}=${value}`).join("\n"),
+          }
+        : activeTab === "headers"
+          ? {
+              label: "headers",
+              value: interaction.headers.map(([name, value]) => `${name}: ${value}`).join("\n"),
+            }
+          : {
+              label: "metadata",
+              value: JSON.stringify(
+                {
+                  interaction_id: interaction.interaction_id,
+                  exposure_id: interaction.exposure_id,
+                  sequence: interaction.sequence,
+                  received_at: new Date(interaction.received_at_unix_ms).toISOString(),
+                  body_bytes: interaction.body_bytes,
+                  body_encoding: interaction.body_encoding,
+                },
+                null,
+                2,
+              ),
+            };
 
   return (
     <section className="panel inspector-panel inspector-panel-selected">
@@ -911,28 +945,33 @@ function Inspector({
         <button
           className="button secondary compact inspector-copy-button"
           type="button"
-          onClick={() => onCopy(body, "body")}
-          disabled={!body}
-          title={body ? "Copy request body" : "No body to copy"}
+          onClick={() => onCopy(copyTarget.value, copyTarget.label)}
+          disabled={!copyTarget.value}
+          title={copyTarget.value ? `Copy ${copyTarget.label}` : `No ${copyTarget.label} to copy`}
         >
-          {copied === "body" ? "Copied" : "Copy body"}
+          {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
         </button>
       </div>
 
       <div className="tabs">
-        <Tab active={tab === "body"} onClick={() => onTab("body")}>
+        <Tab active={activeTab === "body"} onClick={() => onTab("body")}>
           Body
         </Tab>
-        <Tab active={tab === "headers"} onClick={() => onTab("headers")}>
+        {interaction.query ? (
+          <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
+            Query <span>{queryEntries.length}</span>
+          </Tab>
+        ) : null}
+        <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
           Headers <span>{interaction.headers.length}</span>
         </Tab>
-        <Tab active={tab === "metadata"} onClick={() => onTab("metadata")}>
+        <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
           Metadata
         </Tab>
       </div>
 
       <div className="inspector-content">
-        {tab === "body" ? (
+        {activeTab === "body" ? (
           body ? (
             <pre className="body-view" data-encoding={interaction.body_encoding}>
               {body}
@@ -945,9 +984,9 @@ function Inspector({
           )
         ) : null}
 
-        {tab === "headers" ? (
+        {activeTab === "query" ? (
           <div className="kv-table">
-            {interaction.headers.map(([name, value], index) => (
+            {queryEntries.map(([name, value], index) => (
               <div className="kv-row" key={`${name}-${index}`}>
                 <code>{name}</code>
                 <code>{value}</code>
@@ -956,7 +995,23 @@ function Inspector({
           </div>
         ) : null}
 
-        {tab === "metadata" ? (
+        {activeTab === "headers" ? (
+          <>
+            <div className="inspector-note">
+              Captured as received. Header sets vary by client and may include transport-added headers.
+            </div>
+            <div className="kv-table">
+              {interaction.headers.map(([name, value], index) => (
+              <div className="kv-row" key={`${name}-${index}`}>
+                <code>{name}</code>
+                <code>{value}</code>
+              </div>
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        {activeTab === "metadata" ? (
           <div className="kv-table">
             <KeyValue label="Interaction ID" value={interaction.interaction_id} />
             <KeyValue label="Exposure ID" value={interaction.exposure_id} />

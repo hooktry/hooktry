@@ -41,8 +41,9 @@ describe("PLUGIN1 remote MCP", () => {
       format: "uri",
     });
     expect(body.result.tools[0].outputSchema.required).toContain("handoff_url");
-    expect(body.result.tools[0].description).toContain("should all be surfaced");
-    expect(body.result.tools[0].description).toContain("Do not omit handoff_url");
+    expect(body.result.tools[0].description).toContain("THREE distinct user-facing links");
+    expect(body.result.tools[0].description).toContain("View captured requests read-only");
+    expect(body.result.tools[0].description).toContain("Open as owner in browser");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
@@ -87,8 +88,10 @@ describe("PLUGIN1 remote MCP", () => {
     expect(
       result.structuredContent.handoff_expires_at_unix_seconds,
     ).toBeTypeOf("number");
-    expect(result.content[0].text).toContain("surface all three links");
-    expect(result.content[0].text).toContain("Open in browser:");
+    expect(result.content[0].text).toContain("SEND REQUESTS HERE:");
+    expect(result.content[0].text).toContain("VIEW ONLY (read-only):");
+    expect(result.content[0].text).toContain("OPEN TO CLAIM / MANAGE");
+    expect(result.content[0].text).toContain("owner link is not the Viewer URL");
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [

@@ -1713,3 +1713,22 @@ kbd,
     flex-wrap: wrap;
   }
 }
+
+
+.request-line > .query {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.live-hint {
+  text-transform: none;
+}
+
+
+.inspector-note {
+  padding: 8px 13px;
+  border-bottom: 1px solid #1f242b;
+  color: #59626f;
+  font-size: 9px;
+  line-height: 1.45;
+}

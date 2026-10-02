@@ -136,7 +136,7 @@ function tools(): Array<Record<string, unknown>> {
       name: "create_webhook_endpoint",
       title: "Create webhook endpoint",
       description:
-        "Create a temporary Hooktry webhook endpoint for integration testing. Returns THREE user-relevant links that should all be surfaced to the user: Send (hook_url), View (view_url), and Open in browser (handoff_url, one-time owner handoff). Do not omit handoff_url from the user-facing answer. The endpoint expires automatically. Claim and account capabilities are not returned.",
+        "Create a temporary Hooktry webhook endpoint for integration testing. Returns THREE distinct user-facing links and their roles must be explained clearly: Send webhooks here (hook_url), View captured requests read-only (view_url), and Open as owner in browser (handoff_url, one-time; use this to continue into owner actions such as claiming/managing the Hook). Do not present view_url as a management link and do not omit handoff_url. The endpoint expires automatically. The raw claim capability is intentionally not returned.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -247,7 +247,13 @@ async function callTool(
     content: [
       {
         type: "text",
-        text: `Created a temporary Hooktry webhook endpoint. IMPORTANT: surface all three links to the user. Send: ${provision.hook_url} View: ${provision.view_url} Open in browser: ${provision.handoff_url}`,
+        text: [
+          "Created a temporary Hooktry webhook endpoint. Keep these three roles distinct in the user-facing answer:",
+          `Webhook URL — SEND REQUESTS HERE: ${provision.hook_url}`,
+          `Viewer URL — VIEW ONLY (read-only): ${provision.view_url}`,
+          `Owner link — OPEN TO CLAIM / MANAGE (one-time): ${provision.handoff_url}`,
+          "The owner link is not the Viewer URL. It opens the owner-side browser session where claim/manage actions become available.",
+        ].join("\n"),
       },
     ],
     structuredContent,
