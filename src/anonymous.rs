@@ -1721,7 +1721,11 @@ mod tests {
             assert!(token.starts_with(prefix));
             let suffix = &token[prefix.len()..];
             assert_eq!(suffix.len(), 32);
-            assert!(suffix.chars().all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()));
+            assert!(
+                suffix
+                    .chars()
+                    .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+            );
         }
     }
 
