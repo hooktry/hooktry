@@ -247,12 +247,15 @@ export class ExposureRuntime {
     const summary = summaryFromRow(row, Math.floor(Date.now() / 1000));
     socket.send(JSON.stringify({ type: "ready", exposure: summary }));
 
+    const snapshot: AnonymousInteraction[] = [];
     let lastSequence = 0;
     for (const stored of await listInteractions(this.env, exposureId)) {
       const interaction = await interactionFromRow(stored, this.env.PAYLOADS);
-      socket.send(JSON.stringify({ type: "interaction", interaction }));
+      snapshot.push(interaction);
       lastSequence = interaction.sequence;
     }
+
+    socket.send(JSON.stringify({ type: "snapshot", interactions: snapshot }));
 
     while (true) {
       const pending = this.initializing.get(socket);
