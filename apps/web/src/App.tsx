@@ -382,7 +382,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar viewing={viewing} onNewHook={handleNewHook} />
       <main className="main">
         <Topbar viewing={viewing} />
 
@@ -450,7 +450,20 @@ export function App() {
   );
 }
 
-function Sidebar() {
+function Sidebar({
+  viewing,
+  onNewHook,
+}: {
+  viewing: boolean;
+  onNewHook: () => void;
+}) {
+  const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
+  const shortBuildSha = buildSha === "dev" ? buildSha : buildSha.slice(0, 7);
+  const buildHref =
+    buildSha === "dev"
+      ? null
+      : `https://github.com/hooktry/hooktry/commit/${buildSha}`;
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -463,7 +476,39 @@ function Sidebar() {
           <span>Hooks</span>
           <kbd>H</kbd>
         </button>
+
+        <div className="nav-section">Evidence</div>
+        <button className="nav-item nav-item-pending" type="button" disabled>
+          Recordings
+        </button>
+        <button className="nav-item nav-item-pending" type="button" disabled>
+          Replays
+        </button>
+        <button className="nav-item nav-item-pending" type="button" disabled>
+          Contracts
+        </button>
+        <button className="nav-item nav-item-pending" type="button" disabled>
+          Scenarios
+        </button>
       </nav>
+
+      <div className="sidebar-footer">
+        {viewing ? (
+          <button className="button secondary full" type="button" onClick={onNewHook}>
+            + New Hook
+          </button>
+        ) : null}
+
+        <div className="build-meta">
+          {buildHref ? (
+            <a href={buildHref} target="_blank" rel="noreferrer" title={buildSha}>
+              build {shortBuildSha}
+            </a>
+          ) : (
+            <span>build {shortBuildSha}</span>
+          )}
+        </div>
+      </div>
     </aside>
   );
 }
