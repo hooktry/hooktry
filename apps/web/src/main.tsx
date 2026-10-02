@@ -5,7 +5,7 @@ import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) {
-  throw new Error("HOOKTRY web root is missing");
+  throw new Error("Hooktry web root is missing");
 }
 
 createRoot(root).render(<App />);

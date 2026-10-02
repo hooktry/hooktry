@@ -123,7 +123,7 @@ The `hk_` Hook token therefore resolves to the Exposure's ingress capability. Do
 
 ## Cloudflare shape
 
-Cloudflare is the first managed-cloud deployment target, not an HOOKTRY domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.
+Cloudflare is the first managed-cloud deployment target, not an Hooktry domain dependency. The portable application boundary is defined in [PORTS1](portable-runtime-ports.md); D1, R2, Durable Objects, Queues, and Workers are adapters below that boundary.
 
 Anonymous Exposures must be data, not infrastructure objects.
 

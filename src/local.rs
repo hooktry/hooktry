@@ -39,10 +39,10 @@ struct LocalRuntime {
 pub async fn run_local_server(config: LocalServerConfig) -> Result<(), String> {
     let listener = tokio::net::TcpListener::bind(&config.bind)
         .await
-        .map_err(|error| format!("bind HOOKTRY local server: {error}"))?;
+        .map_err(|error| format!("bind Hooktry local server: {error}"))?;
     let socket = listener
         .local_addr()
-        .map_err(|error| format!("read HOOKTRY local socket: {error}"))?;
+        .map_err(|error| format!("read Hooktry local socket: {error}"))?;
     let public_base_url = local_public_base_url(socket);
     let runtime = local_runtime(&config.db_path, &public_base_url)?;
 
@@ -56,9 +56,9 @@ pub async fn run_local_server(config: LocalServerConfig) -> Result<(), String> {
         }
     });
 
-    println!("HOOKTRY local UI: {public_base_url}");
-    println!("HOOKTRY local API: {public_base_url}/api/v1/hooks");
-    println!("HOOKTRY local data: {}", config.db_path.display());
+    println!("Hooktry local UI: {public_base_url}");
+    println!("Hooktry local API: {public_base_url}/api/v1/hooks");
+    println!("Hooktry local data: {}", config.db_path.display());
 
     if config.open_browser {
         let url = public_base_url.clone();
@@ -73,7 +73,7 @@ pub async fn run_local_server(config: LocalServerConfig) -> Result<(), String> {
 
     axum::serve(listener, runtime.router)
         .await
-        .map_err(|error| format!("serve HOOKTRY local server: {error}"))
+        .map_err(|error| format!("serve Hooktry local server: {error}"))
 }
 
 pub fn local_app(db_path: &Path, public_base_url: &str) -> Result<Router, String> {
@@ -83,11 +83,11 @@ pub fn local_app(db_path: &Path, public_base_url: &str) -> Result<Router, String
 fn local_runtime(db_path: &Path, public_base_url: &str) -> Result<LocalRuntime, String> {
     let state = AppState {
         store: InteractionStore::open(db_path)
-            .map_err(|error| format!("open HOOKTRY evidence database: {error}"))?,
+            .map_err(|error| format!("open Hooktry evidence database: {error}"))?,
         ..AppState::default()
     };
     let anonymous_store = AnonymousExposureStore::open(db_path)
-        .map_err(|error| format!("open HOOKTRY anonymous Hook database: {error:?}"))?;
+        .map_err(|error| format!("open Hooktry anonymous Hook database: {error:?}"))?;
     let anonymous = AnonymousExposureService::new(anonymous_store, public_base_url);
     let router = api_app(state)
         .merge(anonymous_app(

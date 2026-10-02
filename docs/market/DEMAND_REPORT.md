@@ -1,7 +1,7 @@
 # Hooktry MCIF demand report
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.3 DEMAND
+DWC: MCIF/Hooktry.3 DEMAND
 
 This pass asks a different question from the competitor matrix:
 

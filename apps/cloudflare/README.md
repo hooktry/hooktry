@@ -1,12 +1,12 @@
-# HOOKTRY Cloudflare adapter
+# Hooktry Cloudflare adapter
 
-This app is the first managed-cloud implementation of the portable HOOKTRY runtime contracts.
+This app is the first managed-cloud implementation of the portable Hooktry runtime contracts.
 
-It is an adapter, not the HOOKTRY domain model.
+It is an adapter, not the Hooktry domain model.
 
 ## Runtime mapping
 
-| HOOKTRY capability | Cloudflare adapter |
+| Hooktry capability | Cloudflare adapter |
 | --- | --- |
 | anonymous Exposure metadata / capability index | D1 |
 | request bodies | R2 |
@@ -52,9 +52,9 @@ npm run check
 
 Production deployment is intentionally explicit and runs through the GitHub Actions **Deploy Cloudflare** workflow using the GitHub `production` environment.
 
-This is an architectural boundary, not a temporary convenience: GitHub Actions is the canonical HOOKTRY deployment orchestrator, while Cloudflare is a deployment provider. Provider-native CI/CD may be added later for narrow provider-specific value, but must not become a second independent production deployment authority. See `docs/rfc/deployment-orchestration.md`.
+This is an architectural boundary, not a temporary convenience: GitHub Actions is the canonical Hooktry deployment orchestrator, while Cloudflare is a deployment provider. Provider-native CI/CD may be added later for narrow provider-specific value, but must not become a second independent production deployment authority. See `docs/rfc/deployment-orchestration.md`.
 
-Ordinary deployment is deliberately **not** infrastructure bootstrap. It uses the checked-in `wrangler.production.jsonc`, which identifies the already-provisioned HOOKTRY Worker, D1 database, and R2 bucket. Resource identifiers are deployment configuration, not credentials.
+Ordinary deployment is deliberately **not** infrastructure bootstrap. It uses the checked-in `wrangler.production.jsonc`, which identifies the already-provisioned Hooktry Worker, D1 database, and R2 bucket. Resource identifiers are deployment configuration, not credentials.
 
 The ordinary workflow:
 
@@ -79,7 +79,7 @@ The GitHub `production` environment contains:
 
 `GITHUB_CLIENT_SECRET` is installed into the Worker by the separate manual **Configure Cloudflare Auth** workflow. Ordinary deploys pass `GITHUB_CLIENT_ID` as a Worker variable and never rewrite the OAuth secret.
 
-The long-lived Cloudflare deployment token should use **Editor**, not Admin, and should be scoped to the existing HOOKTRY resources wherever Cloudflare offers resource scope:
+The long-lived Cloudflare deployment token should use **Editor**, not Admin, and should be scoped to the existing Hooktry resources wherever Cloudflare offers resource scope:
 
 - Worker `hooktry-cloudflare`
 - D1 database `hooktry-cloudflare`
@@ -105,7 +105,7 @@ The bootstrap workflow:
 
 This separation prevents ordinary CI/CD from retaining resource-creation/deletion authority.
 
-The initial acceptance endpoint uses the account Workers subdomain. Custom HOOKTRY domains are a separate networking slice after the runtime proof is green.
+The initial acceptance endpoint uses the account Workers subdomain. Custom Hooktry domains are a separate networking slice after the runtime proof is green.
 
 ## GitHub authentication
 

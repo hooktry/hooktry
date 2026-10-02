@@ -17,7 +17,7 @@ The raw TCP adapter remains useful for local tests and debugging, but a hosted p
   +-- WS   /_hooktry/runtime/:exposure_id
 ```
 
-With TLS termination in front of HOOKTRY, the runtime uses `wss://`.
+With TLS termination in front of Hooktry, the runtime uses `wss://`.
 
 ## Authentication
 
@@ -49,4 +49,4 @@ The adapter is transport, not a second domain model.
 
 ## Production boundary
 
-HOSTED2 makes standard HTTPS/WSS deployment possible, but does not itself provision certificates or DNS. A deployment platform, reverse proxy, or edge network terminates TLS and forwards the WebSocket upgrade to HOOKTRY.
+HOSTED2 makes standard HTTPS/WSS deployment possible, but does not itself provision certificates or DNS. A deployment platform, reverse proxy, or edge network terminates TLS and forwards the WebSocket upgrade to Hooktry.

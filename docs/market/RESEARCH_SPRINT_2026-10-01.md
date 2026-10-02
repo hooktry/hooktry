@@ -1,7 +1,7 @@
 # Hooktry MCIF research sprint 1
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.9 RESEARCH
+DWC: MCIF/Hooktry.9 RESEARCH
 
 ## Goal
 

@@ -1,7 +1,7 @@
 # Hooktry MCIF depth report - primary webhook cohort
 
 Checked: 2026-10-01
-DWC: MCIF/HOOKTRY.2 DEPTH
+DWC: MCIF/Hooktry.2 DEPTH
 
 This report compares where primary-cohort products go deep. It intentionally does not calculate an aggregate score.
 

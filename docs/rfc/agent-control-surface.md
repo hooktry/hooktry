@@ -79,7 +79,7 @@ The same request JSON file can be reused for create and execute. CONTROL1 canoni
 
 ## Credential boundary
 
-Hosted agent surfaces never accept HOOKTRY credentials as command-line arguments or MCP tool arguments.
+Hosted agent surfaces never accept Hooktry credentials as command-line arguments or MCP tool arguments.
 
 The process environment provides authority:
 
@@ -96,7 +96,7 @@ approval_decide
 
 Merely discovering `approval_decide` through `tools/list` does not grant approval authority.
 
-An operator may intentionally configure both credentials in one MCP process, but HOOKTRY does not silently combine them.
+An operator may intentionally configure both credentials in one MCP process, but Hooktry does not silently combine them.
 
 ## Errors
 

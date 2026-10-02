@@ -13,9 +13,9 @@ Implementation status:
 
 ## Summary
 
-HOOKTRY's source of truth is boundary evidence: what actually crossed an external integration boundary.
+Hooktry's source of truth is boundary evidence: what actually crossed an external integration boundary.
 
-As HOOKTRY grows from single interaction assertions into multi-interaction scenarios, it needs enough normalized context to relate evidence without becoming an observability backend, workflow engine, message broker, or application transaction coordinator.
+As Hooktry grows from single interaction assertions into multi-interaction scenarios, it needs enough normalized context to relate evidence without becoming an observability backend, workflow engine, message broker, or application transaction coordinator.
 
 The governing order is:
 
@@ -43,7 +43,7 @@ Normalized context must never replace the captured request/response evidence tha
 
 A Scenario can already assert a replayed interaction by operation and payload. The next obvious features are cardinality, ordering, waiting, and retries.
 
-Those features become much more useful if HOOKTRY can distinguish:
+Those features become much more useful if Hooktry can distinguish:
 
 - two unrelated requests from two retries of one logical operation,
 - interactions that belong to the same business flow,
@@ -56,7 +56,7 @@ Without that layer, `count = 2` is ambiguous. It may mean a duplicate side effec
 
 ## Non-goals
 
-This RFC does not make HOOKTRY:
+This RFC does not make Hooktry:
 
 - an OpenTelemetry backend,
 - a logging backend,
@@ -67,13 +67,13 @@ This RFC does not make HOOKTRY:
 - a transactional outbox implementation,
 - a distributed transaction coordinator.
 
-HOOKTRY may consume identifiers or references from those systems when they improve evidence interpretation.
+Hooktry may consume identifiers or references from those systems when they improve evidence interpretation.
 
 ## Canonical evidence versus normalized context
 
 Raw or near-raw request and response data remains part of `Interaction.request` and `Interaction.response`.
 
-For HTTP this includes headers even when HOOKTRY also extracts normalized identifiers from them.
+For HTTP this includes headers even when Hooktry also extracts normalized identifiers from them.
 
 Example:
 
@@ -180,9 +180,9 @@ Extraction must be deterministic and conservative:
 
 ### W3C `traceparent`
 
-HOOKTRY should parse the W3C `traceparent` format conservatively.
+Hooktry should parse the W3C `traceparent` format conservatively.
 
-The incoming parent ID is not an HOOKTRY span ID. HOOKTRY has not created a tracing span merely by observing traffic.
+The incoming parent ID is not an Hooktry span ID. Hooktry has not created a tracing span merely by observing traffic.
 
 Therefore CTX1 stores:
 
@@ -211,11 +211,11 @@ A → B → C
 
 They should not be conflated.
 
-Headers such as `x-causation-id` may provide application-level causation identifiers. Later HOOKTRY may also add first-class evidence links.
+Headers such as `x-causation-id` may provide application-level causation identifiers. Later Hooktry may also add first-class evidence links.
 
 ## Provenance and links
 
-HOOKTRY already has one provenance relation:
+Hooktry already has one provenance relation:
 
 ```text
 replayed Interaction
@@ -246,7 +246,7 @@ Potential future relation types:
 
 ## Attempts and retries
 
-Retries are a behavior HOOKTRY should eventually describe rather than hide.
+Retries are a behavior Hooktry should eventually describe rather than hide.
 
 Example:
 
@@ -266,7 +266,7 @@ Future retry-aware assertions may use correlation/idempotency context to group a
 - retry delay/order,
 - duplicate logical side effects.
 
-Do not add an `attempt` field until HOOKTRY has a reliable grouping rule or an explicit source that provides attempt identity.
+Do not add an `attempt` field until Hooktry has a reliable grouping rule or an explicit source that provides attempt identity.
 
 ## Identity, content, execution, causality, provenance
 
@@ -323,11 +323,11 @@ A later OTEL adapter may attach or reference information such as:
 - job name
 - database/system attributes
 
-HOOKTRY must remain useful when OTEL is absent or broken.
+Hooktry must remain useful when OTEL is absent or broken.
 
 ## Logs
 
-HOOKTRY should not become Loki, Datadog, or another log store.
+Hooktry should not become Loki, Datadog, or another log store.
 
 A later enrichment layer may attach references to relevant logs or runtime evidence using correlation/trace identity.
 
@@ -341,7 +341,7 @@ They may become useful for performance or resilience assertions later, but shoul
 
 ## Transactional outbox
 
-HOOKTRY should not implement a transactional outbox.
+Hooktry should not implement a transactional outbox.
 
 The outbox is an application reliability pattern:
 
@@ -355,7 +355,7 @@ publisher / worker
 external side effect
 ```
 
-HOOKTRY is, however, well positioned to test the externally observable behavior that the pattern is intended to guarantee.
+Hooktry is, however, well positioned to test the externally observable behavior that the pattern is intended to guarantee.
 
 Example future Scenario:
 
@@ -373,7 +373,7 @@ one logical external side effect
 
 This makes correlation, idempotency identity, cardinality, and retry-aware assertions complementary features.
 
-HOOKTRY may later gain adapters that observe an outbox table or message broker, but those are evidence sources, not an outbox implementation.
+Hooktry may later gain adapters that observe an outbox table or message broker, but those are evidence sources, not an outbox implementation.
 
 ## Metadata and attributes
 
@@ -448,7 +448,7 @@ The declaration order defines the expected partial sequence of matching groups. 
 
 ORDER1 is based on a durable monotonic persistence sequence, not `started_at`, UUID ordering, or wall-clock comparison. SQLite keeps that sequence in an internal `interaction_order` table. Existing local databases are backfilled once from SQLite insertion order; all new interactions persist their evidence row and order row atomically.
 
-SEQ1 exposes that same value as `Interaction.observed_sequence`. The field is additive/optional in serialized legacy payloads, but every Interaction read from an HOOKTRY store is hydrated with its sequence. UUIDv7 remains the canonical globally unique Interaction identity and is useful for approximate time locality; it is not treated as the strict observation-order contract. Replays receive a new observed sequence because they are new evidence records, while `source_interaction_id` preserves lineage to the original evidence.
+SEQ1 exposes that same value as `Interaction.observed_sequence`. The field is additive/optional in serialized legacy payloads, but every Interaction read from an Hooktry store is hydrated with its sequence. UUIDv7 remains the canonical globally unique Interaction identity and is useful for approximate time locality; it is not treated as the strict observation-order contract. Replays receive a new observed sequence because they are new evidence records, while `source_interaction_id` preserves lineage to the original evidence.
 
 The outcome contains the observed source interaction IDs and explicit violating pairs. This is observable boundary order only; it does not claim application-level causality. Missing groups do not invent an order relation.
 
@@ -513,7 +513,7 @@ Implement now:
 Explicitly defer:
 
 - generic provenance links,
-- generated HOOKTRY span IDs,
+- generated Hooktry span IDs,
 - OTEL SDK/collector dependency,
 - log ingestion,
 - metrics,
@@ -532,7 +532,7 @@ Explicitly defer:
                        └─ provider adapters
                                 │
                                 ▼
-application → HOOKTRY boundary → Interaction
+application → Hooktry boundary → Interaction
                                 │
                     ┌───────────┴───────────┐
                     ▼                       ▼
@@ -552,4 +552,4 @@ application → HOOKTRY boundary → Interaction
                                          CI decision
 ```
 
-This keeps HOOKTRY focused on testable external behavior while leaving room for richer distributed-system reasoning later.
+This keeps Hooktry focused on testable external behavior while leaving room for richer distributed-system reasoning later.

@@ -60,7 +60,7 @@ async fn assert_discovery_surfaces(base_url: &str) {
         "text/plain; charset=utf-8"
     );
     let llms = llms.text().await.unwrap();
-    assert!(llms.contains("# HOOKTRY"));
+    assert!(llms.contains("# Hooktry"));
     assert!(llms.contains("MCP"));
     assert!(llms.contains("/skills/hooktry/SKILL.md"));
     assert!(!llms.contains("hooktry_super_secret"));
@@ -71,7 +71,7 @@ async fn assert_discovery_surfaces(base_url: &str) {
     assert!(full.status().is_success());
     let full = full.text().await.unwrap();
     assert!(full.contains("# Canonical README"));
-    assert!(full.contains("# HOOKTRY Agent Skill"));
+    assert!(full.contains("# Hooktry Agent Skill"));
     assert!(full.contains("A programmable integration boundary"));
 
     let skill = reqwest::get(format!("{base_url}/skills/hooktry/SKILL.md"))

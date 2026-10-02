@@ -33,7 +33,7 @@ This is the same shape an agent can consume without scraping terminal prose.
 
 ## Verification
 
-Unless `--no-verify` is supplied, the CLI requests `/_hooktry_verify` through the newly created exposure. Verification is fail-closed: only a successful response from the target through the HOOKTRY Boundary produces `verified: true`.
+Unless `--no-verify` is supplied, the CLI requests `/_hooktry_verify` through the newly created exposure. Verification is fail-closed: only a successful response from the target through the Hooktry Boundary produces `verified: true`.
 
 Creating the exposure and verifying the target are separate facts. A target without that route can therefore produce a valid exposure with `verified: false`.
 
@@ -49,6 +49,6 @@ All successful commands emit JSON.
 
 ## Hosted relay
 
-ACCESS3-6 already provide the relay transport, authenticated runtime registration, HTTP ingress, and resilience primitives. This CLI slice does not claim a hosted HOOKTRY relay exists. Wiring these primitives to a real deployment requires a control-plane endpoint that provisions relay exposure + capability and a TLS-protected relay address.
+ACCESS3-6 already provide the relay transport, authenticated runtime registration, HTTP ingress, and resilience primitives. This CLI slice does not claim a hosted Hooktry relay exists. Wiring these primitives to a real deployment requires a control-plane endpoint that provisions relay exposure + capability and a TLS-protected relay address.
 
 That deployment can extend this CLI without changing the Exposure, Boundary, Interaction, or structured-output model.

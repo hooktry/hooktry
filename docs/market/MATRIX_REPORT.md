@@ -1,7 +1,7 @@
 # Hooktry MCIF capability matrix
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.4 MATRIX
+DWC: MCIF/Hooktry.4 MATRIX
 
 This is a decision projection over the canonical market evidence. It is **not** an overall product score.
 

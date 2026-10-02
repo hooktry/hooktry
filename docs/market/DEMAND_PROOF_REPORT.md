@@ -1,7 +1,7 @@
 # Hooktry MCIF demand proof: temporal and causal failures
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.12 DEMAND-PROOF
+DWC: MCIF/Hooktry.12 DEMAND-PROOF
 
 ## Question
 

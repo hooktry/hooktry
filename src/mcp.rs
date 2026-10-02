@@ -205,7 +205,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "interactions_list",
-            "List canonical HOOKTRY interaction evidence.",
+            "List canonical Hooktry interaction evidence.",
             json!({}),
         ),
         tool(
@@ -248,7 +248,7 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "contract_assert",
-            "Assert one captured interaction against a persisted HOOKTRY contract.",
+            "Assert one captured interaction against a persisted Hooktry contract.",
             json!({
                 "contract_id": {"type": "string", "format": "uuid"},
                 "interaction_id": {"type": "string", "format": "uuid"}
@@ -525,7 +525,7 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
         "GET" => client.get(url),
         "POST" => client.post(url),
         "DELETE" => client.delete(url),
-        _ => return Err(format!("unsupported HOOKTRY API method: {method}")),
+        _ => return Err(format!("unsupported Hooktry API method: {method}")),
     };
     let request = if let Some(body) = body {
         request
@@ -540,11 +540,11 @@ async fn api_json(method: &str, url: &str, body: Option<Value>) -> Result<Value,
     let body = response.text().await.map_err(|error| error.to_string())?;
     if !status.is_success() {
         return Ok(tool_error(format!(
-            "HOOKTRY API returned HTTP {status}: {body}"
+            "Hooktry API returned HTTP {status}: {body}"
         )));
     }
 
-    serde_json::from_str(&body).map_err(|error| format!("invalid HOOKTRY API JSON: {error}"))
+    serde_json::from_str(&body).map_err(|error| format!("invalid Hooktry API JSON: {error}"))
 }
 
 fn tool_success(value: Value) -> Result<Value, String> {

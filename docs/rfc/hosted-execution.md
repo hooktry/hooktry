@@ -3,7 +3,7 @@
 Status: executable vertical slice  
 Tracking: #77, #87, #97
 
-HOOKTRY can actively initiate a bounded HTTP Interaction from its hosted boundary and return structured Evidence.
+Hooktry can actively initiate a bounded HTTP Interaction from its hosted boundary and return structured Evidence.
 
 ```text
 Workspace credential
@@ -110,7 +110,7 @@ Raw secret values are resolved only inside the executor and are never added to r
 
 ## Provider boundary
 
-The domain is not Render-specific. The first hosted executor runs inside the existing HOOKTRY process on Render. Future providers can execute the same Request/Evidence contract in isolated workers, Cloudflare, BYOC, or other runtimes.
+The domain is not Render-specific. The first hosted executor runs inside the existing Hooktry process on Render. Future providers can execute the same Request/Evidence contract in isolated workers, Cloudflare, BYOC, or other runtimes.
 
 Cloudflare's `@cloudflare/computer` is being evaluated separately as a broader sandbox/runtime substrate. It must not silently widen the HTTP-specific authority of EXEC1. See [Cloudflare Computer research](../research/cloudflare-computer.md).
 
@@ -118,10 +118,10 @@ Cloudflare's `@cloudflare/computer` is being evaluated separately as a broader s
 
 The intended first production proof is:
 
-1. execute HOOKTRY's public one-time bootstrap endpoint
+1. execute Hooktry's public one-time bootstrap endpoint
 2. capture `/credential/token` as a SecretRef
 3. ensure Evidence contains only `[REDACTED]`
-4. persist the capture with an allowed origin equal to the issuing HOOKTRY origin
+4. persist the capture with an allowed origin equal to the issuing Hooktry origin
 5. use the captured SecretRef as Authorization for a hosted Exposure request to that origin
 6. prove the same SecretRef is denied for a different origin before any request is sent
 7. return only non-secret Exposure evidence to the agent

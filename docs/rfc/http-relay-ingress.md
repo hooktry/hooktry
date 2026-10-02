@@ -18,7 +18,7 @@ RelayBroker
 persistent TCP runtime connection
         |
         v
-HOOKTRY Boundary
+Hooktry Boundary
         |
         v
 localhost target
@@ -44,7 +44,7 @@ The ACCESS4 integration test uses two real listeners:
 1. an HTTP ingress listener accepting the external request;
 2. a TCP relay listener carrying the request to the runtime.
 
-The runtime then invokes the existing HOOKTRY Boundary against an ephemeral localhost target. The target response travels all the way back to the original HTTP client and the local runtime stores the Interaction evidence.
+The runtime then invokes the existing Hooktry Boundary against an ephemeral localhost target. The target response travels all the way back to the original HTTP client and the local runtime stores the Interaction evidence.
 
 ## Still intentionally outside this slice
 

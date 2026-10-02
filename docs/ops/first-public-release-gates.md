@@ -2,7 +2,7 @@
 
 DWC: PROD/RELEASE1.1 RELEASE1 - first public release acceptance
 
-This is the currently known production gate list for HOOKTRY's first public release. It is intentionally short and evidence-driven. A checked item means the production behavior has been proven, not merely implemented.
+This is the currently known production gate list for Hooktry's first public release. It is intentionally short and evidence-driven. A checked item means the production behavior has been proven, not merely implemented.
 
 ## Release candidate
 

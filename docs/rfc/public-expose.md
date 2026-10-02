@@ -7,7 +7,7 @@ HOSTED5 turns hosted relay primitives into the user-facing public exposure flow.
 
 ## User workflow
 
-Run the local HOOKTRY daemon:
+Run the local Hooktry daemon:
 
 ```sh
 hooktry serve

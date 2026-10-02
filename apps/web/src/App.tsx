@@ -339,7 +339,7 @@ function Sidebar({
     <aside className="sidebar">
       <div className="brand">
         <span className="brand-mark">O</span>
-        <span>HOOKTRY</span>
+        <span>Hooktry</span>
       </div>
 
       <nav className="nav">

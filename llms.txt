@@ -1,6 +1,6 @@
-# HOOKTRY
+# Hooktry
 
-> HOOKTRY is a programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
+> Hooktry is a programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
 
 ## Canonical interfaces
 
@@ -14,12 +14,12 @@
 - Boundary - executable edge between an application and an external dependency.
 - Session - runtime grouping of related interactions.
 - Interaction - canonical evidence of what crossed a Boundary.
-- Exposure - controlled reachability through an HOOKTRY Boundary.
+- Exposure - controlled reachability through an Hooktry Boundary.
 - Recording - immutable captured evidence for replay.
 - Contract - assertions over observed interactions.
 - Scenario - reusable setup + evidence + replay + assertion workflow.
 
-Do not model HOOKTRY as a VM, Devbox, sandbox, or generic tunnel provider. Compute providers are implementation details behind execution/runtime boundaries.
+Do not model Hooktry as a VM, Devbox, sandbox, or generic tunnel provider. Compute providers are implementation details behind execution/runtime boundaries.
 
 ## Default agent workflow
 
@@ -35,14 +35,14 @@ Use MCP when available because `tools/list` is the authoritative machine-readabl
 
 ## Security invariants
 
-- Never print, return, log, or paste raw HOOKTRY tokens, runtime capabilities, or captured secret values.
+- Never print, return, log, or paste raw Hooktry tokens, runtime capabilities, or captured secret values.
 - Prefer typed `hooktry://secrets/...` SecretRefs for hosted execution.
 - Typed SecretRefs are workspace-scoped and bound to an allowed HTTP origin; wrong-origin use fails closed.
 - Ordinary public relay Exposure URLs are reachability, not authentication credentials.
 - Anonymous Exposure hook, view, and claim URLs are separate bearer capabilities. Treat all three as secrets and never substitute one for another.
 - Runtime capabilities are separate, short-lived credentials for a specific Exposure.
 - Hosted outbound execution permits bounded HTTP/HTTPS only and rejects unsafe destinations and redirects.
-- Do not bypass HOOKTRY policy by reaching directly into secret storage or provider-specific infrastructure.
+- Do not bypass Hooktry policy by reaching directly into secret storage or provider-specific infrastructure.
 
 ## Approval-gated hosted execution
 
@@ -56,7 +56,7 @@ The asking/acting/query credential comes from `HOOKTRY_TOKEN` and needs `request
 
 Hosted execution distinguishes:
 - succeeded - structured ExecutionEvidence exists;
-- rejected - HOOKTRY rejected the attempted action under its request/security contract;
+- rejected - Hooktry rejected the attempted action under its request/security contract;
 - failed - provider/runtime work did not produce valid successful evidence.
 
 Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provider kind, and lifecycle timestamps. Hosted executions are durable: query `GET /_hooktry/hosted/executions/{execution_id}` with `requests:execute`. A durable `started` record means no terminal proof was committed yet; it does not imply the attempt is still running.
@@ -81,6 +81,6 @@ Every recorded execution attempt has a UUIDv7 execution_id, workspace_id, provid
 
 ## Agent skill
 
-Read `/skills/hooktry/SKILL.md` on an HOOKTRY HTTP service, or `skills/hooktry/SKILL.md` in the repository.
+Read `/skills/hooktry/SKILL.md` on an Hooktry HTTP service, or `skills/hooktry/SKILL.md` in the repository.
 
 For a longer self-contained projection, read `/llms-full.txt`.

@@ -61,4 +61,4 @@ These are deliberately separate authorities.
 
 ## Next
 
-The next slice can safely connect the local HOOKTRY daemon/CLI to the hosted provisioning API. Longer-term workspace identity can replace the single control token without changing the runtime capability model.
+The next slice can safely connect the local Hooktry daemon/CLI to the hosted provisioning API. Longer-term workspace identity can replace the single control token without changing the runtime capability model.

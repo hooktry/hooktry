@@ -1,7 +1,7 @@
 # Hooktry MCIF first-party proof loop
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.13 FIRST-PARTY-PROOF
+DWC: MCIF/Hooktry.13 FIRST-PARTY-PROOF
 
 ## Goal
 

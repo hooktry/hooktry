@@ -139,10 +139,10 @@ impl HostedClient {
         let body = response.text().await.map_err(|error| error.to_string())?;
 
         if !status.is_success() {
-            return Err(format!("HOOKTRY hosted API returned HTTP {status}: {body}"));
+            return Err(format!("Hooktry hosted API returned HTTP {status}: {body}"));
         }
 
         serde_json::from_str(&body)
-            .map_err(|error| format!("invalid HOOKTRY hosted API JSON: {error}"))
+            .map_err(|error| format!("invalid Hooktry hosted API JSON: {error}"))
     }
 }

@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-HOOKTRY is a programmable boundary between an application and its external dependencies.
+Hooktry is a programmable boundary between an application and its external dependencies.
 
 It is intentionally not a general observability platform. The core must work without OpenTelemetry or application instrumentation.
 
@@ -26,9 +26,9 @@ A portable collection of captured interactions suitable for deterministic replay
 Selectors and assertions over interactions and their temporal relationships.
 
 ### Exposure
-A routable access path into a Boundary. Exposure makes a local or isolated service reachable while preserving access policy and ensuring that traffic still crosses an HOOKTRY Boundary and becomes Interaction evidence.
+A routable access path into a Boundary. Exposure makes a local or isolated service reachable while preserving access policy and ensuring that traffic still crosses an Hooktry Boundary and becomes Interaction evidence.
 
-Exposure is deliberately not a generic tunneling primitive. Reachability belongs in HOOKTRY only when it participates in the same Observe -> Control -> Replay -> Assert lifecycle.
+Exposure is deliberately not a generic tunneling primitive. Reachability belongs in Hooktry only when it participates in the same Observe -> Control -> Replay -> Assert lifecycle.
 
 See [Service Access and Exposures](rfc/service-access.md).
 
@@ -50,7 +50,7 @@ This proves the canonical evidence path before persistence, UI, replay, assertio
 
 ## Extension rule
 
-An adapter belongs in HOOKTRY when it meaningfully supports the same lifecycle: Observe -> Control -> Replay -> Assert.
+An adapter belongs in Hooktry when it meaningfully supports the same lifecycle: Observe -> Control -> Replay -> Assert.
 
 Candidate semantic boundaries include HTTP, SMTP, gRPC, feature flags via OpenFeature/provider hooks, queues, object storage, identity, notifications, and LLM calls.
 

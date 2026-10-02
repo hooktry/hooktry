@@ -3,7 +3,7 @@
 Status: executable vertical slice  
 Tracking: #108
 
-HOOKTRY can now separate asking for an action, deciding whether it may run, executing that exact action, and returning execution proof.
+Hooktry can now separate asking for an action, deciding whether it may run, executing that exact action, and returning execution proof.
 
 ```text
 Agent credential: requests:execute
@@ -31,9 +31,9 @@ ExecutionRecord
 ApprovedExecution { approval, execution }
 ```
 
-## Why this belongs in HOOKTRY
+## Why this belongs in Hooktry
 
-CONTROL1 governs an HOOKTRY action at the Boundary. It does not model VM ownership, job scheduling, workflow DAGs, or a generic human-task system.
+CONTROL1 governs an Hooktry action at the Boundary. It does not model VM ownership, job scheduling, workflow DAGs, or a generic human-task system.
 
 The approval is a narrow capability for one exact hosted HTTP execution attempt.
 

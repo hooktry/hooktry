@@ -3,7 +3,7 @@
 Status: executable vertical slice  
 Tracking: #89
 
-DOGFOOD1 proves that HOOKTRY can use its own durable bootstrap credential without returning the raw credential to a human, HTTP client, log, or agent.
+DOGFOOD1 proves that Hooktry can use its own durable bootstrap credential without returning the raw credential to a human, HTTP client, log, or agent.
 
 ```text
 Render startup
@@ -52,13 +52,13 @@ Logs contain only the Exposure ID, public URL, target port, and whether the reco
 
 ## Idempotence and readiness
 
-Before provisioning, HOOKTRY checks the Workspace's durable Exposure records. A matching Exposure is reused only when the encrypted `dogfood-runtime-capability` still authorizes that exact Exposure. Stale same-name records and capabilities are revoked before reprovisioning.
+Before provisioning, Hooktry checks the Workspace's durable Exposure records. A matching Exposure is reused only when the encrypted `dogfood-runtime-capability` still authorizes that exact Exposure. Stale same-name records and capabilities are revoked before reprovisioning.
 
 A new deployment can begin before its public URL is ready to accept the self-request. Provisioning therefore performs a bounded readiness retry: at most 20 attempts with 500 ms between attempts.
 
 ## DOGFOOD2 data-plane proof
 
-With `HOOKTRY_DOGFOOD_EXPOSURE_PORT=self`, HOOKTRY:
+With `HOOKTRY_DOGFOOD_EXPOSURE_PORT=self`, Hooktry:
 
 1. resolves the captured runtime capability only inside the hosted process
 2. attaches a WebSocket runtime to the same process over a loopback runtime URL
@@ -113,7 +113,7 @@ The startup acceptance performs:
 12. durable query - fetch `/_hooktry/hosted/executions/{execution_id}` and require its terminal projection to equal the immediate execution proof
 13. replay proof - reuse the consumed approval and require `approval_consumed`
 
-Before the control-plane proof begins, HOOKTRY waits until public `/healthz.revision` matches the current `RENDER_GIT_COMMIT`. The ask step still has a bounded readiness retry. Together these prevent a Render rolling cutover from accidentally proving an older revision.
+Before the control-plane proof begins, Hooktry waits until public `/healthz.revision` matches the current `RENDER_GIT_COMMIT`. The ask step still has a bounded readiness retry. Together these prevent a Render rolling cutover from accidentally proving an older revision.
 
 The proof never resolves the API token into logs, generated evidence, or agent context. Every outer control request materializes the operator credential from its destination-bound SecretRef only inside `HttpExecutionProvider`.
 

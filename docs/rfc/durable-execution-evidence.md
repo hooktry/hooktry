@@ -3,11 +3,11 @@
 Status: executable vertical slice  
 Tracking: #113
 
-EXEC5 makes the EXEC4 lifecycle durable and queryable without turning HOOKTRY into a workflow engine.
+EXEC5 makes the EXEC4 lifecycle durable and queryable without turning Hooktry into a workflow engine.
 
 ## Contract
 
-Before provider work starts, HOOKTRY persists a narrow lifecycle reservation:
+Before provider work starts, Hooktry persists a narrow lifecycle reservation:
 
 ```text
 DurableExecutionRecord
@@ -95,7 +95,7 @@ complete durable execution
 
 This means that once an ApprovalRecord is durably `consumed` and contains an `execution_id`, a durable execution reservation with that identity already exists.
 
-If approval consumption fails because the request is pending, denied, consumed, mismatched, or belongs to another Workspace, HOOKTRY best-effort discards the unlinked `started` reservation.
+If approval consumption fails because the request is pending, denied, consumed, mismatched, or belongs to another Workspace, Hooktry best-effort discards the unlinked `started` reservation.
 
 ## Crash semantics
 
@@ -103,9 +103,9 @@ If approval consumption fails because the request is pending, denied, consumed, 
 
 It means only:
 
-> HOOKTRY durably reserved/admitted this execution identity, but no terminal proof was committed.
+> Hooktry durably reserved/admitted this execution identity, but no terminal proof was committed.
 
-This distinction matters after a process crash. HOOKTRY does not guess whether the external side effect happened.
+This distinction matters after a process crash. Hooktry does not guess whether the external side effect happened.
 
 A crash after approval consumption but before terminal persistence therefore leaves useful, honest evidence:
 

@@ -5,7 +5,7 @@ Checked: 2026-10-01
 
 ## Decision
 
-The HOOKTRY native binary embeds the compiled WEB1 React application and serves it from the same local process as the native API.
+The Hooktry native binary embeds the compiled WEB1 React application and serves it from the same local process as the native API.
 
 ~~~text
 hooktry

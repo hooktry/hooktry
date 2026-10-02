@@ -16,7 +16,7 @@ TCP relay adapter
     | persistent connection initiated by runtime
     |
     v
-HOOKTRY runtime
+Hooktry runtime
     |
     v
 HTTP Boundary

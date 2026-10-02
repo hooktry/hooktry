@@ -1,12 +1,12 @@
-# HOOKTRY Web
+# Hooktry Web
 
-Shared React/Vite surface for HOOKTRY.
+Shared React/Vite surface for Hooktry.
 
-The browser application is intentionally deployment-provider neutral. It talks only to the canonical HOOKTRY HTTP/WebSocket contract and defaults to same-origin URLs.
+The browser application is intentionally deployment-provider neutral. It talks only to the canonical Hooktry HTTP/WebSocket contract and defaults to same-origin URLs.
 
 The same compiled bundle runs from:
 
-- HOOKTRY managed cloud
+- Hooktry managed cloud
 - the local Rust binary
 - a future Tauri shell
 
@@ -49,7 +49,7 @@ Session storage is a convenience, not authority on the server.
 
 ## Local development
 
-Run the native HOOKTRY runtime on port 7777, then:
+Run the native Hooktry runtime on port 7777, then:
 
 ~~~sh
 npm install

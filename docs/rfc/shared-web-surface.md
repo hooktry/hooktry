@@ -5,14 +5,14 @@ Checked: 2026-10-01
 
 ## Decision
 
-HOOKTRY has one browser application.
+Hooktry has one browser application.
 
-It is a React/Vite SPA that depends on canonical HOOKTRY API and WebSocket contracts, not on Cloudflare APIs, Tauri commands, or Rust internals.
+It is a React/Vite SPA that depends on canonical Hooktry API and WebSocket contracts, not on Cloudflare APIs, Tauri commands, or Rust internals.
 
 ~~~text
                     apps/web
                        |
-                canonical HOOKTRY API
+                canonical Hooktry API
                        |
         +--------------+--------------+
         |              |              |
@@ -27,7 +27,7 @@ The browser surface is therefore reusable across deployment profiles.
 
 WEB1 intentionally implements only the first useful Hook workflow:
 
-1. open HOOKTRY without an account
+1. open Hooktry without an account
 2. create an ephemeral Hook
 3. copy the public ingress URL
 4. connect to the read capability over WebSocket
@@ -93,7 +93,7 @@ For Cloudflare, Workers Static Assets serves the compiled bundle.
 
 For LOCAL1, the Rust binary serves the same compiled assets directly from the executable.
 
-For DESKTOP1, Tauri may wrap the same bundle. Native OS integration must stay a shell concern and must not fork HOOKTRY domain semantics.
+For DESKTOP1, Tauri may wrap the same bundle. Native OS integration must stay a shell concern and must not fork Hooktry domain semantics.
 
 ## Native local mapping
 

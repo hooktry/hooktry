@@ -1,7 +1,7 @@
 # Hooktry MCIF cross-project proof
 
 Checked: 2026-10-02  
-DWC: MCIF/HOOKTRY.16 CROSS-PROJECT-PROOF
+DWC: MCIF/Hooktry.16 CROSS-PROJECT-PROOF
 
 ## Question
 

@@ -1,7 +1,7 @@
 # Hooktry MCIF temporal-depth report
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.11 TEMPORAL-DEPTH
+DWC: MCIF/Hooktry.11 TEMPORAL-DEPTH
 
 ## Question
 

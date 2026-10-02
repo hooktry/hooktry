@@ -1,4 +1,4 @@
-# HOOKTRY
+# Hooktry
 
 A programmable integration boundary for observing, controlling, replaying, and verifying how software interacts with the outside world.
 
@@ -15,7 +15,7 @@ Early development. The first vertical slice focuses on an HTTP boundary and a ca
 - **Contract** - assertions over observed interactions.
 - **Scenario** - a reusable setup + evidence + replay + assertion definition that produces a persisted outcome.
 
-HOOKTRY is not an observability backend. OpenTelemetry may enrich HOOKTRY evidence, but HOOKTRY does not require application instrumentation.
+Hooktry is not an observability backend. OpenTelemetry may enrich Hooktry evidence, but Hooktry does not require application instrumentation.
 
 ## CLI
 
@@ -61,7 +61,7 @@ HOOKTRY_APPROVAL_WEBHOOK_URL='https://hooks.example/...' \
 hooktry hosted
 ```
 
-Deployment platforms may provide `PORT` instead of `HOOKTRY_BIND`. The hosted process exposes `/healthz` and `/_hooktry/health`. Production should set `HOOKTRY_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. When `HOOKTRY_APPROVAL_WEBHOOK_URL` is set together with `HOOKTRY_BOOTSTRAP_WORKSPACE`, HOOKTRY encrypts that URL in SecretStore and delivers durable pending-approval notifications through the CONTROL3 outbox. The raw webhook URL is not logged or returned. `HOOKTRY_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `HOOKTRY_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `HOOKTRY_DATABASE_URL` is set. Otherwise HOOKTRY falls back to SQLite via `HOOKTRY_HOSTED_DB_PATH`. The raw capability is never stored.
+Deployment platforms may provide `PORT` instead of `HOOKTRY_BIND`. The hosted process exposes `/healthz` and `/_hooktry/health`. Production should set `HOOKTRY_PUBLIC_BASE_URL` to the externally reachable HTTPS origin; runtime URLs are then provisioned as `wss://`. When `HOOKTRY_APPROVAL_WEBHOOK_URL` is set together with `HOOKTRY_BOOTSTRAP_WORKSPACE`, Hooktry encrypts that URL in SecretStore and delivers durable pending-approval notifications through the CONTROL3 outbox. The raw webhook URL is not logged or returned. `HOOKTRY_CONTROL_TOKEN` is required only for hosted bootstrap/admin operations. User-facing hosted Exposure APIs use workspace-scoped `HOOKTRY_TOKEN` credentials with `exposures:create`, `exposures:read`, and `exposures:revoke` scopes. Runtime registration uses a separate short-lived per-Exposure capability. Hosted Exposure metadata and capability digests use PostgreSQL when `HOOKTRY_DATABASE_URL` is set. Otherwise Hooktry falls back to SQLite via `HOOKTRY_HOSTED_DB_PATH`. The raw capability is never stored.
 
 Hosted secret encryption supports explicit master-key versions. `HOOKTRY_SECRETS_KEY` is the active 32-byte key encoded as 64 hexadecimal characters. `HOOKTRY_SECRETS_KEY_VERSION` defaults to `1`. During a rotation, keep older roots in `HOOKTRY_SECRETS_PREVIOUS_KEYS` as comma-separated `version:64hex` entries until retirement is proven:
 
@@ -85,13 +85,13 @@ Key maintenance reads the same `HOOKTRY_DATABASE_URL` or `HOOKTRY_HOSTED_DB_PATH
 
 ### MCP
 
-`hooktry mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, create/assert Contracts, and use the hosted approval/execution lifecycle without bypassing HOOKTRY's HTTP boundary.
+`hooktry mcp` starts a stdio MCP server backed by the same HTTP API. Agents can manage Exposure lifecycle, inspect canonical evidence, create/replay recordings, create/assert Contracts, and use the hosted approval/execution lifecycle without bypassing Hooktry's HTTP boundary.
 
 For hosted CONTROL1 + EXEC5 tools, configure the MCP process with `HOOKTRY_TOKEN` for ask/act/query authority. Configure `HOOKTRY_APPROVER_TOKEN` only when that process is intentionally allowed to approve or deny. `approval_decide` never falls back to `HOOKTRY_TOKEN`. Credentials are environment configuration, not MCP tool arguments.
 
 ### Agent discovery
 
-Both local and hosted HOOKTRY HTTP services publish agent-readable discovery surfaces:
+Both local and hosted Hooktry HTTP services publish agent-readable discovery surfaces:
 
 - `/llms.txt` - concise product, interface, and safety index.
 - `/llms-full.txt` - self-contained projection composed from `llms.txt`, this README, and the Agent Skill.
@@ -141,7 +141,7 @@ Or define a range:
 }
 ```
 
-HOOKTRY evaluates every replayed interaction with the same operation, persists assertion evidence for every candidate, and applies `count`/`min`/`max` to the subset that actually matches the Contract. Scenario outcome evidence includes candidate, matched, and assertion IDs, so duplicate calls and payload mismatches remain distinguishable.
+Hooktry evaluates every replayed interaction with the same operation, persists assertion evidence for every candidate, and applies `count`/`min`/`max` to the subset that actually matches the Contract. Scenario outcome evidence includes candidate, matched, and assertion IDs, so duplicate calls and payload mismatches remain distinguishable.
 
 Contracts can also match the normalized correlation context extracted from boundary evidence:
 
@@ -189,9 +189,9 @@ Scenarios can also assert the observed order of their contract definitions:
 
 `declared` means every matching source interaction for an earlier contract must be persisted before every matching source interaction for each later contract. Ordering is evaluated independently from cardinality: both contracts can individually pass and the Scenario can still fail because their observed order is reversed. Missing optional/zero-match groups do not create an order edge.
 
-HOOKTRY does not use wall-clock timestamps or UUID ordering to decide order. Every persisted Interaction exposes `observed_sequence`: the durable local order in which this HOOKTRY evidence store committed it. The internal `interaction_order` table owns the monotonic sequence; existing databases are backfilled once from SQLite insertion order, and old payloads are hydrated with the sequence when read.
+Hooktry does not use wall-clock timestamps or UUID ordering to decide order. Every persisted Interaction exposes `observed_sequence`: the durable local order in which this Hooktry evidence store committed it. The internal `interaction_order` table owns the monotonic sequence; existing databases are backfilled once from SQLite insertion order, and old payloads are hydrated with the sequence when read.
 
-`Interaction.id` remains UUIDv7 and answers identity / approximate time locality. `observed_sequence` answers a different question: which interaction this HOOKTRY store committed first. Replayed interactions receive their own later observed sequence while preserving `source_interaction_id`. `ScenarioOutcome.order` records source interaction IDs and machine-readable violating contract/interaction pairs.
+`Interaction.id` remains UUIDv7 and answers identity / approximate time locality. `observed_sequence` answers a different question: which interaction this Hooktry store committed first. Replayed interactions receive their own later observed sequence while preserving `source_interaction_id`. `ScenarioOutcome.order` records source interaction IDs and machine-readable violating contract/interaction pairs.
 
 Scenario definitions can live in the repository as portable JSON manifests:
 
@@ -222,13 +222,13 @@ hooktry scenario outcome <run-id>
 
 `scenario complete` is a deterministic CI gate: exit `0` for a passing ScenarioOutcome, exit `1` for a behavioral mismatch or missing expected evidence, and exit `2` for CLI, transport, API, or response errors. `hooktry assert` uses the same `0/1/2` convention.
 
-For the common CI path, HOOKTRY can orchestrate the lifecycle around an explicit child command:
+For the common CI path, Hooktry can orchestrate the lifecycle around an explicit child command:
 
 ```sh
 hooktry scenario run examples/scenarios/payment-webhook.json -- bundle exec rspec spec/integration/payment_webhook_spec.rb
 ```
 
-`scenario run` creates the Scenario, starts a unique Exposure, executes the child directly (without an implicit shell), completes the run even when the child exits non-zero, and prints one structured `ScenarioRunReport` to stdout. Child stdout/stderr is forwarded to HOOKTRY stderr so stdout remains machine-readable.
+`scenario run` creates the Scenario, starts a unique Exposure, executes the child directly (without an implicit shell), completes the run even when the child exits non-zero, and prints one structured `ScenarioRunReport` to stdout. Child stdout/stderr is forwarded to Hooktry stderr so stdout remains machine-readable.
 
 The child receives:
 
@@ -240,7 +240,7 @@ HOOKTRY_EXPOSURE_ID
 HOOKTRY_EXPOSURE_URL
 ```
 
-The command exits `0` only when both the child command and ScenarioOutcome pass, `1` when either behavior or the child command fails, and `2` when HOOKTRY cannot orchestrate or complete the run. If shell syntax is needed, invoke a shell explicitly after `--`.
+The command exits `0` only when both the child command and ScenarioOutcome pass, `1` when either behavior or the child command fails, and `2` when Hooktry cannot orchestrate or complete the run. If shell syntax is needed, invoke a shell explicitly after `--`.
 
 FIRST-PARTY-PROOF includes ready-made temporal recipes:
 

@@ -1,7 +1,7 @@
 # Hooktry MCIF live integration proof
 
 Checked: 2026-10-02  
-DWC: MCIF/HOOKTRY.15 LIVE-INTEGRATION-PROOF
+DWC: MCIF/Hooktry.15 LIVE-INTEGRATION-PROOF
 
 ## Question
 

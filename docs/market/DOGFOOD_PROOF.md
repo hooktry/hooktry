@@ -1,7 +1,7 @@
 # Hooktry MCIF dogfood proof
 
 Checked: 2026-10-01  
-DWC: MCIF/HOOKTRY.14 DOGFOOD-PROOF
+DWC: MCIF/Hooktry.14 DOGFOOD-PROOF
 
 ## Purpose
 

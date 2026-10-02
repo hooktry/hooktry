@@ -5,7 +5,7 @@ Tracking: #9
 
 ## Purpose
 
-ACCESS2 adds the protocol boundary required for hosted HOOKTRY URLs without binding the core to a tunnel transport or cloud vendor.
+ACCESS2 adds the protocol boundary required for hosted Hooktry URLs without binding the core to a tunnel transport or cloud vendor.
 
 The runtime remains behind NAT or a firewall. It participates in the relay from the inside out. Public ingress never connects directly to the application.
 
@@ -13,14 +13,14 @@ The runtime remains behind NAT or a firewall. It participates in the relay from 
 external HTTP caller
         |
         v
-HOOKTRY cloud ingress
+Hooktry cloud ingress
         |
         v
 RelayBroker
         ^
         | runtime-initiated participation
         |
-local HOOKTRY
+local Hooktry
         |
         v
 HTTP Boundary
@@ -42,7 +42,7 @@ The broker is responsible only for correlation and delivery. It does not own HTT
 
 ## Runtime authority
 
-The local HOOKTRY runtime resolves the Exposure and forwards the request through the same HTTP proxy path used by local exposures.
+The local Hooktry runtime resolves the Exposure and forwards the request through the same HTTP proxy path used by local exposures.
 
 This preserves the product invariant:
 

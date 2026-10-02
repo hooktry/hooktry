@@ -7,7 +7,7 @@ KEYROT1 added versioned root keys. KEYRET1 added status, CAS-protected secret re
 
 Production intentionally still runs with master key version 1.
 
-This RFC records the decision that HOOKTRY must complete one real production root-key rotation from v1 to v2 before the first public release.
+This RFC records the decision that Hooktry must complete one real production root-key rotation from v1 to v2 before the first public release.
 
 ## Why before the first public release
 

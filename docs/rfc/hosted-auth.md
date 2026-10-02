@@ -7,7 +7,7 @@ AUTH1 separates hosted product identity from relay runtime authority.
 
 ## Authority model
 
-HOOKTRY now has three distinct credentials:
+Hooktry now has three distinct credentials:
 
 ```text
 HOOKTRY_CONTROL_TOKEN

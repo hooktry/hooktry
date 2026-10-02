@@ -3,7 +3,7 @@
 Status: executable vertical slice  
 Tracking: #104
 
-HOOKTRY needs an identity for an attempted action even when the action is rejected before network work or fails before Evidence can be produced.
+Hooktry needs an identity for an attempted action even when the action is rejected before network work or fails before Evidence can be produced.
 
 EXEC4 introduced a lightweight lifecycle envelope around the hosted HTTP executor. EXEC5 now persists that envelope before provider work and completes it with the terminal outcome. See [durable-execution-evidence.md](./durable-execution-evidence.md).
 
@@ -39,7 +39,7 @@ This allows the same action identity to survive across policy, execution, Eviden
 
 ## Outcome semantics
 
-`rejected` means HOOKTRY did not accept the attempted action under the current request/security contract.
+`rejected` means Hooktry did not accept the attempted action under the current request/security contract.
 
 Current examples:
 
@@ -95,11 +95,11 @@ Those are separate product decisions.
 
 The purpose of EXEC4 is narrower: every attempted hosted action has a stable identity, timing envelope, provider kind, and typed terminal outcome.
 
-## Why this belongs in HOOKTRY
+## Why this belongs in Hooktry
 
 This is not imported compute-provider ontology.
 
-The lifecycle envelope describes an HOOKTRY Boundary action itself:
+The lifecycle envelope describes an Hooktry Boundary action itself:
 
 ```text
 Request
@@ -108,4 +108,4 @@ Request
   -> Evidence or typed failure
 ```
 
-Future ask-approve-act-prove can correlate approval, action, and proof using the same `execution_id` without requiring HOOKTRY to become a VM or workflow provider.
+Future ask-approve-act-prove can correlate approval, action, and proof using the same `execution_id` without requiring Hooktry to become a VM or workflow provider.

@@ -1,7 +1,7 @@
 # Hooktry MCIF research debt
 
 Checked: 2026-10-02  
-DWC: MCIF/HOOKTRY.8 RESEARCH-DEBT
+DWC: MCIF/Hooktry.8 RESEARCH-DEBT
 
 The purpose of research debt is **not** to fill every unknown matrix cell.
 

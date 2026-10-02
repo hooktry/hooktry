@@ -19,7 +19,7 @@ The current public product wedge is the webhook-specific **Hook**. Hook remains 
 ## Capability topology
 
 ```text
-HOOKTRY
+Hooktry
 |
 |-- RECEIVE
 |   |-- ephemeral HTTP endpoint

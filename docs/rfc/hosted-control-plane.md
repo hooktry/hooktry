@@ -52,7 +52,7 @@ RelayBroker
     |
 outbound runtime connection + capability
     |
-local HOOKTRY Boundary
+local Hooktry Boundary
     |
 127.0.0.1:target_port
 ```

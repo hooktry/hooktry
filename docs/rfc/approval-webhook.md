@@ -9,7 +9,7 @@ It does not create a second approval state machine.
 
 ## Configuration
 
-Hosted HOOKTRY may receive:
+Hosted Hooktry may receive:
 
 ```text
 HOOKTRY_BOOTSTRAP_WORKSPACE=<workspace slug>
@@ -18,7 +18,7 @@ HOOKTRY_APPROVAL_WEBHOOK_URL=<webhook URL>
 
 The webhook URL is treated as secret material because real webhook URLs commonly contain credentials in their path or query.
 
-On startup HOOKTRY:
+On startup Hooktry:
 
 1. validates the URL as HTTP/HTTPS with a host and no userinfo/fragment;
 2. encrypts the complete URL into the existing `SecretStore`;
@@ -88,7 +88,7 @@ This prevents old/new Render instances overlapping during deploy from concurrent
 
 A process crash does not strand the notification: after the lease expires another worker may claim it.
 
-The receiver should still deduplicate by `Idempotency-Key`, because a crash after the remote side accepts the request but before HOOKTRY commits `delivered_at` is inherently an at-least-once delivery case.
+The receiver should still deduplicate by `Idempotency-Key`, because a crash after the remote side accepts the request but before Hooktry commits `delivered_at` is inherently an at-least-once delivery case.
 
 ## Retry
 
@@ -123,7 +123,7 @@ A worker that raced with the decision reloads the ApprovalRecord before send and
 
 ## Runtime
 
-When `HOOKTRY_APPROVAL_WEBHOOK_URL` is configured, hosted HOOKTRY starts one lightweight outbox worker for the bootstrap Workspace.
+When `HOOKTRY_APPROVAL_WEBHOOK_URL` is configured, hosted Hooktry starts one lightweight outbox worker for the bootstrap Workspace.
 
 The worker is delivery plumbing, not a workflow scheduler. Approval state remains in CONTROL1/CONTROL2.
 
