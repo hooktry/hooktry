@@ -66,6 +66,16 @@ async fn remote_tool_catalog_is_curated_and_reviewable() {
     assert!(tool["description"].is_string());
     assert!(tool["inputSchema"].is_object());
     assert!(tool["outputSchema"].is_object());
+    assert_eq!(
+        tool["outputSchema"]["properties"]["view_url"]["format"],
+        "uri"
+    );
+    assert!(
+        tool["outputSchema"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("view_url"))
+    );
     assert_eq!(tool["annotations"]["readOnlyHint"], false);
     assert_eq!(tool["annotations"]["destructiveHint"], false);
     assert_eq!(tool["annotations"]["openWorldHint"], false);
@@ -74,7 +84,7 @@ async fn remote_tool_catalog_is_curated_and_reviewable() {
 }
 
 #[tokio::test]
-async fn remote_webhook_tool_returns_only_ingress_capability() {
+async fn remote_webhook_tool_returns_send_and_view_capabilities_only() {
     let response = mcp_remote::handle(
         &state("https://hooktry.example"),
         json!({
@@ -100,13 +110,18 @@ async fn remote_webhook_tool_returns_only_ingress_capability() {
             .starts_with("https://hooktry.example/hook/hk_")
     );
 
+    assert!(
+        result["structuredContent"]["view_url"]
+            .as_str()
+            .unwrap()
+            .starts_with("https://hooktry.example/view/vw_")
+    );
+
     let serialized = serde_json::to_string(result).unwrap();
     for forbidden in [
-        "view_url",
         "view_websocket_url",
         "claim_url",
         "anonymous_principal",
-        "vw_",
         "cl_",
     ] {
         assert!(
@@ -158,6 +173,9 @@ async fn hosted_mcp_route_creates_a_webhook_that_accepts_traffic() {
     let hook_url = body["result"]["structuredContent"]["hook_url"]
         .as_str()
         .unwrap();
+    let view_url = body["result"]["structuredContent"]["view_url"]
+        .as_str()
+        .unwrap();
 
     let ingress = client
         .post(hook_url)
@@ -167,6 +185,14 @@ async fn hosted_mcp_route_creates_a_webhook_that_accepts_traffic() {
         .await
         .unwrap();
     assert!(ingress.status().is_success());
+
+    let viewer = client
+        .get(view_url)
+        .header("accept", "text/html")
+        .send()
+        .await
+        .unwrap();
+    assert!(viewer.status().is_success());
 
     server.abort();
 }

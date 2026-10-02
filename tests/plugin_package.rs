@@ -51,5 +51,6 @@ fn remote_onboarding_skill_describes_only_the_shipped_surface() {
     assert!(skill.contains("name: get-started"));
     assert!(skill.contains("create_webhook_endpoint"));
     assert!(skill.contains("endpoint creation only"));
-    assert!(skill.contains("does not return Hooktry viewer"));
+    assert!(skill.contains("returns both the send URL and a separate private viewer URL"));
+    assert!(skill.contains("does not return the claim capability"));
 }

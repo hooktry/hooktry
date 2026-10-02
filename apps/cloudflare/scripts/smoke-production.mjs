@@ -222,11 +222,21 @@ async function verifyMcp() {
         const payload = await response.json();
         const tools = payload?.result?.tools;
         assert(Array.isArray(tools), "MCP tools/list did not return tools");
-        assert(
-          tools.some((tool) => tool?.name === "create_webhook_endpoint"),
-          "MCP create_webhook_endpoint tool missing",
+        const createWebhook = tools.find(
+          (tool) => tool?.name === "create_webhook_endpoint",
         );
-        console.log("PLUGIN1 acceptance passed: mcp.hooktry.com -> tools/list");
+        assert(createWebhook, "MCP create_webhook_endpoint tool missing");
+        assert(
+          createWebhook.outputSchema?.properties?.view_url?.format === "uri",
+          "MCP create_webhook_endpoint view_url output missing",
+        );
+        assert(
+          createWebhook.outputSchema?.required?.includes("view_url"),
+          "MCP create_webhook_endpoint view_url is not required",
+        );
+        console.log(
+          "PLUGIN2 VIEW1 acceptance passed: mcp.hooktry.com -> tools/list includes view_url",
+        );
         return;
       }
       lastError = await response.text();

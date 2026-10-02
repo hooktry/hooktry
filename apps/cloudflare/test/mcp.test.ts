@@ -31,6 +31,11 @@ describe("PLUGIN1 remote MCP", () => {
     const body = await response.json() as any;
     expect(body.result.tools).toHaveLength(1);
     expect(body.result.tools[0].name).toBe("create_webhook_endpoint");
+    expect(body.result.tools[0].outputSchema.properties.view_url).toEqual({
+      type: "string",
+      format: "uri",
+    });
+    expect(body.result.tools[0].outputSchema.required).toContain("view_url");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
@@ -40,7 +45,7 @@ describe("PLUGIN1 remote MCP", () => {
     });
   });
 
-  it("creates a usable webhook without leaking viewer or claim capabilities", async () => {
+  it("creates a usable webhook with a private viewer and no claim capability", async () => {
     const response = await worker.fetch(
       new Request("https://mcp.hooktry.com/mcp", {
         method: "POST",
@@ -66,14 +71,15 @@ describe("PLUGIN1 remote MCP", () => {
     expect(result.structuredContent.hook_url).toMatch(
       /^https:\/\/hooktry\.com\/hook\/hk_[0-9a-f]{32}$/,
     );
+    expect(result.structuredContent.view_url).toMatch(
+      /^https:\/\/hooktry\.com\/view\/vw_[0-9a-f]{32}$/,
+    );
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [
-      "view_url",
       "view_websocket_url",
       "claim_url",
       "anonymous_principal",
-      "vw_",
       "cl_",
     ]) {
       expect(serialized).not.toContain(forbidden);
@@ -86,6 +92,14 @@ describe("PLUGIN1 remote MCP", () => {
       }),
     );
     expect(ingress.status).toBe(200);
+
+    const viewer = await fetchWorker(
+      new Request(result.structuredContent.view_url, {
+        headers: { accept: "text/html" },
+      }),
+    );
+    expect(viewer.status).toBe(200);
+    expect(await viewer.text()).toContain('<div id="root"></div>');
   });
 
   it("accepts initialization notifications without a response body", async () => {
