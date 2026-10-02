@@ -2,11 +2,11 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use http_body_util::BodyExt;
 use hooktry::{
     domain::{AssertionResult, Contract, Interaction},
     http::{AppState, app},
 };
+use http_body_util::BodyExt;
 use serde_json::json;
 use tower::ServiceExt;
 

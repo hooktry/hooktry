@@ -1594,8 +1594,10 @@ mod tests {
 
     #[tokio::test]
     async fn principal_is_limited_to_three_active_exposures() {
-        let service =
-            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://hooktry.test");
+        let service = AnonymousExposureService::new(
+            AnonymousExposureStore::default(),
+            "https://hooktry.test",
+        );
         let principal = random_principal();
         for _ in 0..ANONYMOUS_ACTIVE_LIMIT {
             service
@@ -1611,8 +1613,10 @@ mod tests {
 
     #[tokio::test]
     async fn body_budget_and_request_budget_are_enforced() {
-        let service =
-            AnonymousExposureService::new(AnonymousExposureStore::default(), "https://hooktry.test");
+        let service = AnonymousExposureService::new(
+            AnonymousExposureStore::default(),
+            "https://hooktry.test",
+        );
         let provision = service.provision(None).await.unwrap();
         let hook_token = provision
             .hook_url
@@ -1712,7 +1716,10 @@ mod tests {
 
     #[test]
     fn websocket_url_tracks_public_scheme() {
-        assert_eq!(websocket_base_url("https://hooktry.test"), "wss://hooktry.test");
+        assert_eq!(
+            websocket_base_url("https://hooktry.test"),
+            "wss://hooktry.test"
+        );
         assert_eq!(
             websocket_base_url("http://127.0.0.1:8080"),
             "ws://127.0.0.1:8080"

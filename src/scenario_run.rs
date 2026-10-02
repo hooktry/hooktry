@@ -24,9 +24,15 @@ pub struct ScenarioRunReport {
 pub fn environment(base_url: &str, run: &ScenarioRun) -> Vec<(String, String)> {
     vec![
         ("HOOKTRY_BASE_URL".to_owned(), base_url.to_owned()),
-        ("HOOKTRY_SCENARIO_ID".to_owned(), run.scenario_id.to_string()),
+        (
+            "HOOKTRY_SCENARIO_ID".to_owned(),
+            run.scenario_id.to_string(),
+        ),
         ("HOOKTRY_SCENARIO_RUN_ID".to_owned(), run.id.to_string()),
-        ("HOOKTRY_EXPOSURE_ID".to_owned(), run.exposure_id.to_string()),
+        (
+            "HOOKTRY_EXPOSURE_ID".to_owned(),
+            run.exposure_id.to_string(),
+        ),
         ("HOOKTRY_EXPOSURE_URL".to_owned(), run.exposure_url.clone()),
     ]
 }

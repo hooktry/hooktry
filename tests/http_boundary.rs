@@ -2,8 +2,8 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use http_body_util::BodyExt;
 use hooktry::http::{AppState, app};
+use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 #[tokio::test]

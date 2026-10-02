@@ -467,7 +467,12 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
         }
         "exposure_revoke" => {
             let id = uuid_argument(&arguments, "exposure_id")?;
-            api_json("DELETE", &format!("{base_url}/_hooktry/exposures/{id}"), None).await?
+            api_json(
+                "DELETE",
+                &format!("{base_url}/_hooktry/exposures/{id}"),
+                None,
+            )
+            .await?
         }
         "interactions_list" => {
             api_json("GET", &format!("{base_url}/_hooktry/interactions"), None).await?
@@ -493,7 +498,12 @@ async fn call_tool(base_url: &str, hosted: &HostedClient, params: Value) -> Resu
                 "response": arguments.get("response").cloned(),
                 "context": arguments.get("context").cloned()
             });
-            api_json("POST", &format!("{base_url}/_hooktry/contracts"), Some(body)).await?
+            api_json(
+                "POST",
+                &format!("{base_url}/_hooktry/contracts"),
+                Some(body),
+            )
+            .await?
         }
         "contract_get" => {
             let id = uuid_argument(&arguments, "contract_id")?;

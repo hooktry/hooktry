@@ -37,7 +37,10 @@ async fn scenario_waits_for_matching_context_instead_of_only_matching_operation(
         .unwrap();
 
     let run: ScenarioRun = client
-        .post(format!("{base_url}/_hooktry/scenarios/{}/start", scenario.id))
+        .post(format!(
+            "{base_url}/_hooktry/scenarios/{}/start",
+            scenario.id
+        ))
         .send()
         .await
         .unwrap()

@@ -183,7 +183,8 @@ fn build_candidates(model: &MarketModel) -> Vec<Candidate> {
             .count();
 
         for product_id in &model.matrix_products {
-            if product_id == "hooktry" || row.get(product_id).map(String::as_str) != Some("unknown") {
+            if product_id == "hooktry" || row.get(product_id).map(String::as_str) != Some("unknown")
+            {
                 continue;
             }
 

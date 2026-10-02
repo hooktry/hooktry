@@ -1,9 +1,9 @@
 use axum::{body::Body, http::Request};
-use http_body_util::BodyExt;
 use hooktry::{
     domain::{Interaction, Origin, Recording},
     http::{AppState, app},
 };
+use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 #[tokio::test]

@@ -31,7 +31,8 @@ impl HostedClient {
             base_url: base_url.into().trim_end_matches('/').to_owned(),
             http: reqwest::Client::new(),
             execute_token: lookup("HOOKTRY_TOKEN").filter(|value| !value.trim().is_empty()),
-            approver_token: lookup("HOOKTRY_APPROVER_TOKEN").filter(|value| !value.trim().is_empty()),
+            approver_token: lookup("HOOKTRY_APPROVER_TOKEN")
+                .filter(|value| !value.trim().is_empty()),
         }
     }
 
@@ -58,7 +59,8 @@ impl HostedClient {
     pub async fn get_approval(&self, approval_id: Uuid) -> Result<Value, String> {
         if self.execute_token.is_none() && self.approver_token.is_none() {
             return Err(
-                "HOOKTRY_TOKEN or HOOKTRY_APPROVER_TOKEN is required to inspect approvals".to_owned(),
+                "HOOKTRY_TOKEN or HOOKTRY_APPROVER_TOKEN is required to inspect approvals"
+                    .to_owned(),
             );
         }
         let credential = if self.execute_token.is_some() {

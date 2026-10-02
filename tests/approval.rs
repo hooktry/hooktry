@@ -100,8 +100,10 @@ fn approval_summary_is_redacted_and_digest_is_canonical() {
 
 #[test]
 fn keyed_approval_survives_master_key_rotation() {
-    let path =
-        std::env::temp_dir().join(format!("hooktry-approval-key-rotation-{}.db", Uuid::now_v7()));
+    let path = std::env::temp_dir().join(format!(
+        "hooktry-approval-key-rotation-{}.db",
+        Uuid::now_v7()
+    ));
     let workspace_id = Uuid::now_v7();
     let requester_id = Uuid::now_v7();
     let approver_id = Uuid::now_v7();
