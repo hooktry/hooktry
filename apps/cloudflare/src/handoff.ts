@@ -112,7 +112,7 @@ async function unseal(
 
 async function handoffKey(
   token: string,
-  usages: KeyUsage[],
+  usages: Array<"encrypt" | "decrypt">,
 ): Promise<CryptoKey> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
