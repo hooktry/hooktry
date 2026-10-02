@@ -93,6 +93,12 @@ Cloudflare-specific APIs must stay below the port boundary.
 
 The Cloudflare adapter may be TypeScript. Portable deterministic Rust logic may later be compiled to WebAssembly selectively when reuse is worth the boundary cost, but Hooktry does not require the full native binary to run inside Workers.
 
+## Product/runtime profile model
+
+PORTS1 defines the technical portability boundary. The user-facing operating modes and their retention responsibilities are defined separately in [PROFILE1 - Product Runtime Profiles and Retention Boundaries](product-runtime-profiles.md).
+
+In particular, public reachability and evidence retention are separate concerns: Community Local may use a managed relay while keeping durable payload/history local, whereas Anonymous Cloud intentionally retains bounded temporary evidence in managed storage.
+
 ## Deployment profiles
 
 ### Local Community
