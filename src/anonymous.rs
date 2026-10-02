@@ -1547,31 +1547,9 @@ fn random_principal() -> String {
 }
 
 fn random_capability(prefix: &str) -> String {
-    let mut bytes = [0u8; 24];
+    let mut bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut bytes);
-    format!("{prefix}{}", base64url_encode(&bytes))
-}
-
-fn base64url_encode(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-
-    let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
-    for chunk in bytes.chunks(3) {
-        let first = chunk[0];
-        let second = chunk.get(1).copied().unwrap_or(0);
-        let third = chunk.get(2).copied().unwrap_or(0);
-
-        encoded.push(ALPHABET[(first >> 2) as usize] as char);
-        encoded.push(ALPHABET[(((first & 0x03) << 4) | (second >> 4)) as usize] as char);
-
-        if chunk.len() > 1 {
-            encoded.push(ALPHABET[(((second & 0x0f) << 2) | (third >> 6)) as usize] as char);
-        }
-        if chunk.len() > 2 {
-            encoded.push(ALPHABET[(third & 0x3f) as usize] as char);
-        }
-    }
-    encoded
+    format!("{prefix}{}", hex_encode(&bytes))
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
@@ -1734,6 +1712,17 @@ mod tests {
         assert_eq!(published.len(), 1);
         assert_eq!(published[0].path, "/portable");
         assert_eq!(published[0].body, b"portable");
+    }
+
+    #[test]
+    fn capability_tokens_use_typed_lowercase_hex_format() {
+        for prefix in ["hk_", "vw_", "cl_"] {
+            let token = random_capability(prefix);
+            assert!(token.starts_with(prefix));
+            let suffix = &token[prefix.len()..];
+            assert_eq!(suffix.len(), 32);
+            assert!(suffix.chars().all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()));
+        }
     }
 
     #[test]
