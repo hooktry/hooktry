@@ -17,7 +17,10 @@ import {
   formatBytes,
   formatExactTimestamp,
   formatExpiry,
+  formatOffsetTimestamp,
   formatRelativeTimestamp,
+  formatUtcOffset,
+  localUtcOffsetHours,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -38,12 +41,40 @@ import type {
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
 type InspectorTab = "body" | "query" | "headers" | "metadata";
 type Theme = "light" | "dark";
-type TimeZoneMode = "local" | "utc";
+type TimeZoneMode = "local" | `offset:${number}`;
 
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function initialTimeZoneMode(): TimeZoneMode {
+  const stored = window.localStorage.getItem("hooktry-time-zone");
+  if (stored === "local" || stored?.startsWith("offset:")) {
+    return stored as TimeZoneMode;
+  }
+  return "local";
+}
+
+const UTC_OFFSET_OPTIONS = Array.from(
+  { length: 27 },
+  (_, index) => index - 12,
+).filter((offset) => offset !== 0);
+
+function timeZoneModeLabel(mode: TimeZoneMode): string {
+  if (mode === "local") {
+    return `Local (${formatUtcOffset(localUtcOffsetHours())})`;
+  }
+  return formatUtcOffset(Number.parseFloat(mode.slice("offset:".length)));
+}
+
+function comparisonTimestamp(unixMs: number, mode: TimeZoneMode): string {
+  if (mode === "local") return formatExactTimestamp(unixMs, "local");
+  return formatOffsetTimestamp(
+    unixMs,
+    Number.parseFloat(mode.slice("offset:".length)),
+  );
 }
 
 export function App() {
@@ -68,7 +99,9 @@ export function App() {
   const [copied, setCopied] = useState<string | null>(null);
   const [interactionPaneWidth, setInteractionPaneWidth] = useState(360);
   const [theme, setTheme] = useState<Theme>(() => initialTheme());
-  const [timeZoneMode, setTimeZoneMode] = useState<TimeZoneMode>("local");
+  const [timeZoneMode, setTimeZoneMode] = useState<TimeZoneMode>(() =>
+    initialTimeZoneMode(),
+  );
 
   const viewCapability = viewCapabilityFromPath(pathname);
   const handoffCapability =
@@ -97,6 +130,10 @@ export function App() {
     const themeColor = document.querySelector('meta[name="theme-color"]');
     themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem("hooktry-time-zone", timeZoneMode);
+  }, [timeZoneMode]);
 
   useEffect(() => {
     if (!newHookOpen) return;
@@ -1051,8 +1088,12 @@ function InteractionList({
             value={timeZoneMode}
             onChange={(event) => onTimeZoneMode(event.target.value as TimeZoneMode)}
           >
-            <option value="local">Local</option>
-            <option value="utc">UTC</option>
+            <option value="local">{timeZoneModeLabel("local")}</option>
+            {UTC_OFFSET_OPTIONS.map((offset) => (
+              <option key={offset} value={`offset:${offset}`}>
+                {formatUtcOffset(offset)}
+              </option>
+            ))}
           </select>
           <span className="live-hint">live stream</span>
         </div>
@@ -1126,7 +1167,8 @@ function RelativeInteractionTime({
   timeZoneMode: TimeZoneMode;
 }) {
   const [open, setOpen] = useState(false);
-  const localTime = formatExactTimestamp(unixMs, "local");
+  const comparisonTime = comparisonTimestamp(unixMs, timeZoneMode);
+  const comparisonLabel = timeZoneModeLabel(timeZoneMode);
   const utcTime = formatExactTimestamp(unixMs, "utc");
   const relative = formatRelativeTimestamp(unixMs, nowMs);
 
@@ -1147,15 +1189,15 @@ function RelativeInteractionTime({
         if (event.key === "Escape") setOpen(false);
       }}
       onBlur={() => setOpen(false)}
-      aria-label={`${relative}. Local: ${localTime}. UTC: ${utcTime}`}
+      aria-label={`${relative}. ${comparisonLabel}: ${comparisonTime}. UTC: ${utcTime}`}
     >
       <span className="interaction-time">{relative}</span>
       <span className="time-popover" role="tooltip">
-        <span className={timeZoneMode === "local" ? "active" : ""}>
-          <strong>Local</strong>
-          <code>{localTime}</code>
+        <span className="active">
+          <strong>{comparisonLabel}</strong>
+          <code>{comparisonTime}</code>
         </span>
-        <span className={timeZoneMode === "utc" ? "active" : ""}>
+        <span>
           <strong>UTC</strong>
           <code>{utcTime}</code>
         </span>
@@ -1200,7 +1242,7 @@ function Inspector({
     ["Interaction ID", interaction.interaction_id],
     ["Exposure ID", interaction.exposure_id],
     ["Sequence", String(interaction.sequence)],
-    ["Received", formatExactTimestamp(interaction.received_at_unix_ms, timeZoneMode)],
+    ["Received", comparisonTimestamp(interaction.received_at_unix_ms, timeZoneMode)],
     ["Body bytes", String(interaction.body_bytes)],
     ["Body encoding", interaction.body_encoding],
   ] as const;
