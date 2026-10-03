@@ -136,7 +136,7 @@ function tools(): Array<Record<string, unknown>> {
       name: "create_webhook_endpoint",
       title: "Create webhook endpoint",
       description:
-        "Create a temporary Hooktry webhook endpoint for integration testing. Returns THREE distinct user-facing links and their roles must be explained clearly: Send webhooks here (hook_url), View captured requests read-only (view_url), and Open as owner in browser (handoff_url, one-time; use this to continue into owner actions such as claiming/managing the Hook). Do not present view_url as a management link and do not omit handoff_url. The endpoint expires automatically. The raw claim capability is intentionally not returned.",
+        "Create a temporary Hooktry webhook endpoint for integration testing. Use this tool for generic requests such as 'give me a webhook', 'create a webhook URL', or 'give me a temporary endpoint' when Hooktry is available; the user does not need to mention or tag Hooktry explicitly. Returns THREE distinct user-facing links and the final answer must include all three: Send webhooks here (hook_url), View captured requests read-only (view_url), and Open in Hooktry as owner (handoff_url, one-time; use this to continue into owner actions such as claiming/managing the Hook). Keep hook_url visible for copying; prefer labeled links for view_url and handoff_url in chat. Do not present view_url as a management link and do not omit handoff_url. The endpoint expires automatically. The raw claim capability is intentionally not returned.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -248,11 +248,12 @@ async function callTool(
       {
         type: "text",
         text: [
-          "Created a temporary Hooktry webhook endpoint. Keep these three roles distinct in the user-facing answer:",
-          `Webhook URL — SEND REQUESTS HERE: ${provision.hook_url}`,
-          `Viewer URL — VIEW ONLY (read-only): ${provision.view_url}`,
-          `Owner link — OPEN TO CLAIM / MANAGE (one-time): ${provision.handoff_url}`,
-          "The owner link is not the Viewer URL. It opens the owner-side browser session where claim/manage actions become available.",
+          "Created a temporary Hooktry webhook endpoint. The user-facing answer must preserve all three capabilities:",
+          `Webhook URL - SEND REQUESTS HERE: ${provision.hook_url}`,
+          `Viewer URL - VIEW ONLY: ${provision.view_url}`,
+          `Owner link - OPEN IN HOOKTRY (one-time): ${provision.handoff_url}`,
+          "Keep the webhook URL visible for copying. In chat, prefer labeled links for the Viewer URL and Owner link so long capability URLs do not dominate mobile output.",
+          "The owner link is not the Viewer URL and is not the raw claim capability. It opens the owner-side browser session where claim/manage actions become available.",
         ].join("\n"),
       },
     ],
