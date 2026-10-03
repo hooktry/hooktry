@@ -17,9 +17,10 @@ jobs:
     if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: production
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: 3094c995ea8e0405b8aa7fd1259eaea8
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,45 +47,6 @@ jobs:
       - name: Install Cloudflare dependencies
         working-directory: apps/cloudflare
         run: npm ci --no-audit --no-fund
-
-      - name: Ensure shared preview resources
-        id: resources
-        working-directory: apps/cloudflare
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          d1_json="$(npx wrangler d1 list --json)"
-          preview_db_id="$(printf '%s' "$d1_json" | jq -r '.. | objects | select(.name? == "hooktry-preview") | .uuid // empty' | head -n1)"
-          if [[ -z "$preview_db_id" ]]; then
-            npx wrangler d1 create hooktry-preview --location eeur
-            d1_json="$(npx wrangler d1 list --json)"
-            preview_db_id="$(printf '%s' "$d1_json" | jq -r '.. | objects | select(.name? == "hooktry-preview") | .uuid // empty' | head -n1)"
-          fi
-          if [[ -z "$preview_db_id" ]]; then
-            echo "::error::Unable to resolve hooktry-preview D1 database ID."
-            exit 1
-          fi
-
-          r2_json="$(npx wrangler r2 bucket list --json)"
-          if ! printf '%s' "$r2_json" | jq -e '.. | objects | select(.name? == "hooktry-preview-payloads")' >/dev/null; then
-            npx wrangler r2 bucket create hooktry-preview-payloads --location eeur
-          fi
-
-          echo "preview_db_id=$preview_db_id" >> "$GITHUB_OUTPUT"
-
-      - name: Render isolated preview config
-        working-directory: apps/cloudflare
-        env:
-          HOOKTRY_PREVIEW_D1_ID: ${{ steps.resources.outputs.preview_db_id }}
-        run: node scripts/render-preview-config.mjs
-
-      - name: Apply preview D1 migrations
-        working-directory: apps/cloudflare
-        run: >
-          npx wrangler d1 migrations apply PREVIEW_DB
-          --remote
-          --config wrangler.preview-migrations.generated.jsonc
 
       - name: Create or update Cloudflare Preview
         id: preview
