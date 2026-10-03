@@ -26,6 +26,35 @@ async function callMcp(method: string, params: Record<string, unknown> = {}) {
 }
 
 describe("PLUGIN1 remote MCP", () => {
+  it("supports the Streamable HTTP connector transport surface", async () => {
+    const preflight = await fetchWorker(
+      new Request("https://mcp.hooktry.com/mcp", {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://chatgpt.com",
+          "access-control-request-method": "POST",
+          "access-control-request-headers":
+            "content-type,mcp-protocol-version,mcp-session-id",
+        },
+      }),
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+    expect(preflight.headers.get("access-control-allow-methods")).toContain("GET");
+    expect(preflight.headers.get("access-control-allow-methods")).toContain("DELETE");
+    expect(preflight.headers.get("access-control-expose-headers")).toBe(
+      "Mcp-Session-Id",
+    );
+
+    for (const method of ["GET", "DELETE"]) {
+      const response = await fetchWorker(
+        new Request("https://mcp.hooktry.com/mcp", { method }),
+      );
+      expect(response.status).toBe(204);
+      expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    }
+  });
+
   it("discovers the curated no-auth tool with an MCP Apps result card", async () => {
     const response = await callMcp("tools/list");
 
