@@ -1279,25 +1279,24 @@ function RelativeInteractionTime({
       <span className="interaction-time-chevron" aria-hidden="true">⌄</span>
       <span className="time-popover" role="tooltip">
         <span className="time-popover-caret" aria-hidden="true" />
-        <span className="time-popover-title">EXACT TIME</span>
         <span className="time-row active">
           <strong>{timeZoneMode === "local" ? "LOCAL" : comparisonLabel}</strong>
           <span className="time-row-value">
-            <code>{comparisonParts.time}</code>
-            <span className="time-row-meta">
-              <span>{comparisonParts.date}</span>
-              <span>{comparisonParts.zone}</span>
+            <span className="time-row-clock">
+              <code>{comparisonParts.time}</code>
+              <span className="time-row-zone">{comparisonParts.zone}</span>
             </span>
+            <span className="time-row-date">{comparisonParts.date}</span>
           </span>
         </span>
         <span className="time-row">
           <strong>UTC</strong>
           <span className="time-row-value">
-            <code>{utcParts.time}</code>
-            <span className="time-row-meta">
-              <span>{utcParts.date}</span>
-              <span>{utcParts.zone}</span>
+            <span className="time-row-clock">
+              <code>{utcParts.time}</code>
+              <span className="time-row-zone">{utcParts.zone}</span>
             </span>
+            <span className="time-row-date">{utcParts.date}</span>
           </span>
         </span>
       </span>
