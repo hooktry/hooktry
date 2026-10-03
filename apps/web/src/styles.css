@@ -2056,11 +2056,7 @@ kbd,
 
 :root[data-theme="light"] .policy-grid {
   border-color: #d9dde3;
-}
-
-:root[data-theme="light"] .policy + .policy,
-:root[data-theme="light"] .policy:not(:last-child) {
-  border-color: #d9dde3;
+  background: #d9dde3;
 }
 
 :root[data-theme="light"] .policy strong {
