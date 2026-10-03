@@ -12,7 +12,9 @@ const migrationPath = new URL("../wrangler.preview-migrations.generated.jsonc", 
 const config = JSON.parse(fs.readFileSync(productionPath, "utf8"));
 
 config.previews = {
-  vars: {},
+  vars: {
+    HOOKTRY_ACTIVE_LIMIT: "100",
+  },
   d1_databases: [
     {
       binding: "DB",
