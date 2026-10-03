@@ -236,6 +236,10 @@ Required invariants:
 9. hook, view, and claim tokens are distinct capabilities
 10. viewer reconnect is backlog + live push, never database polling
 
+## Persistent post-claim lifecycle
+
+Claim preserves the Hook and its evidence, then moves normal discovery and management into Workspace Inventory. The persistent lifecycle - list/reopen/history/revoke/delete and capability rotation - is specified in [HOOK2 - Persistent Workspace Hook Inventory](persistent-workspace-hooks.md).
+
 ## Relationship to existing Hooktry primitives
 
 The anonymous lifecycle should preserve the existing model:
