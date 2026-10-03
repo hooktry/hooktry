@@ -11,11 +11,19 @@ This directory is the canonical recovery snapshot for the private Hooktry ChatGP
 
 This is a clean baseline identity. Do not reuse a deleted plugin ID or release ID when recreating it.
 
+## Architecture decision
+
+Hooktry is intentionally a plugin-only ChatGPT integration. It bundles the remote MCP server and onboarding skill directly in the plugin package. An additional ChatGPT App is not required. An empty Apps section in plugin detail is expected and must not be treated as a missing component or used as a workaround for branding issues.
+
 ## Logo requirement
 
 The manifests intentionally use 512x512 PNG files for `logo`, `logoDark`, `composerIcon`, and `composerIconDark`.
 
-The SVG source files are retained as editable source. Do not switch the manifests back to SVG-only. The PNG assets were chosen because the ChatGPT plugin UI previously showed a generic icon when the plugin referenced the SVG assets.
+The SVG source files are retained as editable source. Do not switch the manifests back to SVG-only.
+
+Branding history: on 2026-10-02, Hooktry plugin 0.1.2 rendered the Hooktry plugin icon after switching to the canonical 512x512 Brand Assets PNGs `icon/hooktry-icon-primary-on-light-512.png` and `icon/hooktry-icon-inverse-on-dark-512.png`. The separate App binding still showed a fallback icon, confirming that Plugin and App branding are distinct layers. The App binding was later removed from the intended architecture.
+
+Known regression (2026-10-03): the recreated 0.1.0 plugin renders ChatGPT's generic plugin icon even though its manifests reference bundled 512x512 PNGs. Treat this as a plugin-logo regression. Do not add a ChatGPT App as a workaround. Recovery should use the exact canonical Brand Assets PNG bytes from the known-working 0.1.2 lineage, not PNGs regenerated from SVG source.
 
 ## User and agent behavior contract
 
