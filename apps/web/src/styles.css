@@ -2594,3 +2594,39 @@ kbd,
     margin-right: -3px;
   }
 }
+
+
+.time-popover strong {
+  color: #a7b0bc;
+  font-weight: 750;
+  opacity: 1;
+}
+
+.time-popover code {
+  color: #d7dce3;
+  opacity: 1;
+}
+
+.time-popover > span:not(.active) strong {
+  color: #89939f;
+}
+
+.time-popover > span:not(.active) code {
+  color: #b9c0c9;
+}
+
+:root[data-theme="light"] .time-popover strong {
+  color: #3d4651;
+}
+
+:root[data-theme="light"] .time-popover code {
+  color: #20262d;
+}
+
+:root[data-theme="light"] .time-popover > span:not(.active) strong {
+  color: #66717d;
+}
+
+:root[data-theme="light"] .time-popover > span:not(.active) code {
+  color: #4f5965;
+}
