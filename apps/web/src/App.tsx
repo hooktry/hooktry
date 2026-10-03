@@ -1190,8 +1190,10 @@ function RelativeInteractionTime({
       }}
       onBlur={() => setOpen(false)}
       aria-label={`${relative}. ${comparisonLabel}: ${comparisonTime}. UTC: ${utcTime}`}
+      title="Show exact timestamps"
     >
       <span className="interaction-time">{relative}</span>
+      <span className="interaction-time-chevron" aria-hidden="true">⌄</span>
       <span className="time-popover" role="tooltip">
         <span className="active">
           <strong>{comparisonLabel}</strong>
