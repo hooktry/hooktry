@@ -46,7 +46,7 @@ type TimeZoneMode = "local" | `offset:${number}`;
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light";
 }
 
 function initialTimeZoneMode(): TimeZoneMode {
@@ -178,7 +178,7 @@ export function App() {
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem("hooktry-theme", theme);
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
+    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f4f3f7");
   }, [theme]);
 
   useEffect(() => {
@@ -790,52 +790,64 @@ function HookCreationContent({
 
   return (
     <>
-      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "EPHEMERAL HOOK"}</div>
-      <h1 id={isExistingHook ? "new-hook-title" : undefined}>
-        {isExistingHook
-          ? "Create another webhook endpoint."
-          : "Create an ephemeral webhook endpoint."}
-      </h1>
-      <p>
-        {isExistingHook
-          ? "Your current Hook stays open until the new one has been created successfully."
-          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
-      </p>
-
-      <div className="policy-grid">
-        <Policy value="5 days" label="ephemeral lifetime" />
-        <Policy value="100" label="requests per Hook" />
-        <Policy value="5 MiB" label="per request" />
-        <Policy value="50 MiB" label="retained bodies" />
+      <div className="creation-card-head">
+        <span className="creation-card-title">{isExistingHook ? "New Hook" : "Webhook receiver"}</span>
+        <span className="creation-mode"><span className="dot" /> Ephemeral</span>
       </div>
 
-      <div className={isExistingHook ? "creation-actions creation-actions-modal" : "creation-actions"}>
-        {isExistingHook && onCancel ? (
-          <button
-            className="button secondary creation-action-button"
-            type="button"
-            onClick={onCancel}
-            disabled={creating}
-          >
-            Cancel
+      <div className="creation-overview">
+        <div className="eyebrow">READY WHEN YOU ARE</div>
+        <h1 id={isExistingHook ? "new-hook-title" : undefined}>
+          {isExistingHook ? "A fresh endpoint." : "Catch every request."}
+        </h1>
+        <p>
+          {isExistingHook
+            ? "Create a new webhook receiver. Your current Hook stays open until it is ready."
+            : "Your own webhook URL, in one click. Inspect headers, query params and bodies as requests arrive."}
+        </p>
+        <div className="creation-spectrum" aria-hidden="true">
+          <span /><span /><span /><span />
+        </div>
+        <div className="creation-features">
+          <span><i /> Live capture</span>
+          <span><i /> Read-only sharing</span>
+          <span><i /> No account needed</span>
+        </div>
+      </div>
+
+      <div className="creation-limits">
+        <div className="creation-section-head">
+          <strong>Included limits</strong>
+          <span className="creation-plan">Free · anonymous</span>
+        </div>
+        <div className="policy-grid">
+          <Policy value="5 days" label="Endpoint lifetime" detail="Claim to keep it" />
+          <Policy value="100" label="Captured requests" detail="Per Hook" />
+          <Policy value="5 MiB" label="Request body" detail="Per request" />
+          <Policy value="50 MiB" label="Body retention" detail="Per Hook" />
+        </div>
+      </div>
+
+      {error ? <div className="error-inline" role="alert">{error}</div> : null}
+
+      <div className="creation-footer">
+        <span className="creation-footer-note">{isExistingHook ? "A separate receiver" : "Free to start · no sign-up"}</span>
+        <div className="creation-actions">
+          {isExistingHook && onCancel ? (
+            <button className="button secondary creation-action-button" type="button" onClick={onCancel} disabled={creating}>
+              Cancel
+            </button>
+          ) : null}
+          <button className="button primary creation-action-button creation-primary-button" type="button" onClick={onCreate} disabled={creating}>
+            {creating ? "Creating…" : "Create Hook"}
+            {!creating ? <span aria-hidden="true">↗</span> : null}
           </button>
-        ) : null}
-        <button
-          className="button primary creation-action-button creation-primary-button"
-          type="button"
-          onClick={onCreate}
-          disabled={creating}
-        >
-          {creating ? "Creating…" : "Create ephemeral Hook"}
-        </button>
+        </div>
       </div>
-
-      {error ? <div className="error-inline">{error}</div> : null}
 
       {!isExistingHook ? (
         <div className="landing-footnote">
-          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
-          unless claimed into a workspace.
+          Share the viewer URL to give read-only access. Claim your Hook to keep it beyond its anonymous lifetime.
         </div>
       ) : null}
     </>
@@ -865,11 +877,12 @@ function Landing({
   );
 }
 
-function Policy({ value, label }: { value: string; label: string }) {
+function Policy({ value, label, detail }: { value: string; label: string; detail: string }) {
   return (
     <div className="policy">
+      <div className="policy-description"><span className="policy-dot" /><span>{label}</span><small>{detail}</small></div>
+      <div className="policy-ruler" aria-hidden="true"><span /></div>
       <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }
