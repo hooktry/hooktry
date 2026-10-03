@@ -63,9 +63,7 @@ const UTC_OFFSET_OPTIONS = Array.from(
 ).filter((offset) => offset !== 0);
 
 function timeZoneModeLabel(mode: TimeZoneMode): string {
-  if (mode === "local") {
-    return `Local (${formatUtcOffset(localUtcOffsetHours())})`;
-  }
+  if (mode === "local") return "Local";
   return formatUtcOffset(Number.parseFloat(mode.slice("offset:".length)));
 }
 
@@ -75,6 +73,15 @@ function comparisonTimestamp(unixMs: number, mode: TimeZoneMode): string {
     unixMs,
     Number.parseFloat(mode.slice("offset:".length)),
   );
+}
+
+function splitTimestampZone(value: string): { main: string; zone: string } {
+  const splitAt = value.lastIndexOf(" ");
+  if (splitAt < 0) return { main: value, zone: "" };
+  return {
+    main: value.slice(0, splitAt),
+    zone: value.slice(splitAt + 1),
+  };
 }
 
 function isPreviewHost(): boolean {
@@ -1205,6 +1212,8 @@ function RelativeInteractionTime({
   const comparisonTime = comparisonTimestamp(unixMs, timeZoneMode);
   const comparisonLabel = timeZoneModeLabel(timeZoneMode);
   const utcTime = formatExactTimestamp(unixMs, "utc");
+  const comparisonParts = splitTimestampZone(comparisonTime);
+  const utcParts = splitTimestampZone(utcTime);
   const relative = formatRelativeTimestamp(unixMs, nowMs);
 
   return (
@@ -1232,11 +1241,19 @@ function RelativeInteractionTime({
       <span className="time-popover" role="tooltip">
         <span className="active">
           <strong>{timeZoneMode === "local" ? "LOCAL" : comparisonLabel}</strong>
-          <code>{comparisonTime}</code>
+          <code>
+            <span className="time-value-main">{comparisonParts.main}</span>
+            {comparisonParts.zone ? (
+              <span className="time-value-zone">{comparisonParts.zone}</span>
+            ) : null}
+          </code>
         </span>
         <span>
           <strong>UTC</strong>
-          <code>{utcTime}</code>
+          <code>
+            <span className="time-value-main">{utcParts.main}</span>
+            {utcParts.zone ? <span className="time-value-zone">{utcParts.zone}</span> : null}
+          </code>
         </span>
       </span>
     </span>
