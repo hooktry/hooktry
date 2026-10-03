@@ -19,6 +19,11 @@ export async function createHook(): Promise<HookProvision> {
 
   if (!response.ok) {
     const detail = await errorDetail(response);
+    if (response.status === 429 && detail === "active_limit") {
+      throw new Error(
+        "You already have 3 active ephemeral Hooks. Wait for one to expire or claim an existing Hook.",
+      );
+    }
     throw new Error(`Unable to create Hook (${response.status}): ${detail}`);
   }
 
