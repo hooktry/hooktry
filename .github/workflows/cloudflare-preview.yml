@@ -54,7 +54,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          output="$(npx wrangler preview             --config wrangler.preview.generated.jsonc             --name "pr-${{ github.event.pull_request.number }}"             --message "PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}"             --json)"
+          output="$(npx wrangler preview \
+            --config wrangler.production.jsonc \
+            --name "pr-${{ github.event.pull_request.number }}" \
+            --message "PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}" \
+            --json)"
           printf '%s\n' "$output"
           preview_url="$(printf '%s' "$output" | jq -er '.preview.urls[0]')"
           echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
@@ -101,6 +105,7 @@ jobs:
     if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: production
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
