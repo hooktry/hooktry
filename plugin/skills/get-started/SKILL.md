@@ -27,11 +27,33 @@ The returned `handoff_url` is a short-lived, one-time owner handoff for the user
 
 In user-facing responses, label this URL **Open in Hooktry** or **Open as owner**. Explain that it is one-time and is the route into owner actions such as claiming/managing the Hook. Do not label it **Handoff** unless the user is explicitly discussing Hooktry's internal capability model. "Handoff" is an implementation/security term.
 
-## Chat output contract
+## MCP Apps UI
 
-When the user asks for a webhook and the tool returns `handoff_url`, the final user-facing response MUST include all three user-facing capabilities. Never omit the owner link, even when the user asked only for "a webhook URL".
+When the host supports the Hooktry MCP Apps result card attached to `create_webhook_endpoint`, treat that card as the canonical presentation.
 
-Prefer this compact mobile-friendly presentation:
+The card already shows:
+
+- the full selectable `hook_url`
+- the full selectable `view_url`
+- the full selectable `handoff_url`
+- copy/open actions
+- remaining owner-link lifetime
+- request limit
+- maximum request body size
+- maximum retained bytes
+- endpoint expiry
+
+Do not duplicate those long URLs in surrounding prose when the card is rendered. A short acknowledgement is enough.
+
+The card must preserve each URL as one underlying text string. Responsive wrapping is visual CSS only. Do not insert newline characters, spaces, zero-width characters, ellipses, or other separators into capability URLs. Users must be able to select and copy the displayed URL as the exact original value.
+
+On narrow screens the URL may wrap visually. On wider screens it should naturally use fewer lines or a single line. Do not hard-code mobile line breaks.
+
+## Text-only fallback
+
+When the host does not render MCP Apps UI, the final user-facing response MUST include all three user-facing capabilities. Never omit the owner link, even when the user asked only for "a webhook URL".
+
+Prefer this compact fallback:
 
 ```markdown
 Webhook
@@ -39,7 +61,8 @@ Webhook
 
 [View requests]({view_url}) · [Open in Hooktry]({handoff_url})
 
-{request_limit} requests - {max_body_size}/request
+{request_limit} requests · {max_body_bytes}/request · {max_retained_bytes} retained
+Owner link: {handoff_remaining}; endpoint: {endpoint_remaining}
 ```
 
 Presentation rules:
@@ -49,7 +72,7 @@ Presentation rules:
 - `View requests` is read-only viewing authority.
 - `Open in Hooktry` is the short-lived, one-time owner link used to continue into claim/manage actions.
 - Do not call `handoff_url` a claim URL. The raw claim capability is intentionally not returned by this tool.
-- Keep operational metadata to one compact line by default. Show exact expiry timestamps, exposure IDs, retained-byte limits, or other metadata only when useful or explicitly requested.
+- Keep operational metadata compact but include the request limit, per-request body limit, retained-byte limit, endpoint expiry, and owner-link lifetime.
 - Do not invent or reconstruct missing URLs. The live tool result is authoritative.
 - If the live tool result unexpectedly omits `view_url` or `handoff_url`, do not fabricate them. Return the available data and clearly state what the tool omitted.
 
