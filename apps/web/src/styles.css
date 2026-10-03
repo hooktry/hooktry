@@ -2876,3 +2876,115 @@ kbd,
     width: min(250px, calc(100vw - 20px));
   }
 }
+
+
+/* Final exact-time popover polish */
+.interaction-time-wrap {
+  background: transparent;
+}
+
+.interaction-time-wrap:hover,
+.interaction-time-wrap:focus-visible,
+.interaction-time-wrap.open {
+  background: rgba(127, 137, 149, 0.07);
+}
+
+.time-popover {
+  width: min(236px, calc(100vw - 24px));
+  padding: 6px;
+}
+
+.time-popover > .time-row {
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 7px;
+}
+
+.time-popover > .time-row.active {
+  background: transparent;
+}
+
+.time-row > strong {
+  color: #9aa4b0;
+  font-size: 7.5px;
+  font-weight: 750;
+}
+
+.time-popover > .time-row:not(.active) > strong {
+  color: #747f8b;
+}
+
+.time-row-value {
+  gap: 1px;
+}
+
+.time-row-clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.time-row-clock > code {
+  color: #eef2f6;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.time-row-zone {
+  color: #77828f;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+  font-size: 7px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.time-row-date {
+  color: #6f7a86;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+  font-size: 7px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.time-popover > .time-row:not(.active) .time-row-clock > code {
+  color: #b9c1cb;
+}
+
+:root[data-theme="light"] .interaction-time-wrap {
+  background: transparent;
+}
+
+:root[data-theme="light"] .interaction-time-wrap:hover,
+:root[data-theme="light"] .interaction-time-wrap:focus-visible,
+:root[data-theme="light"] .interaction-time-wrap.open {
+  background: rgba(86, 96, 108, 0.06);
+}
+
+:root[data-theme="light"] .time-popover > .time-row.active {
+  background: transparent;
+}
+
+:root[data-theme="light"] .time-row > strong {
+  color: #4d5762;
+}
+
+:root[data-theme="light"] .time-popover > .time-row:not(.active) > strong {
+  color: #77818c;
+}
+
+:root[data-theme="light"] .time-row-clock > code {
+  color: #1d2329;
+}
+
+:root[data-theme="light"] .time-row-zone,
+:root[data-theme="light"] .time-row-date {
+  color: #7b8692;
+}
+
+@media (max-width: 650px) {
+  .time-popover {
+    width: min(236px, calc(100vw - 20px));
+  }
+}
