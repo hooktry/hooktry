@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hooktry": {
+      "type": "streamable-http",
+      "url": "https://mcp.hooktry.com/mcp",
+      "headers": {}
+    }
+  }
+}
