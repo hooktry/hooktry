@@ -88,6 +88,43 @@ export function formatExactTimestamp(
   }).format(new Date(unixMs));
 }
 
+export function formatOffsetTimestamp(
+  unixMs: number,
+  offsetHours: number,
+): string {
+  const shifted = new Date(unixMs + offsetHours * 3_600_000);
+  const formatted = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    hour12: false,
+    timeZone: "UTC",
+  }).format(shifted);
+
+  return `${formatted} ${formatUtcOffset(offsetHours)}`;
+}
+
+export function formatUtcOffset(offsetHours: number): string {
+  if (offsetHours === 0) return "UTC";
+
+  const sign = offsetHours > 0 ? "+" : "−";
+  const absolute = Math.abs(offsetHours);
+  const hours = Math.floor(absolute);
+  const minutes = Math.round((absolute - hours) * 60);
+
+  return minutes === 0
+    ? `UTC${sign}${hours}`
+    : `UTC${sign}${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function localUtcOffsetHours(date = new Date()): number {
+  return -date.getTimezoneOffset() / 60;
+}
+
 export function prettyBody(interaction: Interaction): string {
   if (interaction.body_encoding === "hex") {
     return interaction.body;
