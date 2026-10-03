@@ -2630,3 +2630,47 @@ kbd,
 :root[data-theme="light"] .time-popover > span:not(.active) code {
   color: #4f5965;
 }
+
+
+.preview-build-meta {
+  display: none;
+}
+
+@media (max-width: 650px) {
+  .preview-build-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 3px 6px;
+    border: 1px solid #2b323c;
+    border-radius: 5px;
+    background: #11151a;
+    color: #7f8995;
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+    font-size: 8px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .preview-build-meta a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .preview-build-meta a:hover,
+  .preview-build-meta a:focus-visible {
+    color: #c2c9d2;
+  }
+
+  :root[data-theme="light"] .preview-build-meta {
+    border-color: #d4d9df;
+    background: #ffffff;
+    color: #69737f;
+  }
+
+  :root[data-theme="light"] .preview-build-meta a:hover,
+  :root[data-theme="light"] .preview-build-meta a:focus-visible {
+    color: #242a31;
+  }
+}
