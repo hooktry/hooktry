@@ -4,7 +4,10 @@ import {
   formatBytes,
   formatExactTimestamp,
   formatExpiry,
+  formatOffsetTimestamp,
   formatRelativeTimestamp,
+  formatUtcOffset,
+  localUtcOffsetHours,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -68,6 +71,17 @@ describe("WEB1 model", () => {
 
   it("formats exact UTC timestamps with timezone context", () => {
     expect(formatExactTimestamp(1_800_000_000_000, "utc")).toMatch(/UTC/);
+  });
+
+  it("formats fixed UTC offsets explicitly", () => {
+    expect(formatUtcOffset(3)).toBe("UTC+3");
+    expect(formatUtcOffset(-5)).toBe("UTC−5");
+    expect(formatUtcOffset(5.5)).toBe("UTC+5:30");
+    expect(formatOffsetTimestamp(0, 3)).toContain("UTC+3");
+  });
+
+  it("derives the browser-local UTC offset", () => {
+    expect(Number.isFinite(localUtcOffsetHours(new Date()))).toBe(true);
   });
 
   it("counts expiry down from days to hours to minutes", () => {
