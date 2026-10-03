@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hooktry",
-  "version": "0.1.10",
+  "version": "0.1.0",
   "description": "Create temporary webhook endpoints and test integration boundaries with Hooktry.",
   "author": {
     "name": "Hooktry"
