@@ -29,11 +29,15 @@ export async function handleMcp(request: Request, env: Env): Promise<Response> {
     return withCors(new Response(null, { status: 204 }));
   }
 
+  if (request.method === "GET" || request.method === "DELETE") {
+    return withCors(new Response(null, { status: 204 }));
+  }
+
   if (request.method !== "POST") {
     return withCors(
       new Response(null, {
         status: 405,
-        headers: { allow: "POST, OPTIONS" },
+        headers: { allow: "POST, GET, DELETE, OPTIONS" },
       }),
     );
   }
