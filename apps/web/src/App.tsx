@@ -991,8 +991,7 @@ function Inspector({
   }
 
   const body = prettyBody(interaction);
-  const activeTab: InspectorTab =
-    tab === "query" && !interaction.query ? "body" : tab;
+  const activeTab: InspectorTab = tab;
   const queryEntries = interaction.query
     ? Array.from(new URLSearchParams(interaction.query).entries())
     : [];
@@ -1060,13 +1059,11 @@ function Inspector({
         <Tab active={activeTab === "body"} onClick={() => onTab("body")}>
           Body
         </Tab>
-        {interaction.query ? (
-          <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
-            Query <span>{queryEntries.length}</span>
-          </Tab>
-        ) : null}
+        <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
+          Query <span className="tab-count">{queryEntries.length}</span>
+        </Tab>
         <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
-          Headers <span>{interaction.headers.length}</span>
+          Headers <span className="tab-count">{interaction.headers.length}</span>
         </Tab>
         <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
           Metadata
@@ -1088,14 +1085,21 @@ function Inspector({
         ) : null}
 
         {activeTab === "query" ? (
-          <div className="kv-table">
-            {queryEntries.map(([name, value], index) => (
-              <div className="kv-row" key={`${name}-${index}`}>
-                <code>{name}</code>
-                <code>{value}</code>
-              </div>
-            ))}
-          </div>
+          queryEntries.length > 0 ? (
+            <div className="kv-table">
+              {queryEntries.map(([name, value], index) => (
+                <div className="kv-row" key={`${name}-${index}`}>
+                  <code>{name}</code>
+                  <code>{value}</code>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="body-empty-state">
+              <strong>No query parameters</strong>
+              <span>0 parameters received</span>
+            </div>
+          )
         ) : null}
 
         {activeTab === "headers" ? (
