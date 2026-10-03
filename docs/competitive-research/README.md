@@ -123,24 +123,42 @@ A canonical first workflow to benchmark across direct competitors:
 
 Feature parity alone is not enough. Hooktry may win or lose on the complete workflow even when the same boxes are checked.
 
-## Initial seed
+## Market discovery status
 
-The first Market Map pass includes Hooktry plus:
+The Market Map is intentionally broader than a shortlist of category leaders. It includes direct competitors, adjacent webhook infrastructure, substitute workflows, small focused request-bin products, and self-hosted/open-source alternatives.
 
-- Webhook.site
-- Hookdeck
-- Beeceptor
-- Webhook Relay
-- Svix Play
-- Pipedream RequestBin / HTTP triggers
-- ngrok Traffic Inspector
-- smee.io
-- Postman
-- Insomnia
-- Requestly
-- Mockoon
+As of 2026-10-03 the map contains **35 products including Hooktry**.
 
-Pipedream / RequestBin is intentionally marked for status verification. The available first-party material establishes the historical and functional relationship, but the current RequestBin surface still needs a dedicated verification pass.
+The initial leader-focused pass covered products such as Webhook.site, Hookdeck, Beeceptor, Webhook Relay, Svix Play, Pipedream/RequestBin, ngrok, smee.io, Postman, Insomnia, Requestly, and Mockoon.
+
+A second discovery pass expanded the long tail with products including:
+
+- HookRelay
+- webhooks.sh
+- webhooks.cc
+- HookCap
+- Hooklistener
+- Hook0 Play
+- Webhooker
+- Bluejay Relay
+- UseWebhook
+- WebhookScout
+- req.is
+- RequestBin.net
+- HookBin
+- Request Inspector
+- Webhook.cool
+- Request Catcher
+- PostBin
+- WebhookBin.net
+- API Alerts Hooks
+- tarampampam/WebHook Tester
+- Convoy
+- Hook0 Webhook Service
+
+This second pass matters because several of the closest strategic overlaps are not the largest brands. Agent-first/API-first products such as HookRelay, webhooks.cc, Hooklistener, and WebhookScout should receive deeper research alongside the established webhook tools.
+
+Pipedream / RequestBin remains intentionally marked for status verification. HookRelay, UseWebhook, Request Catcher, and API Alerts Hooks also have explicit follow-up questions in the Research Queue rather than guessed conclusions.
 
 ## Research guardrails
 
