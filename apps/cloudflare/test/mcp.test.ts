@@ -42,8 +42,11 @@ describe("PLUGIN1 remote MCP", () => {
     });
     expect(body.result.tools[0].outputSchema.required).toContain("handoff_url");
     expect(body.result.tools[0].description).toContain("THREE distinct user-facing links");
+    expect(body.result.tools[0].description).toContain("give me a webhook");
+    expect(body.result.tools[0].description).toContain("does not need to mention or tag Hooktry explicitly");
     expect(body.result.tools[0].description).toContain("View captured requests read-only");
-    expect(body.result.tools[0].description).toContain("Open as owner in browser");
+    expect(body.result.tools[0].description).toContain("Open in Hooktry as owner");
+    expect(body.result.tools[0].description).toContain("final answer must include all three");
     expect(body.result.tools[0].securitySchemes).toEqual([{ type: "noauth" }]);
     expect(body.result.tools[0].annotations).toEqual({
       readOnlyHint: false,
@@ -89,9 +92,10 @@ describe("PLUGIN1 remote MCP", () => {
       result.structuredContent.handoff_expires_at_unix_seconds,
     ).toBeTypeOf("number");
     expect(result.content[0].text).toContain("SEND REQUESTS HERE:");
-    expect(result.content[0].text).toContain("VIEW ONLY (read-only):");
-    expect(result.content[0].text).toContain("OPEN TO CLAIM / MANAGE");
-    expect(result.content[0].text).toContain("owner link is not the Viewer URL");
+    expect(result.content[0].text).toContain("VIEW ONLY:");
+    expect(result.content[0].text).toContain("OPEN IN HOOKTRY");
+    expect(result.content[0].text).toContain("prefer labeled links");
+    expect(result.content[0].text).toContain("raw claim capability");
 
     const serialized = JSON.stringify(result);
     for (const forbidden of [
