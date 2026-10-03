@@ -365,6 +365,9 @@ describe("CF1 ephemeral Hook conformance", () => {
       }),
     );
     expect(fourth.status).toBe(429);
+    expect(await fourth.json()).toEqual({
+      error: { code: "active_limit" },
+    });
   });
 
   it("enforces request and retained-byte quotas from canonical metadata", async () => {
