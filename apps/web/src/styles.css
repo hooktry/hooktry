@@ -327,6 +327,10 @@ kbd,
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
 }
 
+.creation-card {
+  width: min(700px, 100%);
+}
+
 .eyebrow {
   color: #717b89;
   font-family: "SFMono-Regular", Menlo, monospace;
@@ -336,16 +340,18 @@ kbd,
 }
 
 .landing h1,
+.new-hook-modal h1,
 .hook-header h1 {
   margin: 8px 0 0;
   color: #f3f5f7;
-  font-size: clamp(24px, 4vw, 38px);
-  line-height: 1.06;
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.08;
   letter-spacing: -0.035em;
 }
 
-.landing p {
-  max-width: 610px;
+.landing p,
+.new-hook-modal p {
+  max-width: 590px;
   margin: 16px 0 0;
   color: #959eab;
   font-size: 14px;
@@ -839,26 +845,13 @@ kbd,
 
 .new-hook-modal {
   position: relative;
-  width: min(680px, 100%);
   max-height: calc(100dvh - 48px);
   overflow: auto;
 }
 
 .new-hook-modal h1 {
   max-width: 560px;
-  margin: 8px 40px 0 0;
-  color: #f3f5f7;
-  font-size: clamp(24px, 4vw, 34px);
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-}
-
-.new-hook-modal p {
-  max-width: 590px;
-  margin: 16px 0 0;
-  color: #959eab;
-  font-size: 14px;
-  line-height: 1.65;
+  margin-right: 40px;
 }
 
 .modal-close {
@@ -901,15 +894,18 @@ kbd,
   opacity: 0.45;
 }
 
-.modal-actions {
+.creation-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
 }
 
-.modal-action-button {
+.creation-actions-modal {
+  justify-content: flex-end;
+}
+
+.creation-action-button {
   height: 44px;
   min-width: 108px;
   padding: 0 18px;
@@ -917,7 +913,7 @@ kbd,
   font-size: 12px;
 }
 
-.modal-create-button {
+.creation-primary-button {
   min-width: 214px;
 }
 
