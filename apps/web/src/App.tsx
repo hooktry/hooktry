@@ -826,7 +826,8 @@ function HookHeader({
                   title="Create a new ephemeral Hook"
                   onClick={onNewHook}
                 >
-                  + New Hook
+                  <span className="new-hook-label-full">+ New Hook</span>
+                  <span className="new-hook-label-short">+ New</span>
                 </button>
               </div>
             ) : (
@@ -958,7 +959,7 @@ function InteractionList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="panel interaction-panel">
+    <section className={`panel interaction-panel ${total === 0 ? "interaction-panel-empty" : ""}`}>
       <div className="panel-header">
         <div>
           <strong>Interactions</strong>
@@ -1031,7 +1032,7 @@ function Inspector({
 }) {
   if (!interaction) {
     return (
-      <section className="panel inspector-panel empty-inspector">
+      <section className="panel inspector-panel empty-inspector inspector-empty">
         <div>
           <div className="eyebrow">INSPECTOR</div>
           <h2>No Interaction selected</h2>
@@ -1278,5 +1279,5 @@ function connectionLabel(state: ConnectionState): string {
 }
 
 function shortId(value: string): string {
-  return `${value.slice(0, 8)}…${value.slice(-4)}`;
+  return `${value.slice(0, 12)}…${value.slice(-6)}`;
 }
