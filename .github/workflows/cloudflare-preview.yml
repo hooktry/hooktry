@@ -1,0 +1,173 @@
+name: Cloudflare Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cloudflare-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+
+      - name: Build preview web assets
+        working-directory: apps/web
+        env:
+          VITE_BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+          VITE_BUILD_PR: ${{ github.event.pull_request.number }}
+        run: npm run build
+
+      - name: Install Cloudflare dependencies
+        working-directory: apps/cloudflare
+        run: npm ci --no-audit --no-fund
+
+      - name: Ensure shared preview resources
+        id: resources
+        working-directory: apps/cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! npx wrangler d1 info hooktry-preview --json >/tmp/hooktry-preview-d1.json 2>/dev/null; then
+            npx wrangler d1 create hooktry-preview --location eeur
+            npx wrangler d1 info hooktry-preview --json >/tmp/hooktry-preview-d1.json
+          fi
+
+          preview_db_id="$(jq -r '.uuid // .result.uuid // empty' /tmp/hooktry-preview-d1.json)"
+          if [[ -z "$preview_db_id" ]]; then
+            echo "::error::Unable to resolve hooktry-preview D1 database ID."
+            cat /tmp/hooktry-preview-d1.json
+            exit 1
+          fi
+
+          if ! npx wrangler r2 bucket info hooktry-preview-payloads --json >/dev/null 2>&1; then
+            npx wrangler r2 bucket create hooktry-preview-payloads --location eeur
+          fi
+
+          echo "preview_db_id=$preview_db_id" >> "$GITHUB_OUTPUT"
+
+      - name: Render isolated Preview bindings
+        working-directory: apps/cloudflare
+        env:
+          HOOKTRY_PREVIEW_D1_ID: ${{ steps.resources.outputs.preview_db_id }}
+        run: node scripts/render-preview-config.mjs
+
+      - name: Apply Preview D1 migrations
+        working-directory: apps/cloudflare
+        run: >
+          npx wrangler d1 migrations apply PREVIEW_DB
+          --remote
+          --config wrangler.preview-migrations.generated.jsonc
+
+      - name: Create or update Cloudflare Preview
+        id: preview
+        working-directory: apps/cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(npx wrangler preview \
+            --config wrangler.preview.generated.jsonc \
+            --name "pr-${{ github.event.pull_request.number }}" \
+            --message "PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}" \
+            --json)"
+          printf '%s\n' "$output"
+          preview_json="$(printf '%s\n' "$output" | sed -n '/^{/,$p')"
+          preview_url="$(printf '%s' "$preview_json" | jq -er '.preview.urls[0]')"
+          echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
+
+      - name: Probe preview
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent "$PREVIEW_URL/healthz" >/dev/null
+          curl --fail --show-error --silent "$PREVIEW_URL/" >/dev/null
+
+      - name: Capture preview screenshot
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          npx --yes playwright@1.55.0 install --with-deps chromium
+          npx --yes playwright@1.55.0 screenshot --full-page "$PREVIEW_URL" preview.png
+
+      - name: Upload preview screenshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cloudflare-preview-pr-${{ github.event.pull_request.number }}
+          path: preview.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Comment preview URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+        run: >
+          gh pr comment "${{ github.event.pull_request.number }}"
+          --edit-last
+          --create-if-none
+          --body "Cloudflare Preview: $PREVIEW_URL
+
+          Latest commit: \`${{ github.event.pull_request.head.sha }}\`
+
+          Screenshot artifact: \`cloudflare-preview-pr-${{ github.event.pull_request.number }}\`"
+
+  cleanup:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install Cloudflare dependencies
+        working-directory: apps/cloudflare
+        run: npm ci --no-audit --no-fund
+
+      - name: Delete Preview
+        working-directory: apps/cloudflare
+        run: >
+          npx wrangler preview delete
+          --config wrangler.production.jsonc
+          --name "pr-${{ github.event.pull_request.number }}"
+          --skip-confirmation

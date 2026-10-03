@@ -44,14 +44,85 @@ export function formatExpiry(
   return `in ${Math.ceil(remaining / day)}d`;
 }
 
-export function formatTimestamp(unixMs: number): string {
+export function formatRelativeTimestamp(
+  unixMs: number,
+  nowMs = Date.now(),
+): string {
+  const elapsedMs = Math.max(0, nowMs - unixMs);
+  const seconds = Math.floor(elapsedMs / 1000);
+  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "always" });
+
+  if (seconds < 60) {
+    return formatter.format(-seconds, "second");
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return formatter.format(-minutes, "minute");
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return formatter.format(-hours, "hour");
+  }
+
+  const days = Math.floor(hours / 24);
+  return formatter.format(-days, "day");
+}
+
+export function formatExactTimestamp(
+  unixMs: number,
+  zone: "local" | "utc",
+): string {
   return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     fractionalSecondDigits: 3,
     hour12: false,
+    timeZone: zone === "utc" ? "UTC" : undefined,
+    timeZoneName: "short",
   }).format(new Date(unixMs));
+}
+
+export function formatOffsetTimestamp(
+  unixMs: number,
+  offsetHours: number,
+): string {
+  const shifted = new Date(unixMs + offsetHours * 3_600_000);
+  const formatted = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    hour12: false,
+    timeZone: "UTC",
+  }).format(shifted);
+
+  return `${formatted} ${formatUtcOffset(offsetHours)}`;
+}
+
+export function formatUtcOffset(offsetHours: number): string {
+  if (offsetHours === 0) return "UTC";
+
+  const sign = offsetHours > 0 ? "+" : "−";
+  const absolute = Math.abs(offsetHours);
+  const hours = Math.floor(absolute);
+  const minutes = Math.round((absolute - hours) * 60);
+
+  return minutes === 0
+    ? `UTC${sign}${hours}`
+    : `UTC${sign}${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function localUtcOffsetHours(date = new Date()): number {
+  return -date.getTimezoneOffset() / 60;
 }
 
 export function prettyBody(interaction: Interaction): string {

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatBytes,
+  formatExactTimestamp,
   formatExpiry,
+  formatOffsetTimestamp,
+  formatRelativeTimestamp,
+  formatUtcOffset,
+  localUtcOffsetHours,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -54,6 +59,29 @@ describe("WEB1 model", () => {
     expect(formatBytes(18)).toBe("18 B");
     expect(formatBytes(2048)).toBe("2.0 KiB");
     expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MiB");
+  });
+
+  it("formats interaction time relatively", () => {
+    const now = 1_800_000_000_000;
+    expect(formatRelativeTimestamp(now - 5_000, now)).toBe("5 seconds ago");
+    expect(formatRelativeTimestamp(now - 60_000, now)).toBe("1 minute ago");
+    expect(formatRelativeTimestamp(now - 2 * 3_600_000, now)).toBe("2 hours ago");
+    expect(formatRelativeTimestamp(now - 3 * 86_400_000, now)).toBe("3 days ago");
+  });
+
+  it("formats exact UTC timestamps with timezone context", () => {
+    expect(formatExactTimestamp(1_800_000_000_000, "utc")).toMatch(/UTC/);
+  });
+
+  it("formats fixed UTC offsets explicitly", () => {
+    expect(formatUtcOffset(3)).toBe("UTC+3");
+    expect(formatUtcOffset(-5)).toBe("UTC−5");
+    expect(formatUtcOffset(5.5)).toBe("UTC+5:30");
+    expect(formatOffsetTimestamp(0, 3)).toContain("UTC+3");
+  });
+
+  it("derives the browser-local UTC offset", () => {
+    expect(Number.isFinite(localUtcOffsetHours(new Date()))).toBe(true);
   });
 
   it("counts expiry down from days to hours to minutes", () => {

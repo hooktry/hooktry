@@ -15,8 +15,12 @@ import {
 } from "./api";
 import {
   formatBytes,
+  formatExactTimestamp,
   formatExpiry,
-  formatTimestamp,
+  formatOffsetTimestamp,
+  formatRelativeTimestamp,
+  formatUtcOffset,
+  localUtcOffsetHours,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -37,11 +41,90 @@ import type {
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
 type InspectorTab = "body" | "query" | "headers" | "metadata";
 type Theme = "light" | "dark";
+type TimeZoneMode = "local" | `offset:${number}`;
 
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function initialTimeZoneMode(): TimeZoneMode {
+  const stored = window.localStorage.getItem("hooktry-time-zone");
+  if (stored === "local" || stored?.startsWith("offset:")) {
+    return stored as TimeZoneMode;
+  }
+  return "local";
+}
+
+const UTC_OFFSET_OPTIONS = Array.from(
+  { length: 27 },
+  (_, index) => index - 12,
+).filter((offset) => offset !== 0);
+
+function timeZoneModeLabel(mode: TimeZoneMode): string {
+  if (mode === "local") {
+    return `Local (${formatUtcOffset(localUtcOffsetHours())})`;
+  }
+  return formatUtcOffset(Number.parseFloat(mode.slice("offset:".length)));
+}
+
+function comparisonTimestamp(unixMs: number, mode: TimeZoneMode): string {
+  if (mode === "local") return formatExactTimestamp(unixMs, "local");
+  return formatOffsetTimestamp(
+    unixMs,
+    Number.parseFloat(mode.slice("offset:".length)),
+  );
+}
+
+
+function exactTimeParts(
+  unixMs: number,
+  mode: TimeZoneMode | "utc",
+): { date: string; time: string; zone: string } {
+  const isUtc = mode === "utc";
+  const offsetHours =
+    typeof mode === "string" && mode.startsWith("offset:")
+      ? Number.parseFloat(mode.slice("offset:".length))
+      : null;
+  const shiftedMs =
+    offsetHours == null ? unixMs : unixMs + offsetHours * 3_600_000;
+  const date = new Date(shiftedMs);
+  const timeZone =
+    isUtc || offsetHours != null ? "UTC" : undefined;
+
+  const dateText = new Intl.DateTimeFormat(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+
+  const timeText = new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    hour12: false,
+    timeZone,
+  }).format(date);
+
+  const zone =
+    isUtc
+      ? "UTC"
+      : offsetHours != null
+        ? formatUtcOffset(offsetHours)
+        : new Intl.DateTimeFormat(undefined, {
+            timeZoneName: "short",
+          })
+            .formatToParts(new Date(unixMs))
+            .find((part) => part.type === "timeZoneName")?.value ?? "";
+
+  return { date: dateText, time: timeText, zone };
+}
+
+function isPreviewHost(): boolean {
+  return /^pr-\d+-/.test(window.location.hostname);
 }
 
 export function App() {
@@ -66,6 +149,9 @@ export function App() {
   const [copied, setCopied] = useState<string | null>(null);
   const [interactionPaneWidth, setInteractionPaneWidth] = useState(360);
   const [theme, setTheme] = useState<Theme>(() => initialTheme());
+  const [timeZoneMode, setTimeZoneMode] = useState<TimeZoneMode>(() =>
+    initialTimeZoneMode(),
+  );
 
   const viewCapability = viewCapabilityFromPath(pathname);
   const handoffCapability =
@@ -83,7 +169,7 @@ export function App() {
   }, [provision, viewCapability]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -94,6 +180,10 @@ export function App() {
     const themeColor = document.querySelector('meta[name="theme-color"]');
     themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem("hooktry-time-zone", timeZoneMode);
+  }, [timeZoneMode]);
 
   useEffect(() => {
     if (!newHookOpen) return;
@@ -447,6 +537,9 @@ export function App() {
                 search={search}
                 onSearch={setSearch}
                 onSelect={setSelectedId}
+                nowMs={nowMs}
+                timeZoneMode={timeZoneMode}
+                onTimeZoneMode={setTimeZoneMode}
               />
               <div
                 className="pane-resizer"
@@ -462,6 +555,7 @@ export function App() {
                 onTab={setTab}
                 copied={copied}
                 onCopy={copy}
+                timeZoneMode={timeZoneMode}
               />
             </div>
           </section>
@@ -593,6 +687,18 @@ function Topbar({
   theme: Theme;
   onToggleTheme: () => void;
 }) {
+  const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
+  const buildPr = (import.meta.env.VITE_BUILD_PR as string | undefined)?.trim() || null;
+  const shortBuildSha = buildSha === "dev" ? buildSha : buildSha.slice(0, 7);
+  const preview = isPreviewHost();
+  const buildHref =
+    buildSha === "dev"
+      ? null
+      : `https://github.com/hooktry/hooktry/commit/${buildSha}`;
+  const prHref = buildPr
+    ? `https://github.com/hooktry/hooktry/pull/${buildPr}`
+    : null;
+
   return (
     <header className="topbar">
       <div className="breadcrumb">
@@ -602,6 +708,23 @@ function Topbar({
       </div>
       <div className="topbar-actions">
         {!viewing ? <span className="badge">no account required</span> : null}
+        {preview ? (
+          <div className="preview-build-meta" aria-label="Preview build information">
+            {prHref ? (
+              <a href={prHref} target="_blank" rel="noreferrer">
+                PR #{buildPr}
+              </a>
+            ) : null}
+            {prHref ? <span>·</span> : null}
+            {buildHref ? (
+              <a href={buildHref} target="_blank" rel="noreferrer" title={buildSha}>
+                {shortBuildSha}
+              </a>
+            ) : (
+              <span>{shortBuildSha}</span>
+            )}
+          </div>
+        ) : null}
         <button
           className="theme-toggle"
           type="button"
@@ -650,6 +773,75 @@ function HandoffLanding({
   );
 }
 
+function HookCreationContent({
+  creating,
+  error,
+  context,
+  onCreate,
+  onCancel,
+}: {
+  creating: boolean;
+  error: string | null;
+  context: "root" | "existing-hook";
+  onCreate: () => void;
+  onCancel?: () => void;
+}) {
+  const isExistingHook = context === "existing-hook";
+
+  return (
+    <>
+      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "EPHEMERAL HOOK"}</div>
+      <h1 id={isExistingHook ? "new-hook-title" : undefined}>
+        {isExistingHook
+          ? "Create another webhook endpoint."
+          : "Create an ephemeral webhook endpoint."}
+      </h1>
+      <p>
+        {isExistingHook
+          ? "Your current Hook stays open until the new one has been created successfully."
+          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
+      </p>
+
+      <div className="policy-grid">
+        <Policy value="5 days" label="ephemeral lifetime" />
+        <Policy value="100" label="requests per Hook" />
+        <Policy value="5 MiB" label="per request" />
+        <Policy value="50 MiB" label="retained bodies" />
+      </div>
+
+      <div className={isExistingHook ? "creation-actions creation-actions-modal" : "creation-actions"}>
+        {isExistingHook && onCancel ? (
+          <button
+            className="button secondary creation-action-button"
+            type="button"
+            onClick={onCancel}
+            disabled={creating}
+          >
+            Cancel
+          </button>
+        ) : null}
+        <button
+          className="button primary creation-action-button creation-primary-button"
+          type="button"
+          onClick={onCreate}
+          disabled={creating}
+        >
+          {creating ? "Creating…" : "Create ephemeral Hook"}
+        </button>
+      </div>
+
+      {error ? <div className="error-inline">{error}</div> : null}
+
+      {!isExistingHook ? (
+        <div className="landing-footnote">
+          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
+          unless claimed into a workspace.
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function Landing({
   creating,
   error,
@@ -661,31 +853,13 @@ function Landing({
 }) {
   return (
     <section className="landing">
-      <div className="landing-card">
-        <div className="eyebrow">EPHEMERAL HOOK</div>
-        <h1>Receive a webhook. Understand it immediately.</h1>
-        <p>
-          Create a public Hook without an account. Requests appear live as structured
-          interactions you can inspect and hand to an agent.
-        </p>
-
-        <div className="policy-grid">
-          <Policy value="5 days" label="ephemeral lifetime" />
-          <Policy value="100" label="requests per Hook" />
-          <Policy value="5 MiB" label="per request" />
-          <Policy value="50 MiB" label="retained bodies" />
-        </div>
-
-        <button className="button primary create" type="button" onClick={onCreate} disabled={creating}>
-          {creating ? "Creating…" : "Create ephemeral Hook"}
-        </button>
-
-        {error ? <div className="error-inline">{error}</div> : null}
-
-        <div className="landing-footnote">
-          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
-          unless claimed into a workspace.
-        </div>
+      <div className="landing-card creation-card">
+        <HookCreationContent
+          creating={creating}
+          error={error}
+          context="root"
+          onCreate={onCreate}
+        />
       </div>
     </section>
   );
@@ -729,7 +903,7 @@ function HookHeader({
         <div className="hook-title-row">
           <div className="hook-identity">
             <div className="hook-kicker-row">
-              <span className="hook-type-label">TYPE:</span>
+              <span className="hook-type-label">TYPE</span>
               <span className="hook-kind">
                 {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
               </span>
@@ -775,7 +949,8 @@ function HookHeader({
                   title="Create a new ephemeral Hook"
                   onClick={onNewHook}
                 >
-                  + New Hook
+                  <span className="new-hook-label-full">+ New Hook</span>
+                  <span className="new-hook-label-short">+ New</span>
                 </button>
               </div>
             ) : (
@@ -785,17 +960,19 @@ function HookHeader({
         </div>
 
         {provision ? (
-          <div className="url-box">
-            <div className="url-label">Public ingress</div>
-            <code>{provision.hook_url}</code>
-            <button
-              className="copy-button"
-              type="button"
-              title="Copy Webhook URL"
-              onClick={() => onCopy(provision.hook_url, "hook")}
-            >
-              {copied === "hook" ? "Copied" : "Copy"}
-            </button>
+          <div className="public-ingress">
+            <div className="capability-heading">PUBLIC INGRESS</div>
+            <div className="url-box public-ingress-row">
+              <code>{provision.hook_url}</code>
+              <button
+                className="copy-button"
+                type="button"
+                title="Copy Webhook URL"
+                onClick={() => onCopy(provision.hook_url, "hook")}
+              >
+                {copied === "hook" ? "Copied" : "Copy"}
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -865,6 +1042,70 @@ function HookHeader({
               ) : null
             }
           />
+
+        <details className="mobile-hook-details">
+          <summary>Details</summary>
+          <div className="mobile-hook-details-content">
+            <div className="mobile-detail-section">
+              <div className="capability-heading">VIEWER URL</div>
+              <div className="viewer-capability-row mobile-viewer-row">
+                <code>{viewUrl}</code>
+                <button
+                  className="viewer-copy-button"
+                  type="button"
+                  title="Copy Viewer URL"
+                  onClick={() => onCopy(viewUrl, "view")}
+                >
+                  {copied === "view" ? "Copied" : "Copy"}
+                </button>
+              </div>
+              {!provision ? (
+                <div className="viewer-capability-note">
+                  Hook and claim capabilities cannot be derived from this URL.
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mobile-metrics-list">
+              <div className="mobile-metric-row">
+                <span>Requests</span>
+                <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Retained</span>
+                <strong>
+                  {summary
+                    ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}`
+                    : "—"}
+                </strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Max body</span>
+                <strong>{summary ? formatBytes(summary.max_body_bytes) : "—"}</strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Expires</span>
+                <strong>
+                  {summary?.claimed
+                    ? "persistent"
+                    : formatExpiry(summary?.expires_at_unix_seconds, nowMs)}
+                </strong>
+              </div>
+            </div>
+
+            {provision && !summary?.claimed ? (
+              <button
+                className="button secondary mobile-claim-button"
+                type="button"
+                title="Keep this Hook by claiming it into a workspace"
+                onClick={onClaim}
+                disabled={claiming}
+              >
+                {claiming ? "Claiming…" : "Claim Hook"}
+              </button>
+            ) : null}
+          </div>
+        </details>
         </div>
       </div>
     </div>
@@ -898,6 +1139,9 @@ function InteractionList({
   search,
   onSearch,
   onSelect,
+  nowMs,
+  timeZoneMode,
+  onTimeZoneMode,
 }: {
   interactions: Interaction[];
   total: number;
@@ -905,15 +1149,35 @@ function InteractionList({
   search: string;
   onSearch: (value: string) => void;
   onSelect: (id: string) => void;
+  nowMs: number;
+  timeZoneMode: TimeZoneMode;
+  onTimeZoneMode: (mode: TimeZoneMode) => void;
 }) {
   return (
-    <section className="panel interaction-panel">
+    <section className={`panel interaction-panel ${total === 0 ? "interaction-panel-empty" : ""}`}>
       <div className="panel-header">
         <div>
           <strong>Interactions</strong>
           <span className="count">{total}</span>
         </div>
-        <span className="live-hint">live stream</span>
+        <div className="panel-header-actions">
+          <select
+            className="time-zone-select"
+            aria-label="Timestamp timezone"
+            value={timeZoneMode}
+            onChange={(event) => onTimeZoneMode(event.target.value as TimeZoneMode)}
+          >
+            <option value="local">{timeZoneModeLabel("local")}</option>
+            <optgroup label="UTC offsets">
+              {UTC_OFFSET_OPTIONS.map((offset) => (
+                <option key={offset} value={`offset:${offset}`}>
+                  {formatUtcOffset(offset)}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <span className="live-hint">live stream</span>
+        </div>
       </div>
       <div className="search-row">
         <input
@@ -935,11 +1199,18 @@ function InteractionList({
           </div>
         ) : (
           interactions.map((interaction) => (
-            <button
+            <div
               key={interaction.interaction_id}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={`interaction-row ${selectedId === interaction.interaction_id ? "selected" : ""}`}
               onClick={() => onSelect(interaction.interaction_id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(interaction.interaction_id);
+                }
+              }}
             >
               <div className="interaction-main">
                 <span className={`method method-${interaction.method.toLowerCase()}`}>
@@ -949,19 +1220,90 @@ function InteractionList({
                   {interaction.path}
                   {interaction.query ? <span className="query">?{interaction.query}</span> : null}
                 </span>
-                <span className="interaction-time">
-                  {formatTimestamp(interaction.received_at_unix_ms)}
-                </span>
+                <RelativeInteractionTime
+                  unixMs={interaction.received_at_unix_ms}
+                  nowMs={nowMs}
+                  timeZoneMode={timeZoneMode}
+                />
               </div>
               <div className="interaction-meta">
                 <span>#{interaction.sequence}</span>
                 <span>{formatBytes(interaction.body_bytes)}</span>
               </div>
-            </button>
+            </div>
           ))
         )}
       </div>
     </section>
+  );
+}
+
+function RelativeInteractionTime({
+  unixMs,
+  nowMs,
+  timeZoneMode,
+}: {
+  unixMs: number;
+  nowMs: number;
+  timeZoneMode: TimeZoneMode;
+}) {
+  const [open, setOpen] = useState(false);
+  const comparisonTime = comparisonTimestamp(unixMs, timeZoneMode);
+  const comparisonLabel = timeZoneModeLabel(timeZoneMode);
+  const utcTime = formatExactTimestamp(unixMs, "utc");
+  const comparisonParts = exactTimeParts(unixMs, timeZoneMode);
+  const utcParts = exactTimeParts(unixMs, "utc");
+  const comparisonZone =
+    timeZoneMode === "local" ? comparisonParts.zone : "";
+  const relative = formatRelativeTimestamp(unixMs, nowMs);
+
+  return (
+    <span
+      className={`interaction-time-wrap ${open ? "open" : ""}`}
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        setOpen((current) => !current);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }
+        if (event.key === "Escape") setOpen(false);
+      }}
+      onBlur={() => setOpen(false)}
+      aria-label={`${relative}. ${comparisonLabel}: ${comparisonTime}. UTC: ${utcTime}`}
+      title="Show exact timestamps"
+    >
+      <span className="interaction-time">{relative}</span>
+      <span className="interaction-time-chevron" aria-hidden="true">⌄</span>
+      <span className="time-popover" role="tooltip">
+        <span className="time-popover-caret" aria-hidden="true" />
+        <span className="time-row active">
+          <strong>{timeZoneMode === "local" ? "LOCAL" : comparisonLabel}</strong>
+          <span className="time-row-value">
+            <span className="time-row-clock">
+              <code>{comparisonParts.time}</code>
+              {comparisonZone ? (
+                <span className="time-row-zone">{comparisonZone}</span>
+              ) : null}
+            </span>
+            <span className="time-row-date">{comparisonParts.date}</span>
+          </span>
+        </span>
+        <span className="time-row">
+          <strong>UTC</strong>
+          <span className="time-row-value">
+            <span className="time-row-clock">
+              <code>{utcParts.time}</code>
+            </span>
+            <span className="time-row-date">{utcParts.date}</span>
+          </span>
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -971,16 +1313,18 @@ function Inspector({
   onTab,
   copied,
   onCopy,
+  timeZoneMode,
 }: {
   interaction: Interaction | null;
   tab: InspectorTab;
   onTab: (tab: InspectorTab) => void;
   copied: string | null;
   onCopy: (value: string, key: string) => void;
+  timeZoneMode: TimeZoneMode;
 }) {
   if (!interaction) {
     return (
-      <section className="panel inspector-panel empty-inspector">
+      <section className="panel inspector-panel empty-inspector inspector-empty">
         <div>
           <div className="eyebrow">INSPECTOR</div>
           <h2>No Interaction selected</h2>
@@ -991,11 +1335,18 @@ function Inspector({
   }
 
   const body = prettyBody(interaction);
-  const activeTab: InspectorTab =
-    tab === "query" && !interaction.query ? "body" : tab;
+  const activeTab: InspectorTab = tab;
   const queryEntries = interaction.query
     ? Array.from(new URLSearchParams(interaction.query).entries())
     : [];
+  const metadataEntries = [
+    ["Interaction ID", interaction.interaction_id],
+    ["Exposure ID", interaction.exposure_id],
+    ["Sequence", String(interaction.sequence)],
+    ["Received", comparisonTimestamp(interaction.received_at_unix_ms, timeZoneMode)],
+    ["Body bytes", String(interaction.body_bytes)],
+    ["Body encoding", interaction.body_encoding],
+  ] as const;
 
   const copyTarget =
     activeTab === "body"
@@ -1060,16 +1411,14 @@ function Inspector({
         <Tab active={activeTab === "body"} onClick={() => onTab("body")}>
           Body
         </Tab>
-        {interaction.query ? (
-          <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
-            Query <span>{queryEntries.length}</span>
-          </Tab>
-        ) : null}
+        <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
+          Query
+        </Tab>
         <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
-          Headers <span>{interaction.headers.length}</span>
+          Headers <span className="tab-count">{interaction.headers.length}</span>
         </Tab>
         <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
-          Metadata
+          Metadata <span className="tab-count">{metadataEntries.length}</span>
         </Tab>
       </div>
 
@@ -1088,14 +1437,21 @@ function Inspector({
         ) : null}
 
         {activeTab === "query" ? (
-          <div className="kv-table">
-            {queryEntries.map(([name, value], index) => (
-              <div className="kv-row" key={`${name}-${index}`}>
-                <code>{name}</code>
-                <code>{value}</code>
-              </div>
-            ))}
-          </div>
+          queryEntries.length > 0 ? (
+            <div className="kv-table">
+              {queryEntries.map(([name, value], index) => (
+                <div className="kv-row" key={`${name}-${index}`}>
+                  <code>{name}</code>
+                  <code>{value}</code>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="body-empty-state">
+              <strong>No query parameters</strong>
+              <span>0 parameters received</span>
+            </div>
+          )
         ) : null}
 
         {activeTab === "headers" ? (
@@ -1116,15 +1472,9 @@ function Inspector({
 
         {activeTab === "metadata" ? (
           <div className="kv-table">
-            <KeyValue label="Interaction ID" value={interaction.interaction_id} />
-            <KeyValue label="Exposure ID" value={interaction.exposure_id} />
-            <KeyValue label="Sequence" value={String(interaction.sequence)} />
-            <KeyValue
-              label="Received"
-              value={new Date(interaction.received_at_unix_ms).toISOString()}
-            />
-            <KeyValue label="Body bytes" value={String(interaction.body_bytes)} />
-            <KeyValue label="Body encoding" value={interaction.body_encoding} />
+            {metadataEntries.map(([label, value]) => (
+              <KeyValue key={label} label={label} value={value} />
+            ))}
           </div>
         ) : null}
       </div>
@@ -1177,7 +1527,7 @@ function NewHookModal({
       }}
     >
       <section
-        className="landing-card new-hook-modal"
+        className="landing-card creation-card new-hook-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-hook-title"
@@ -1186,6 +1536,7 @@ function NewHookModal({
           className="modal-close"
           type="button"
           aria-label="Close new Hook dialog"
+          title="Close"
           onClick={onClose}
           disabled={creating}
         >
@@ -1194,39 +1545,13 @@ function NewHookModal({
           </svg>
         </button>
 
-        <div className="eyebrow">NEW EPHEMERAL HOOK</div>
-        <h1 id="new-hook-title">Create another webhook endpoint.</h1>
-        <p>
-          Your current Hook stays open until the new one has been created successfully.
-        </p>
-
-        <div className="policy-grid">
-          <Policy value="5 days" label="ephemeral lifetime" />
-          <Policy value="100" label="requests per Hook" />
-          <Policy value="5 MiB" label="per request" />
-          <Policy value="50 MiB" label="retained bodies" />
-        </div>
-
-        <div className="modal-actions">
-          <button
-            className="button secondary modal-action-button"
-            type="button"
-            onClick={onClose}
-            disabled={creating}
-          >
-            Cancel
-          </button>
-          <button
-            className="button primary modal-action-button modal-create-button"
-            type="button"
-            onClick={onCreate}
-            disabled={creating}
-          >
-            {creating ? "Creating…" : "Create ephemeral Hook"}
-          </button>
-        </div>
-
-        {error ? <div className="error-inline">{error}</div> : null}
+        <HookCreationContent
+          creating={creating}
+          error={error}
+          context="existing-hook"
+          onCreate={onCreate}
+          onCancel={onClose}
+        />
       </section>
     </div>
   );
@@ -1248,5 +1573,5 @@ function connectionLabel(state: ConnectionState): string {
 }
 
 function shortId(value: string): string {
-  return `${value.slice(0, 8)}…${value.slice(-4)}`;
+  return `${value.slice(0, 12)}…${value.slice(-6)}`;
 }

@@ -71,5 +71,11 @@
   ],
   "vars": {
     "HOOKTRY_PUBLIC_ORIGIN": "https://hooktry.com"
+  },
+  "previews": {
+    "vars": {},
+    "observability": {
+      "enabled": true
+    }
   }
 }

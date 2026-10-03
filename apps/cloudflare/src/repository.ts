@@ -22,6 +22,12 @@ export async function createExposure(
     expiresAt: number;
   },
 ): Promise<AnonymousExposureSummary> {
+  const configuredActiveLimit = Number.parseInt(env.HOOKTRY_ACTIVE_LIMIT ?? "", 10);
+  const activeLimit =
+    Number.isFinite(configuredActiveLimit) && configuredActiveLimit > 0
+      ? configuredActiveLimit
+      : ANONYMOUS_ACTIVE_LIMIT;
+
   const result = await env.DB.prepare(
     `INSERT INTO anonymous_exposures (
        exposure_id, principal_digest, ingress_capability_digest, view_capability_digest, claim_capability_digest,
@@ -46,7 +52,7 @@ export async function createExposure(
       input.expiresAt,
       input.principalDigest,
       input.now,
-      ANONYMOUS_ACTIVE_LIMIT,
+      activeLimit,
     )
     .run();
 
