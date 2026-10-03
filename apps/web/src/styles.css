@@ -2050,10 +2050,23 @@ kbd,
 }
 
 
+:root[data-theme="light"] .policy {
+  background: #f6f7f8;
+}
+
+:root[data-theme="light"] .policy-grid {
+  border-color: #d9dde3;
+}
+
+:root[data-theme="light"] .policy + .policy,
+:root[data-theme="light"] .policy:not(:last-child) {
+  border-color: #d9dde3;
+}
+
 :root[data-theme="light"] .policy strong {
-  color: #f2f5f7;
+  color: #1f2328;
 }
 
 :root[data-theme="light"] .policy span {
-  color: #98a2ae;
+  color: #68727e;
 }
