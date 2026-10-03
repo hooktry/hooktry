@@ -2039,3 +2039,11 @@ kbd,
 :root[data-theme="light"] .new-hook-limit span {
   color: #6e7884;
 }
+
+
+.tabs .tab-count {
+  display: inline-block;
+  min-width: 1.25em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
