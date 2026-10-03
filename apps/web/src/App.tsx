@@ -1196,7 +1196,7 @@ function RelativeInteractionTime({
       <span className="interaction-time-chevron" aria-hidden="true">⌄</span>
       <span className="time-popover" role="tooltip">
         <span className="active">
-          <strong>{comparisonLabel}</strong>
+          <strong>{timeZoneMode === "local" ? "LOCAL" : comparisonLabel}</strong>
           <code>{comparisonTime}</code>
         </span>
         <span>
