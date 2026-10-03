@@ -15,8 +15,9 @@ import {
 } from "./api";
 import {
   formatBytes,
+  formatExactTimestamp,
   formatExpiry,
-  formatTimestamp,
+  formatRelativeTimestamp,
   handoffCapabilityFromHash,
   interactionMatches,
   mergeInteraction,
@@ -37,6 +38,7 @@ import type {
 type ConnectionState = "idle" | "connecting" | "live" | "disconnected" | "error";
 type InspectorTab = "body" | "query" | "headers" | "metadata";
 type Theme = "light" | "dark";
+type TimeZoneMode = "local" | "utc";
 
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
@@ -66,6 +68,7 @@ export function App() {
   const [copied, setCopied] = useState<string | null>(null);
   const [interactionPaneWidth, setInteractionPaneWidth] = useState(360);
   const [theme, setTheme] = useState<Theme>(() => initialTheme());
+  const [timeZoneMode, setTimeZoneMode] = useState<TimeZoneMode>("local");
 
   const viewCapability = viewCapabilityFromPath(pathname);
   const handoffCapability =
@@ -83,7 +86,7 @@ export function App() {
   }, [provision, viewCapability]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -447,6 +450,9 @@ export function App() {
                 search={search}
                 onSearch={setSearch}
                 onSelect={setSelectedId}
+                nowMs={nowMs}
+                timeZoneMode={timeZoneMode}
+                onTimeZoneMode={setTimeZoneMode}
               />
               <div
                 className="pane-resizer"
@@ -462,6 +468,7 @@ export function App() {
                 onTab={setTab}
                 copied={copied}
                 onCopy={copy}
+                timeZoneMode={timeZoneMode}
               />
             </div>
           </section>
@@ -780,7 +787,7 @@ function HookHeader({
         <div className="hook-title-row">
           <div className="hook-identity">
             <div className="hook-kicker-row">
-              <span className="hook-type-label">TYPE:</span>
+              <span className="hook-type-label">TYPE</span>
               <span className="hook-kind">
                 {summary?.claimed ? "PERSISTENT HOOK" : "EPHEMERAL HOOK"}
               </span>
@@ -1016,6 +1023,9 @@ function InteractionList({
   search,
   onSearch,
   onSelect,
+  nowMs,
+  timeZoneMode,
+  onTimeZoneMode,
 }: {
   interactions: Interaction[];
   total: number;
@@ -1023,6 +1033,9 @@ function InteractionList({
   search: string;
   onSearch: (value: string) => void;
   onSelect: (id: string) => void;
+  nowMs: number;
+  timeZoneMode: TimeZoneMode;
+  onTimeZoneMode: (mode: TimeZoneMode) => void;
 }) {
   return (
     <section className={`panel interaction-panel ${total === 0 ? "interaction-panel-empty" : ""}`}>
@@ -1031,7 +1044,18 @@ function InteractionList({
           <strong>Interactions</strong>
           <span className="count">{total}</span>
         </div>
-        <span className="live-hint">live stream</span>
+        <div className="panel-header-actions">
+          <select
+            className="time-zone-select"
+            aria-label="Timestamp timezone"
+            value={timeZoneMode}
+            onChange={(event) => onTimeZoneMode(event.target.value as TimeZoneMode)}
+          >
+            <option value="local">Local</option>
+            <option value="utc">UTC</option>
+          </select>
+          <span className="live-hint">live stream</span>
+        </div>
       </div>
       <div className="search-row">
         <input
@@ -1053,11 +1077,18 @@ function InteractionList({
           </div>
         ) : (
           interactions.map((interaction) => (
-            <button
+            <div
               key={interaction.interaction_id}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={`interaction-row ${selectedId === interaction.interaction_id ? "selected" : ""}`}
               onClick={() => onSelect(interaction.interaction_id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(interaction.interaction_id);
+                }
+              }}
             >
               <div className="interaction-main">
                 <span className={`method method-${interaction.method.toLowerCase()}`}>
@@ -1067,19 +1098,69 @@ function InteractionList({
                   {interaction.path}
                   {interaction.query ? <span className="query">?{interaction.query}</span> : null}
                 </span>
-                <span className="interaction-time">
-                  {formatTimestamp(interaction.received_at_unix_ms)}
-                </span>
+                <RelativeInteractionTime
+                  unixMs={interaction.received_at_unix_ms}
+                  nowMs={nowMs}
+                  timeZoneMode={timeZoneMode}
+                />
               </div>
               <div className="interaction-meta">
                 <span>#{interaction.sequence}</span>
                 <span>{formatBytes(interaction.body_bytes)}</span>
               </div>
-            </button>
+            </div>
           ))
         )}
       </div>
     </section>
+  );
+}
+
+function RelativeInteractionTime({
+  unixMs,
+  nowMs,
+  timeZoneMode,
+}: {
+  unixMs: number;
+  nowMs: number;
+  timeZoneMode: TimeZoneMode;
+}) {
+  const [open, setOpen] = useState(false);
+  const localTime = formatExactTimestamp(unixMs, "local");
+  const utcTime = formatExactTimestamp(unixMs, "utc");
+  const relative = formatRelativeTimestamp(unixMs, nowMs);
+
+  return (
+    <span
+      className={`interaction-time-wrap ${open ? "open" : ""}`}
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        setOpen((current) => !current);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }
+        if (event.key === "Escape") setOpen(false);
+      }}
+      onBlur={() => setOpen(false)}
+      aria-label={`${relative}. Local: ${localTime}. UTC: ${utcTime}`}
+    >
+      <span className="interaction-time">{relative}</span>
+      <span className="time-popover" role="tooltip">
+        <span className={timeZoneMode === "local" ? "active" : ""}>
+          <strong>Local</strong>
+          <code>{localTime}</code>
+        </span>
+        <span className={timeZoneMode === "utc" ? "active" : ""}>
+          <strong>UTC</strong>
+          <code>{utcTime}</code>
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -1089,12 +1170,14 @@ function Inspector({
   onTab,
   copied,
   onCopy,
+  timeZoneMode,
 }: {
   interaction: Interaction | null;
   tab: InspectorTab;
   onTab: (tab: InspectorTab) => void;
   copied: string | null;
   onCopy: (value: string, key: string) => void;
+  timeZoneMode: TimeZoneMode;
 }) {
   if (!interaction) {
     return (
@@ -1113,6 +1196,14 @@ function Inspector({
   const queryEntries = interaction.query
     ? Array.from(new URLSearchParams(interaction.query).entries())
     : [];
+  const metadataEntries = [
+    ["Interaction ID", interaction.interaction_id],
+    ["Exposure ID", interaction.exposure_id],
+    ["Sequence", String(interaction.sequence)],
+    ["Received", formatExactTimestamp(interaction.received_at_unix_ms, timeZoneMode)],
+    ["Body bytes", String(interaction.body_bytes)],
+    ["Body encoding", interaction.body_encoding],
+  ] as const;
 
   const copyTarget =
     activeTab === "body"
@@ -1181,10 +1272,10 @@ function Inspector({
           Query
         </Tab>
         <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
-          Headers
+          Headers <span className="tab-count">{interaction.headers.length}</span>
         </Tab>
         <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
-          Metadata
+          Metadata <span className="tab-count">{metadataEntries.length}</span>
         </Tab>
       </div>
 
@@ -1238,15 +1329,9 @@ function Inspector({
 
         {activeTab === "metadata" ? (
           <div className="kv-table">
-            <KeyValue label="Interaction ID" value={interaction.interaction_id} />
-            <KeyValue label="Exposure ID" value={interaction.exposure_id} />
-            <KeyValue label="Sequence" value={String(interaction.sequence)} />
-            <KeyValue
-              label="Received"
-              value={new Date(interaction.received_at_unix_ms).toISOString()}
-            />
-            <KeyValue label="Body bytes" value={String(interaction.body_bytes)} />
-            <KeyValue label="Body encoding" value={interaction.body_encoding} />
+            {metadataEntries.map(([label, value]) => (
+              <KeyValue key={label} label={label} value={value} />
+            ))}
           </div>
         ) : null}
       </div>
@@ -1345,5 +1430,5 @@ function connectionLabel(state: ConnectionState): string {
 }
 
 function shortId(value: string): string {
-  return `${value.slice(0, 8)}…${value.slice(-4)}`;
+  return `${value.slice(0, 12)}…${value.slice(-6)}`;
 }
