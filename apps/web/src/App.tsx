@@ -1253,6 +1253,8 @@ function RelativeInteractionTime({
   const utcTime = formatExactTimestamp(unixMs, "utc");
   const comparisonParts = exactTimeParts(unixMs, timeZoneMode);
   const utcParts = exactTimeParts(unixMs, "utc");
+  const comparisonZone =
+    timeZoneMode === "local" ? comparisonParts.zone : "";
   const relative = formatRelativeTimestamp(unixMs, nowMs);
 
   return (
@@ -1284,7 +1286,9 @@ function RelativeInteractionTime({
           <span className="time-row-value">
             <span className="time-row-clock">
               <code>{comparisonParts.time}</code>
-              <span className="time-row-zone">{comparisonParts.zone}</span>
+              {comparisonZone ? (
+                <span className="time-row-zone">{comparisonZone}</span>
+              ) : null}
             </span>
             <span className="time-row-date">{comparisonParts.date}</span>
           </span>
@@ -1294,7 +1298,6 @@ function RelativeInteractionTime({
           <span className="time-row-value">
             <span className="time-row-clock">
               <code>{utcParts.time}</code>
-              <span className="time-row-zone">{utcParts.zone}</span>
             </span>
             <span className="time-row-date">{utcParts.date}</span>
           </span>
