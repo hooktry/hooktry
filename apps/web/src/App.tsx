@@ -63,7 +63,9 @@ const UTC_OFFSET_OPTIONS = Array.from(
 ).filter((offset) => offset !== 0);
 
 function timeZoneModeLabel(mode: TimeZoneMode): string {
-  if (mode === "local") return "Local";
+  if (mode === "local") {
+    return `Local (${formatUtcOffset(localUtcOffsetHours())})`;
+  }
   return formatUtcOffset(Number.parseFloat(mode.slice("offset:".length)));
 }
 
@@ -75,13 +77,50 @@ function comparisonTimestamp(unixMs: number, mode: TimeZoneMode): string {
   );
 }
 
-function splitTimestampZone(value: string): { main: string; zone: string } {
-  const splitAt = value.lastIndexOf(" ");
-  if (splitAt < 0) return { main: value, zone: "" };
-  return {
-    main: value.slice(0, splitAt),
-    zone: value.slice(splitAt + 1),
-  };
+
+function exactTimeParts(
+  unixMs: number,
+  mode: TimeZoneMode | "utc",
+): { date: string; time: string; zone: string } {
+  const isUtc = mode === "utc";
+  const offsetHours =
+    typeof mode === "string" && mode.startsWith("offset:")
+      ? Number.parseFloat(mode.slice("offset:".length))
+      : null;
+  const shiftedMs =
+    offsetHours == null ? unixMs : unixMs + offsetHours * 3_600_000;
+  const date = new Date(shiftedMs);
+  const timeZone =
+    isUtc || offsetHours != null ? "UTC" : undefined;
+
+  const dateText = new Intl.DateTimeFormat(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+
+  const timeText = new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    hour12: false,
+    timeZone,
+  }).format(date);
+
+  const zone =
+    isUtc
+      ? "UTC"
+      : offsetHours != null
+        ? formatUtcOffset(offsetHours)
+        : new Intl.DateTimeFormat(undefined, {
+            timeZoneName: "short",
+          })
+            .formatToParts(new Date(unixMs))
+            .find((part) => part.type === "timeZoneName")?.value ?? "";
+
+  return { date: dateText, time: timeText, zone };
 }
 
 function isPreviewHost(): boolean {
@@ -1212,8 +1251,8 @@ function RelativeInteractionTime({
   const comparisonTime = comparisonTimestamp(unixMs, timeZoneMode);
   const comparisonLabel = timeZoneModeLabel(timeZoneMode);
   const utcTime = formatExactTimestamp(unixMs, "utc");
-  const comparisonParts = splitTimestampZone(comparisonTime);
-  const utcParts = splitTimestampZone(utcTime);
+  const comparisonParts = exactTimeParts(unixMs, timeZoneMode);
+  const utcParts = exactTimeParts(unixMs, "utc");
   const relative = formatRelativeTimestamp(unixMs, nowMs);
 
   return (
@@ -1239,21 +1278,27 @@ function RelativeInteractionTime({
       <span className="interaction-time">{relative}</span>
       <span className="interaction-time-chevron" aria-hidden="true">⌄</span>
       <span className="time-popover" role="tooltip">
-        <span className="active">
+        <span className="time-popover-caret" aria-hidden="true" />
+        <span className="time-popover-title">EXACT TIME</span>
+        <span className="time-row active">
           <strong>{timeZoneMode === "local" ? "LOCAL" : comparisonLabel}</strong>
-          <code>
-            <span className="time-value-main">{comparisonParts.main}</span>
-            {comparisonParts.zone ? (
-              <span className="time-value-zone">{comparisonParts.zone}</span>
-            ) : null}
-          </code>
+          <span className="time-row-value">
+            <code>{comparisonParts.time}</code>
+            <span className="time-row-meta">
+              <span>{comparisonParts.date}</span>
+              <span>{comparisonParts.zone}</span>
+            </span>
+          </span>
         </span>
-        <span>
+        <span className="time-row">
           <strong>UTC</strong>
-          <code>
-            <span className="time-value-main">{utcParts.main}</span>
-            {utcParts.zone ? <span className="time-value-zone">{utcParts.zone}</span> : null}
-          </code>
+          <span className="time-row-value">
+            <code>{utcParts.time}</code>
+            <span className="time-row-meta">
+              <span>{utcParts.date}</span>
+              <span>{utcParts.zone}</span>
+            </span>
+          </span>
         </span>
       </span>
     </span>
