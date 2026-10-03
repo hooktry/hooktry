@@ -45,6 +45,9 @@ fn portable_plugin_package_points_to_canonical_remote_mcp() {
         "./assets/hooktry-mark-dark.svg"
     );
 
+    let long_description = interface["longDescription"].as_str().unwrap();
+    assert!(long_description.contains("without requiring an explicit @Hooktry tag"));
+
     assert_eq!(mcp["mcpServers"]["hooktry"]["type"], "streamable-http");
     assert_eq!(
         mcp["mcpServers"]["hooktry"]["url"],
@@ -61,6 +64,10 @@ fn remote_onboarding_skill_describes_only_the_shipped_surface() {
     assert!(skill.contains("endpoint creation only"));
     assert!(skill.contains("a short-lived one-time browser handoff URL"));
     assert!(skill.contains("does not return the claim capability"));
-    assert!(skill.contains("Open in browser"));
+    assert!(skill.contains("Open in Hooktry"));
     assert!(skill.contains("Do not label it **Handoff**"));
+    assert!(skill.contains("The user does not need to mention or tag Hooktry explicitly"));
+    assert!(skill.contains("final user-facing response MUST include all three"));
+    assert!(skill.contains("Keep `hook_url` visible as a raw URL"));
+    assert!(skill.contains("Prefer labeled Markdown links"));
 }

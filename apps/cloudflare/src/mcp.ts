@@ -1,5 +1,10 @@
-import { randomPrincipal } from "./core";
 import { provisionAnonymousHook } from "./anonymous-service";
+import { randomPrincipal } from "./core";
+import {
+  WEBHOOK_CARD_HTML,
+  WEBHOOK_CARD_MIME_TYPE,
+  WEBHOOK_CARD_URI,
+} from "./mcp-widget";
 import type { Env } from "./types";
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
@@ -12,6 +17,11 @@ const CORS_HEADERS = {
   "access-control-allow-headers":
     "authorization, content-type, mcp-protocol-version, mcp-session-id",
   "access-control-expose-headers": "Mcp-Session-Id",
+};
+
+const SERVER_CAPABILITIES = {
+  tools: {},
+  resources: {},
 };
 
 export async function handleMcp(request: Request, env: Env): Promise<Response> {
@@ -80,24 +90,24 @@ async function dispatch(
       return {
         resultType: "complete",
         supportedVersions: [MODERN_PROTOCOL_VERSION],
-        capabilities: { tools: {} },
+        capabilities: SERVER_CAPABILITIES,
         instructions:
-          "Hooktry exposes a deliberately small public remote tool surface. Private workspace tools require OAuth and are not part of this slice.",
+          "Hooktry exposes a deliberately small public remote tool surface. Temporary webhook creation includes an inline result card when the host supports MCP Apps UI. Private workspace tools require OAuth and are not part of this slice.",
         serverInfo: {
           name: "hooktry",
-          version: "0.1.0",
+          version: "0.1.1",
         },
       };
     case "initialize":
       return {
         protocolVersion: negotiatedHandshakeProtocol(rpc),
-        capabilities: { tools: {} },
+        capabilities: SERVER_CAPABILITIES,
         serverInfo: {
           name: "hooktry",
-          version: "0.1.0",
+          version: "0.1.1",
         },
         instructions:
-          "Hooktry exposes a deliberately small public remote tool surface. Private workspace tools require OAuth and are not part of this slice.",
+          "Hooktry exposes a deliberately small public remote tool surface. Temporary webhook creation includes an inline result card when the host supports MCP Apps UI. Private workspace tools require OAuth and are not part of this slice.",
       };
     case "ping":
       return {};
@@ -105,6 +115,10 @@ async function dispatch(
       return { tools: tools() };
     case "tools/call":
       return await callTool(rpc.params, request, env);
+    case "resources/list":
+      return { resources: resources() };
+    case "resources/read":
+      return readResource(rpc.params);
     default:
       return rpcError(rpc.id ?? null, -32601, "method not found");
   }
@@ -136,7 +150,7 @@ function tools(): Array<Record<string, unknown>> {
       name: "create_webhook_endpoint",
       title: "Create webhook endpoint",
       description:
-        "Create a temporary Hooktry webhook endpoint for integration testing. Returns THREE distinct user-facing links and their roles must be explained clearly: Send webhooks here (hook_url), View captured requests read-only (view_url), and Open as owner in browser (handoff_url, one-time; use this to continue into owner actions such as claiming/managing the Hook). Do not present view_url as a management link and do not omit handoff_url. The endpoint expires automatically. The raw claim capability is intentionally not returned.",
+        "Create a temporary Hooktry webhook endpoint for integration testing. Use this tool for generic requests such as 'give me a webhook', 'create a webhook URL', or 'give me a temporary endpoint' when Hooktry is available; the user does not need to mention or tag Hooktry explicitly. Returns three distinct capabilities: Send webhooks here (hook_url), View captured requests read-only (view_url), and Open in Hooktry as owner (handoff_url, one-time; use this to continue into owner actions such as claiming/managing the Hook). Hosts that support MCP Apps UI should render the attached Hooktry card instead of repeating the long URLs in prose. Text-only hosts must preserve all three URLs plus the returned limits. The raw claim capability is intentionally not returned.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -200,9 +214,67 @@ function tools(): Array<Record<string, unknown>> {
       securitySchemes,
       _meta: {
         securitySchemes,
+        ui: {
+          resourceUri: WEBHOOK_CARD_URI,
+        },
+        "openai/outputTemplate": WEBHOOK_CARD_URI,
+        "openai/toolInvocation/invoking": "Creating webhook…",
+        "openai/toolInvocation/invoked": "Webhook ready",
       },
     },
   ];
+}
+
+function resources(): Array<Record<string, unknown>> {
+  return [
+    {
+      uri: WEBHOOK_CARD_URI,
+      name: "Hooktry webhook card",
+      title: "Hooktry webhook card",
+      description:
+        "Compact responsive result card for a temporary Hooktry webhook, viewer, owner handoff, and runtime limits.",
+      mimeType: WEBHOOK_CARD_MIME_TYPE,
+    },
+  ];
+}
+
+function readResource(paramsValue: unknown): Record<string, unknown> {
+  const params = asRecord(paramsValue);
+  const uri = params && typeof params.uri === "string" ? params.uri : null;
+
+  if (uri !== WEBHOOK_CARD_URI) {
+    return rpcError(null, -32002, "resource not found");
+  }
+
+  return {
+    contents: [
+      {
+        uri: WEBHOOK_CARD_URI,
+        mimeType: WEBHOOK_CARD_MIME_TYPE,
+        text: WEBHOOK_CARD_HTML,
+        _meta: {
+          ui: {
+            prefersBorder: false,
+            csp: {
+              connectDomains: [],
+              resourceDomains: [],
+            },
+          },
+          "openai/ui": {
+            availableDisplayModes: ["inline"],
+          },
+          "openai/widgetDescription":
+            "A compact Hooktry card showing the webhook URL, read-only viewer URL, one-time owner link with its remaining lifetime, and current request/body/retention/expiry limits. The card already contains copy/open actions, so do not repeat the long URLs in surrounding prose.",
+          "openai/widgetPrefersBorder": false,
+          "openai/widgetCSP": {
+            connect_domains: [],
+            resource_domains: [],
+            redirect_domains: ["https://hooktry.com"],
+          },
+        },
+      },
+    ],
+  };
 }
 
 async function callTool(
@@ -247,13 +319,8 @@ async function callTool(
     content: [
       {
         type: "text",
-        text: [
-          "Created a temporary Hooktry webhook endpoint. Keep these three roles distinct in the user-facing answer:",
-          `Webhook URL — SEND REQUESTS HERE: ${provision.hook_url}`,
-          `Viewer URL — VIEW ONLY (read-only): ${provision.view_url}`,
-          `Owner link — OPEN TO CLAIM / MANAGE (one-time): ${provision.handoff_url}`,
-          "The owner link is not the Viewer URL. It opens the owner-side browser session where claim/manage actions become available.",
-        ].join("\n"),
+        text:
+          "Created a temporary Hooktry webhook. The attached card contains the send URL, read-only viewer, one-time owner link, and current limits. If the host cannot render the card, present all three URLs and the limits from structuredContent.",
       },
     ],
     structuredContent,
