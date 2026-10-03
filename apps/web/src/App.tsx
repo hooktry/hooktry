@@ -453,6 +453,7 @@ export function App() {
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Resize interaction list"
+                title="Drag to resize the interaction list"
                 onPointerDown={startPaneResize}
               />
               <Inspector
@@ -502,51 +503,61 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <img
-          className="brand-logo brand-lockup"
-          src={
-            theme === "dark"
-              ? "/brand/hooktry-lockup-inverse.svg"
-              : "/brand/hooktry-lockup-primary.svg"
-          }
-          alt="Hooktry"
-        />
-        <img
-          className="brand-logo brand-mark-logo"
-          src={
-            theme === "dark"
-              ? "/brand/hooktry-mark-inverse.svg"
-              : "/brand/hooktry-mark-primary.svg"
-          }
-          alt=""
-          aria-hidden="true"
-        />
+        <a className="brand-home" href="/" aria-label="Go to Hooktry home" title="Go to Hooktry home">
+          <img
+            className="brand-logo brand-lockup"
+            src={
+              theme === "dark"
+                ? "/brand/hooktry-lockup-inverse.svg"
+                : "/brand/hooktry-lockup-primary.svg"
+            }
+            alt="Hooktry"
+          />
+          <img
+            className="brand-logo brand-mark-logo"
+            src={
+              theme === "dark"
+                ? "/brand/hooktry-mark-inverse.svg"
+                : "/brand/hooktry-mark-primary.svg"
+            }
+            alt=""
+            aria-hidden="true"
+          />
+        </a>
       </div>
 
       <nav className="nav">
-        <button className="nav-item active" type="button">
+        <button className="nav-item active" type="button" title="Hooks">
           <span>Hooks</span>
           <kbd>H</kbd>
         </button>
 
         <div className="nav-section">Evidence</div>
-        <button className="nav-item nav-item-pending" type="button" disabled>
-          Recordings
-        </button>
-        <button className="nav-item nav-item-pending" type="button" disabled>
-          Replays
-        </button>
-        <button className="nav-item nav-item-pending" type="button" disabled>
-          Contracts
-        </button>
-        <button className="nav-item nav-item-pending" type="button" disabled>
-          Scenarios
-        </button>
+        <span className="nav-tooltip-wrap" title="Recordings - coming soon">
+          <button className="nav-item nav-item-pending" type="button" disabled>
+            Recordings
+          </button>
+        </span>
+        <span className="nav-tooltip-wrap" title="Replays - coming soon">
+          <button className="nav-item nav-item-pending" type="button" disabled>
+            Replays
+          </button>
+        </span>
+        <span className="nav-tooltip-wrap" title="Contracts - coming soon">
+          <button className="nav-item nav-item-pending" type="button" disabled>
+            Contracts
+          </button>
+        </span>
+        <span className="nav-tooltip-wrap" title="Scenarios - coming soon">
+          <button className="nav-item nav-item-pending" type="button" disabled>
+            Scenarios
+          </button>
+        </span>
       </nav>
 
       <div className="sidebar-footer">
         {viewing ? (
-          <button className="button secondary full" type="button" onClick={onNewHook}>
+          <button className="button secondary full" type="button" onClick={onNewHook} title="Create a new ephemeral Hook">
             + New Hook
           </button>
         ) : null}
@@ -562,7 +573,7 @@ function Sidebar({
           {prHref ? (
             <>
               <span className="build-meta-sep">·</span>
-              <a href={prHref} target="_blank" rel="noreferrer">
+              <a href={prHref} target="_blank" rel="noreferrer" title={`Open pull request #${buildPr}`}>
                 PR #{buildPr}
               </a>
             </>
@@ -761,6 +772,7 @@ function HookHeader({
                 <button
                   className="button secondary new-hook-button inline-new-hook"
                   type="button"
+                  title="Create a new ephemeral Hook"
                   onClick={onNewHook}
                 >
                   + New Hook
@@ -779,6 +791,7 @@ function HookHeader({
             <button
               className="copy-button"
               type="button"
+              title="Copy Webhook URL"
               onClick={() => onCopy(provision.hook_url, "hook")}
             >
               {copied === "hook" ? "Copied" : "Copy"}
@@ -789,7 +802,14 @@ function HookHeader({
         <div className="viewer-capability">
           <div className="viewer-capability-head">
             <span className="viewer-capability-label">VIEWER URL</span>
-            {!provision ? <span className="viewer-capability-badge">read-only</span> : null}
+            {!provision ? (
+              <span
+                className="viewer-capability-badge"
+                title="This URL can view captured requests but cannot send, claim, or manage the Hook"
+              >
+                read-only
+              </span>
+            ) : null}
           </div>
 
           <div className="viewer-capability-row">
@@ -797,6 +817,7 @@ function HookHeader({
             <button
               className="viewer-copy-button"
               type="button"
+              title="Copy Viewer URL"
               onClick={() => onCopy(viewUrl, "view")}
             >
               {copied === "view" ? "Copied" : "Copy"}
@@ -1013,7 +1034,9 @@ function Inspector({
             <span className={`method method-${interaction.method.toLowerCase()}`}>
               {interaction.method}
             </span>
-            <span className="request-sequence">#{interaction.sequence}</span>
+            <span className="request-sequence" title={`Interaction #${interaction.sequence}`}>
+              #{interaction.sequence}
+            </span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
           </div>

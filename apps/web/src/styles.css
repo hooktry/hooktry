@@ -84,6 +84,18 @@ kbd,
   border-bottom: 1px solid var(--line-soft);
 }
 
+.brand-home {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.brand-home:focus-visible {
+  outline: 2px solid rgba(217, 255, 100, 0.7);
+  outline-offset: 4px;
+}
+
 .brand-logo {
   display: block;
   height: auto;
@@ -129,6 +141,14 @@ kbd,
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.nav-tooltip-wrap {
+  display: block;
+}
+
+.nav-tooltip-wrap .nav-item {
+  width: 100%;
 }
 
 .nav-item-pending {
