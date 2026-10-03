@@ -55,20 +55,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          d1_json="$(npx wrangler d1 list --json)"
-          preview_db_id="$(printf '%s' "$d1_json" | jq -r '.. | objects | select(.name? == "hooktry-preview") | .uuid // empty' | head -n1)"
-          if [[ -z "$preview_db_id" ]]; then
+          if ! npx wrangler d1 info hooktry-preview --json >/tmp/hooktry-preview-d1.json 2>/dev/null; then
             npx wrangler d1 create hooktry-preview --location eeur
-            d1_json="$(npx wrangler d1 list --json)"
-            preview_db_id="$(printf '%s' "$d1_json" | jq -r '.. | objects | select(.name? == "hooktry-preview") | .uuid // empty' | head -n1)"
+            npx wrangler d1 info hooktry-preview --json >/tmp/hooktry-preview-d1.json
           fi
+
+          preview_db_id="$(jq -r '.uuid // .result.uuid // empty' /tmp/hooktry-preview-d1.json)"
           if [[ -z "$preview_db_id" ]]; then
             echo "::error::Unable to resolve hooktry-preview D1 database ID."
+            cat /tmp/hooktry-preview-d1.json
             exit 1
           fi
 
-          r2_json="$(npx wrangler r2 bucket list --json)"
-          if ! printf '%s' "$r2_json" | jq -e '.. | objects | select(.name? == "hooktry-preview-payloads")' >/dev/null; then
+          if ! npx wrangler r2 bucket info hooktry-preview-payloads --json >/dev/null 2>&1; then
             npx wrangler r2 bucket create hooktry-preview-payloads --location eeur
           fi
 
