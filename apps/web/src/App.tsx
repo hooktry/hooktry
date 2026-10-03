@@ -837,17 +837,19 @@ function HookHeader({
         </div>
 
         {provision ? (
-          <div className="url-box">
-            <div className="url-label">Public ingress</div>
-            <code>{provision.hook_url}</code>
-            <button
-              className="copy-button"
-              type="button"
-              title="Copy Webhook URL"
-              onClick={() => onCopy(provision.hook_url, "hook")}
-            >
-              {copied === "hook" ? "Copied" : "Copy"}
-            </button>
+          <div className="public-ingress">
+            <div className="capability-heading">PUBLIC INGRESS</div>
+            <div className="url-box public-ingress-row">
+              <code>{provision.hook_url}</code>
+              <button
+                className="copy-button"
+                type="button"
+                title="Copy Webhook URL"
+                onClick={() => onCopy(provision.hook_url, "hook")}
+              >
+                {copied === "hook" ? "Copied" : "Copy"}
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -917,6 +919,70 @@ function HookHeader({
               ) : null
             }
           />
+
+        <details className="mobile-hook-details">
+          <summary>Details</summary>
+          <div className="mobile-hook-details-content">
+            <div className="mobile-detail-section">
+              <div className="capability-heading">VIEWER URL</div>
+              <div className="viewer-capability-row mobile-viewer-row">
+                <code>{viewUrl}</code>
+                <button
+                  className="viewer-copy-button"
+                  type="button"
+                  title="Copy Viewer URL"
+                  onClick={() => onCopy(viewUrl, "view")}
+                >
+                  {copied === "view" ? "Copied" : "Copy"}
+                </button>
+              </div>
+              {!provision ? (
+                <div className="viewer-capability-note">
+                  Hook and claim capabilities cannot be derived from this URL.
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mobile-metrics-list">
+              <div className="mobile-metric-row">
+                <span>Requests</span>
+                <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Retained</span>
+                <strong>
+                  {summary
+                    ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}`
+                    : "—"}
+                </strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Max body</span>
+                <strong>{summary ? formatBytes(summary.max_body_bytes) : "—"}</strong>
+              </div>
+              <div className="mobile-metric-row">
+                <span>Expires</span>
+                <strong>
+                  {summary?.claimed
+                    ? "persistent"
+                    : formatExpiry(summary?.expires_at_unix_seconds, nowMs)}
+                </strong>
+              </div>
+            </div>
+
+            {provision && !summary?.claimed ? (
+              <button
+                className="button secondary mobile-claim-button"
+                type="button"
+                title="Keep this Hook by claiming it into a workspace"
+                onClick={onClaim}
+                disabled={claiming}
+              >
+                {claiming ? "Claiming…" : "Claim Hook"}
+              </button>
+            ) : null}
+          </div>
+        </details>
         </div>
       </div>
     </div>
@@ -1112,10 +1178,10 @@ function Inspector({
           Body
         </Tab>
         <Tab active={activeTab === "query"} onClick={() => onTab("query")}>
-          Query <span className="tab-count">{queryEntries.length}</span>
+          Query
         </Tab>
         <Tab active={activeTab === "headers"} onClick={() => onTab("headers")}>
-          Headers <span className="tab-count">{interaction.headers.length}</span>
+          Headers
         </Tab>
         <Tab active={activeTab === "metadata"} onClick={() => onTab("metadata")}>
           Metadata
@@ -1279,5 +1345,5 @@ function connectionLabel(state: ConnectionState): string {
 }
 
 function shortId(value: string): string {
-  return `${value.slice(0, 12)}…${value.slice(-6)}`;
+  return `${value.slice(0, 8)}…${value.slice(-4)}`;
 }
