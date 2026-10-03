@@ -2988,3 +2988,65 @@ kbd,
     width: min(236px, calc(100vw - 20px));
   }
 }
+
+
+/* Minimal reference popover */
+.time-popover {
+  width: min(208px, calc(100vw - 20px));
+  padding: 4px;
+  border-radius: 7px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+}
+
+.time-popover > .time-row {
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  padding: 4px 5px;
+}
+
+.time-popover > .time-row + .time-row {
+  margin-top: 0;
+}
+
+.time-row > strong {
+  align-self: start;
+  padding-top: 0;
+  font-size: 7.5px;
+  line-height: 1.2;
+}
+
+.time-row-value {
+  gap: 0;
+}
+
+.time-row-clock {
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.time-row-clock > code {
+  font-size: 8.5px;
+  line-height: 1.2;
+}
+
+.time-row-zone {
+  font-size: 6.75px;
+  line-height: 1.2;
+}
+
+.time-row-date {
+  margin-top: 1px;
+  font-size: 6.75px;
+  line-height: 1.15;
+}
+
+.time-popover-caret {
+  right: 12px;
+}
+
+@media (max-width: 650px) {
+  .time-popover {
+    width: min(208px, calc(100vw - 16px));
+  }
+}
