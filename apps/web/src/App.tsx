@@ -650,6 +650,75 @@ function HandoffLanding({
   );
 }
 
+function HookCreationContent({
+  creating,
+  error,
+  context,
+  onCreate,
+  onCancel,
+}: {
+  creating: boolean;
+  error: string | null;
+  context: "root" | "existing-hook";
+  onCreate: () => void;
+  onCancel?: () => void;
+}) {
+  const isExistingHook = context === "existing-hook";
+
+  return (
+    <>
+      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "EPHEMERAL HOOK"}</div>
+      <h1 id={isExistingHook ? "new-hook-title" : undefined}>
+        {isExistingHook
+          ? "Create another webhook endpoint."
+          : "Create an ephemeral webhook endpoint."}
+      </h1>
+      <p>
+        {isExistingHook
+          ? "Your current Hook stays open until the new one has been created successfully."
+          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
+      </p>
+
+      <div className="policy-grid">
+        <Policy value="5 days" label="ephemeral lifetime" />
+        <Policy value="100" label="requests per Hook" />
+        <Policy value="5 MiB" label="per request" />
+        <Policy value="50 MiB" label="retained bodies" />
+      </div>
+
+      <div className={isExistingHook ? "creation-actions creation-actions-modal" : "creation-actions"}>
+        {isExistingHook && onCancel ? (
+          <button
+            className="button secondary creation-action-button"
+            type="button"
+            onClick={onCancel}
+            disabled={creating}
+          >
+            Cancel
+          </button>
+        ) : null}
+        <button
+          className="button primary creation-action-button creation-primary-button"
+          type="button"
+          onClick={onCreate}
+          disabled={creating}
+        >
+          {creating ? "Creating…" : "Create ephemeral Hook"}
+        </button>
+      </div>
+
+      {error ? <div className="error-inline">{error}</div> : null}
+
+      {!isExistingHook ? (
+        <div className="landing-footnote">
+          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
+          unless claimed into a workspace.
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function Landing({
   creating,
   error,
@@ -661,31 +730,13 @@ function Landing({
 }) {
   return (
     <section className="landing">
-      <div className="landing-card">
-        <div className="eyebrow">EPHEMERAL HOOK</div>
-        <h1>Receive a webhook. Understand it immediately.</h1>
-        <p>
-          Create a public Hook without an account. Requests appear live as structured
-          interactions you can inspect and hand to an agent.
-        </p>
-
-        <div className="policy-grid">
-          <Policy value="5 days" label="ephemeral lifetime" />
-          <Policy value="100" label="requests per Hook" />
-          <Policy value="5 MiB" label="per request" />
-          <Policy value="50 MiB" label="retained bodies" />
-        </div>
-
-        <button className="button primary create" type="button" onClick={onCreate} disabled={creating}>
-          {creating ? "Creating…" : "Create ephemeral Hook"}
-        </button>
-
-        {error ? <div className="error-inline">{error}</div> : null}
-
-        <div className="landing-footnote">
-          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
-          unless claimed into a workspace.
-        </div>
+      <div className="landing-card creation-card">
+        <HookCreationContent
+          creating={creating}
+          error={error}
+          context="root"
+          onCreate={onCreate}
+        />
       </div>
     </section>
   );
@@ -1181,7 +1232,7 @@ function NewHookModal({
       }}
     >
       <section
-        className="landing-card new-hook-modal"
+        className="landing-card creation-card new-hook-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-hook-title"
@@ -1190,6 +1241,7 @@ function NewHookModal({
           className="modal-close"
           type="button"
           aria-label="Close new Hook dialog"
+          title="Close"
           onClick={onClose}
           disabled={creating}
         >
@@ -1198,39 +1250,13 @@ function NewHookModal({
           </svg>
         </button>
 
-        <div className="eyebrow">NEW EPHEMERAL HOOK</div>
-        <h1 id="new-hook-title">Create another webhook endpoint.</h1>
-        <p>
-          Your current Hook stays open until the new one has been created successfully.
-        </p>
-
-        <div className="policy-grid">
-          <Policy value="5 days" label="ephemeral lifetime" />
-          <Policy value="100" label="requests per Hook" />
-          <Policy value="5 MiB" label="per request" />
-          <Policy value="50 MiB" label="retained bodies" />
-        </div>
-
-        <div className="modal-actions">
-          <button
-            className="button secondary modal-action-button"
-            type="button"
-            onClick={onClose}
-            disabled={creating}
-          >
-            Cancel
-          </button>
-          <button
-            className="button primary modal-action-button modal-create-button"
-            type="button"
-            onClick={onCreate}
-            disabled={creating}
-          >
-            {creating ? "Creating…" : "Create ephemeral Hook"}
-          </button>
-        </div>
-
-        {error ? <div className="error-inline">{error}</div> : null}
+        <HookCreationContent
+          creating={creating}
+          error={error}
+          context="existing-hook"
+          onCreate={onCreate}
+          onCancel={onClose}
+        />
       </section>
     </div>
   );
