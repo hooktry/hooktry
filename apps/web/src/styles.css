@@ -2674,3 +2674,77 @@ kbd,
     color: #242a31;
   }
 }
+
+
+/* Exact timestamp hierarchy */
+.time-popover strong {
+  color: #7f8995;
+  font-weight: 700;
+  opacity: 0.86;
+}
+
+.time-popover code {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  color: #dce1e7;
+  opacity: 1;
+}
+
+.time-value-main {
+  color: inherit;
+  opacity: 1;
+}
+
+.time-value-zone {
+  color: #76818e;
+  font-size: 0.92em;
+  opacity: 0.8;
+}
+
+.time-popover > span.active {
+  background: #181d23;
+}
+
+.time-popover > span.active strong {
+  color: #aeb7c2;
+  opacity: 1;
+}
+
+.time-popover > span.active .time-value-main {
+  color: #f0f3f6;
+}
+
+.time-popover > span:not(.active) .time-value-main {
+  color: #b8c0ca;
+}
+
+:root[data-theme="light"] .time-popover strong {
+  color: #6a7480;
+  opacity: 0.9;
+}
+
+:root[data-theme="light"] .time-popover code {
+  color: #2d333b;
+}
+
+:root[data-theme="light"] .time-value-zone {
+  color: #7c8793;
+  opacity: 0.85;
+}
+
+:root[data-theme="light"] .time-popover > span.active {
+  background: #f1f3f5;
+}
+
+:root[data-theme="light"] .time-popover > span.active strong {
+  color: #3f4853;
+}
+
+:root[data-theme="light"] .time-popover > span.active .time-value-main {
+  color: #171b20;
+}
+
+:root[data-theme="light"] .time-popover > span:not(.active) .time-value-main {
+  color: #4e5965;
+}
