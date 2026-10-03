@@ -77,6 +77,10 @@ function comparisonTimestamp(unixMs: number, mode: TimeZoneMode): string {
   );
 }
 
+function isPreviewHost(): boolean {
+  return /^pr-\d+-/.test(window.location.hostname);
+}
+
 export function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const [provision, setProvision] = useState<HookProvision | null>(() =>
@@ -637,6 +641,18 @@ function Topbar({
   theme: Theme;
   onToggleTheme: () => void;
 }) {
+  const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
+  const buildPr = (import.meta.env.VITE_BUILD_PR as string | undefined)?.trim() || null;
+  const shortBuildSha = buildSha === "dev" ? buildSha : buildSha.slice(0, 7);
+  const preview = isPreviewHost();
+  const buildHref =
+    buildSha === "dev"
+      ? null
+      : `https://github.com/hooktry/hooktry/commit/${buildSha}`;
+  const prHref = buildPr
+    ? `https://github.com/hooktry/hooktry/pull/${buildPr}`
+    : null;
+
   return (
     <header className="topbar">
       <div className="breadcrumb">
@@ -646,6 +662,23 @@ function Topbar({
       </div>
       <div className="topbar-actions">
         {!viewing ? <span className="badge">no account required</span> : null}
+        {preview ? (
+          <div className="preview-build-meta" aria-label="Preview build information">
+            {prHref ? (
+              <a href={prHref} target="_blank" rel="noreferrer">
+                PR #{buildPr}
+              </a>
+            ) : null}
+            {prHref ? <span>·</span> : null}
+            {buildHref ? (
+              <a href={buildHref} target="_blank" rel="noreferrer" title={buildSha}>
+                {shortBuildSha}
+              </a>
+            ) : (
+              <span>{shortBuildSha}</span>
+            )}
+          </div>
+        ) : null}
         <button
           className="theme-toggle"
           type="button"
@@ -1089,11 +1122,13 @@ function InteractionList({
             onChange={(event) => onTimeZoneMode(event.target.value as TimeZoneMode)}
           >
             <option value="local">{timeZoneModeLabel("local")}</option>
-            {UTC_OFFSET_OPTIONS.map((offset) => (
-              <option key={offset} value={`offset:${offset}`}>
-                {formatUtcOffset(offset)}
-              </option>
-            ))}
+            <optgroup label="UTC offsets">
+              {UTC_OFFSET_OPTIONS.map((offset) => (
+                <option key={offset} value={`offset:${offset}`}>
+                  {formatUtcOffset(offset)}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <span className="live-hint">live stream</span>
         </div>
