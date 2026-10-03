@@ -2063,3 +2063,81 @@ kbd,
 :root[data-theme="light"] .policy span {
   color: #68727e;
 }
+
+
+.new-hook-label-short {
+  display: none;
+}
+
+
+@media (max-width: 650px) {
+  .new-hook-label-full {
+    display: none;
+  }
+
+  .new-hook-label-short {
+    display: inline;
+  }
+
+  .inline-new-hook {
+    min-width: 72px;
+    padding-inline: 12px;
+  }
+
+  .hook-id {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .url-box {
+    grid-template-columns: 90px minmax(0, 1fr) auto;
+  }
+
+  .url-label {
+    white-space: nowrap;
+    font-size: 9px;
+  }
+
+  .copy-button,
+  .viewer-copy-button {
+    min-width: 64px;
+    padding-inline: 12px;
+  }
+
+  .metrics {
+    margin-top: 12px;
+    padding-top: 8px;
+  }
+
+  .metric {
+    gap: 3px;
+    padding-block: 6px;
+  }
+
+  .metric strong {
+    font-size: 10.5px;
+  }
+
+  .claim-metric {
+    height: 23px;
+    padding-inline: 8px;
+  }
+
+  .interaction-panel-empty .search-row {
+    display: none;
+  }
+
+  .interaction-panel-empty .empty-list {
+    min-height: 124px;
+    padding-block: 22px;
+  }
+
+  .inspector-empty {
+    display: none;
+  }
+
+  .breadcrumb > span:first-child,
+  .breadcrumb > .sep {
+    display: none;
+  }
+}
