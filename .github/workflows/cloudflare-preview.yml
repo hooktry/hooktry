@@ -60,7 +60,8 @@ jobs:
             --message "PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}" \
             --json)"
           printf '%s\n' "$output"
-          preview_url="$(printf '%s' "$output" | jq -er '.preview.urls[0]')"
+          preview_json="$(printf '%s\n' "$output" | sed -n '/^{/,$p')"
+          preview_url="$(printf '%s' "$preview_json" | jq -er '.preview.urls[0]')"
           echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
 
       - name: Probe preview
