@@ -9,6 +9,7 @@ export interface Env {
   USAGE_INGEST_TOKEN?: string;
   HOOKTRY_RELEASE_SHA?: string;
   HOOKTRY_PUBLIC_ORIGIN?: string;
+  HOOKTRY_ACTIVE_LIMIT?: string;
 }
 
 export interface AnonymousExposureRow {
