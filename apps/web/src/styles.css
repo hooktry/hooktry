@@ -2510,3 +2510,16 @@ kbd,
     font-size: 8.5px;
   }
 }
+
+
+.time-zone-select {
+  min-width: 116px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 650px) {
+  .time-zone-select {
+    min-width: 122px;
+    max-width: 132px;
+  }
+}
