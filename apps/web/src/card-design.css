@@ -3,6 +3,7 @@
   --topbar: 60px;
   --accent: #f46935;
   --accent-text: #fff;
+  --selection: #d9ff64;
   --card-shell: #17181e;
   --card-shadow: 0 24px 64px #0003, 0 3px 8px #0002;
   --tone-orange: #f46935;
@@ -21,6 +22,7 @@
   --muted-2: #807d8b;
   --accent: #ed602d;
   --accent-text: #fff;
+  --selection: #8fc400;
   --card-shell: #f2f1f7;
   --card-shadow: 0 28px 64px #3c35531a, 0 3px 8px #3c355308;
 }
@@ -396,8 +398,8 @@
   color: var(--muted);
 }
 :root[data-theme] .interaction-row.selected {
-  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
-  box-shadow: inset 3px 0 var(--accent);
+  background: color-mix(in srgb, var(--selection) 4%, var(--panel));
+  box-shadow: inset 2px 0 var(--selection);
 }
 :root[data-theme] .tabs {
   height: 42px;
@@ -605,6 +607,14 @@
   }
   :root[data-theme] .interaction-panel {
     margin-bottom: 8px;
+  }
+  :root[data-theme] .interaction-row.selected {
+    box-shadow: inset 1px 0 color-mix(in srgb, var(--selection) 60%, transparent);
+  }
+  :root[data-theme] .inspector-panel-selected::before {
+    width: 1px;
+    background: var(--selection);
+    opacity: 0.35;
   }
   :root[data-theme] .interaction-list {
     height: auto;
