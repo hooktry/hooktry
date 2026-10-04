@@ -609,12 +609,29 @@
     margin-bottom: 8px;
   }
   :root[data-theme] .interaction-row.selected {
-    box-shadow: inset 1px 0 color-mix(in srgb, var(--selection) 60%, transparent);
+    position: relative;
+    box-shadow: none;
+  }
+  :root[data-theme] .interaction-row:last-child {
+    border-bottom: 0;
+    border-radius: 0 0 14px 14px;
+  }
+  :root[data-theme] .interaction-row.selected::before {
+    content: "";
+    position: absolute;
+    inset: 10px auto 10px 0;
+    width: 1px;
+    border-radius: 999px;
+    background: var(--selection);
+    opacity: 0.4;
+    pointer-events: none;
   }
   :root[data-theme] .inspector-panel-selected::before {
+    inset: 16px auto 16px 0;
     width: 1px;
+    border-radius: 999px;
     background: var(--selection);
-    opacity: 0.35;
+    opacity: 0.4;
   }
   :root[data-theme] .interaction-list {
     height: auto;
