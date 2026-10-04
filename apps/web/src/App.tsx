@@ -1396,15 +1396,16 @@ function Inspector({
             <code>{interaction.interaction_id}</code>
           </div>
         </div>
-        <button
-          className="button secondary compact inspector-copy-button"
-          type="button"
-          onClick={() => onCopy(copyTarget.value, copyTarget.label)}
-          disabled={!copyTarget.value}
-          title={copyTarget.value ? `Copy ${copyTarget.label}` : `No ${copyTarget.label} to copy`}
-        >
-          {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
-        </button>
+        {copyTarget.value ? (
+          <button
+            className="button secondary compact inspector-copy-button"
+            type="button"
+            onClick={() => onCopy(copyTarget.value, copyTarget.label)}
+            title={`Copy ${copyTarget.label}`}
+          >
+            {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
+          </button>
+        ) : null}
       </div>
 
       <div className="tabs">
