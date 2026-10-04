@@ -48,7 +48,7 @@ Snapshots have stable `Sxxx` IDs and are indexed in `snapshots/README.md`. Disco
 | --- | --- |
 | 00 Market Map | Classify products and determine who belongs in the market |
 | 01 Competitor Matrix | Compact side-by-side summary |
-| 02 Feature Taxonomy | Canonical capability definitions |
+| 02 Feature Taxonomy | S003 market ontology: canonical objects, actions, dimensions, lexical evidence counts, and interpretations |
 | 03 Feature Coverage | Competitor x feature evidence |
 | 04 Jobs & Use Cases | Why users open these products |
 | 05 Workflow Benchmarks | End-to-end task friction and time-to-value |
@@ -192,5 +192,5 @@ As of 2026-10-04:
 - `00 Market Map` contains 102 products including Hooktry.
 - Market Map rows include discovery provenance and provisional maturity signals.
 - `17 Discovery Passes` records P00-P12; strict exact-query provenance begins at P04.
-- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census and its search language.
-- The remaining comparison tabs stay intentionally sparse until the breadth-first census is stable enough for deeper benchmarking.
+- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census and its search language; S003 extracts the first market ontology from the 102-product corpus.
+- `02 Feature Taxonomy` now contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.\n- The remaining comparison tabs stay intentionally sparse until the breadth-first census is stable enough for deeper benchmarking.
