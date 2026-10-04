@@ -63,7 +63,8 @@ Snapshots have stable `Sxxx` IDs and are indexed in `snapshots/README.md`. Disco
 | 14 Decision Ledger | Hooktry decisions with rationale and evidence |
 | 15 Change Log | Material competitor changes over time |
 | 16 Research Queue | Open questions and next research actions |
-| 17 Discovery Passes | Reproducible search passes: exact queries, additions, duplicates, exclusions, false positives, counts, and snapshot correlation |
+| 17 Discovery Passes | Reproducible search passes: exact queries, additions, duplicates, exclusions, false positives, counts, snapshot correlation, and saturation/noise signals |
+| 18 Category Archaeology | Historical milestones: category branches, primitives introduced, failure pressures, successor patterns, and Hooktry implications |
 
 ## Source-of-truth bias
 
@@ -135,7 +136,7 @@ Feature parity alone is not enough. Hooktry may win or lose on the complete work
 
 The Market Map is intentionally broader than a shortlist of category leaders. It includes direct competitors, adjacent webhook infrastructure, substitute workflows, small focused request-bin products, and self-hosted/open-source alternatives.
 
-As of 2026-10-04 the map contains **200 products including Hooktry**.
+As of 2026-10-04 the map contains **206 products including Hooktry**. S005 remains the frozen 200-product saturation census; P19/S006 deliberately added six historical lineages because they explain category primitives that the present-day census obscured.
 
 The initial leader-focused pass covered products such as Webhook.site, Hookdeck, Beeceptor, Webhook Relay, Svix Play, Pipedream/RequestBin, ngrok, smee.io, Postman, Insomnia, Requestly, and Mockoon.
 
@@ -174,6 +175,8 @@ The passes also preserve exclusions and false positives. For example, `ai-hook` 
 
 P13-P18 expanded the corpus from 102 to 200 unique Product URLs using deeper web search, direct GitHub repository search, package/extension surfaces, agent callback language, mock/simulation ecosystems, gateway/relay OSS, and a second provider-native pass. Snapshot **S005** freezes this census and the observed transition from useful long-tail signal to clone/provider noise.
 
+P19 adds category archaeology rather than another generic breadth pass. It adds the original PostBin/RequestBin lineage, WebhookInbox, RespondTo.it, PutsReq, Mockbin, and UltraHook, and materializes 24 historical milestones in `18 Category Archaeology`. Snapshot **S006** preserves the resulting historical synthesis.
+
 Pipedream / RequestBin remains intentionally marked for status verification. HookRelay, UseWebhook, Request Catcher, and API Alerts Hooks also have explicit follow-up questions in the Research Queue rather than guessed conclusions.
 
 ## Research guardrails
@@ -191,8 +194,10 @@ Pipedream / RequestBin remains intentionally marked for status verification. Hoo
 
 As of 2026-10-04:
 
-- `00 Market Map` contains 200 products including Hooktry, with 200 unique Product URLs.
+- `00 Market Map` contains 206 products including Hooktry after six archaeology-only lineage additions; S005 preserves the exact 200-product saturation census.
 - Market Map rows include discovery provenance and provisional maturity signals.
-- `17 Discovery Passes` records P00-P18; strict exact-query provenance begins at P04, and P13-P18 add explicit saturation/noise fields.
-- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S005 freezes the 200-product saturation probe. S004 remains reserved for hands-on ontology verification.
-- `02 Feature Taxonomy` now contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.\n- The remaining comparison tabs stay intentionally sparse until the breadth-first census is stable enough for deeper benchmarking.
+- `17 Discovery Passes` records P00-P19; strict exact-query provenance begins at P04, P13-P18 add explicit saturation/noise fields, and P19 is the historical lineage pass.
+- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S005 freezes the 200-product saturation probe; S006 reconstructs category history and corrects several novelty assumptions. S004 remains reserved for hands-on ontology verification.
+- `02 Feature Taxonomy` contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.
+- `18 Category Archaeology` contains 24 milestones from 2007 through the 2026 agentic turn.
+- The remaining comparison tabs stay intentionally sparse until hands-on verification begins.
