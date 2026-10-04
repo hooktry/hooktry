@@ -65,7 +65,7 @@
 :root[data-theme] .button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 85%, var(--bg)); color: var(--accent-text); }
 .eyebrow { font: 12px/1.5 ui-monospace, Menlo, monospace; letter-spacing: 0.05em; font-weight: 400; color: var(--muted); }
 .landing { min-height: 0; padding: clamp(40px, 10vh, 110px) 32px; align-items: start; }
-:root[data-theme] .landing-card { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; width: min(620px, 100%); }
+:root[data-theme] .landing .landing-card { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; width: min(620px, 100%); }
 .creation-figure { width: 160px; float: right; margin: -24px -6px 0 16px; }
 :root[data-theme] .landing h1, :root[data-theme] .new-hook-modal h1 { color: var(--text); font-size: 32px; font-weight: 500; letter-spacing: -0.04em; line-height: 1.2; margin-top: 16px; }
 .landing p, .new-hook-modal p { font-size: 15px; line-height: 1.65; margin-top: 14px; color: var(--muted); }
@@ -76,7 +76,7 @@
 :root[data-theme] .policy span { color: var(--muted); font-size: 12px; }
 .creation-actions { margin-top: 0; }
 .landing-footnote { font-size: 12px; color: var(--muted); max-width: 460px; line-height: 1.65; }
-:root[data-theme] .new-hook-modal { background: var(--bg); border-color: var(--line); border-radius: 12px; width: min(620px, 100%); }
+:root[data-theme] .new-hook-modal { background: var(--bg); border-color: var(--line); border-radius: 12px; padding: 32px; width: min(620px, 100%); }
 :root[data-theme] .modal-close { border-color: var(--line); color: var(--muted); background: var(--panel-2); }
 .workspace { margin: 24px; min-height: calc(100dvh - 104px); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .workspace-empty { min-height: 0; }
@@ -163,6 +163,8 @@
   .landing { padding: 36px 22px; }
   .creation-figure { width: 104px; margin: -12px -8px 0 6px; }
   :root[data-theme] .landing h1 { font-size: 27px; }
+  :root[data-theme] .new-hook-modal { padding: 22px 16px 18px; }
+  :root[data-theme] .new-hook-modal h1 { font-size: 27px; }
   .landing p { font-size: 14px; }
   :root[data-theme] .policy-grid { grid-template-columns: 1fr 1fr; margin: 22px 0; }
   :root[data-theme] .policy { padding: 14px 12px; min-height: 72px; }
