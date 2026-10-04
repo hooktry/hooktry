@@ -10,6 +10,7 @@ Snapshots are frozen observations, not canonical product truth. Do not overwrite
 | S004 | 2026-10-04 | Ontology verification Wave 1 | Selected from S005/S006 | 19 subjects | [Ontology verification Wave 1](./2026-10-04-ontology-verification-wave-1.md) | Verify the same ten primitives against current live surfaces, first-party contracts and implementations; separate E1-E3 evidence from future E4 execution. |
 | S005 | 2026-10-04 | Extended discovery / saturation | P13-P18 | 200 | [Extended 200-product census](./2026-10-04-extended-200-product-census.md) | Test whether the 102-product corpus was saturated, preserve noise-onset evidence, and define future breadth inclusion rules. |
 | S006 | 2026-10-04 | Category archaeology | P19 | 206 | [Category archaeology](./2026-10-04-category-archaeology.md) | Reconstruct the lineage from webhook protocol to tunnels, bins, programmable receivers, gateways, standards and agent-facing callbacks. |
+| S007 | 2026-10-04 | E4 execution | S004 selected subjects | 7 executed subjects | [E4 execution wave 1](./2026-10-04-e4-execution-wave-1.md) | Upgrade specific primitives from contract/implementation evidence to actually executed behavior and preserve raw GitHub Actions run evidence. |
 
 ## Correlation rules
 
@@ -24,4 +25,4 @@ Snapshots are frozen observations, not canonical product truth. Do not overwrite
 
 ## Verification state
 
-**S004** now exists as Wave 1 contract/implementation verification. It intentionally does not claim E4 end-to-end execution where external writes/authenticated browser actions were unavailable. Higher-grade executed evidence should be added as a subsequent snapshot rather than rewriting S004.
+**S004** remains the frozen Wave 1 contract/implementation verification. **S007** adds E4 execution for seven subjects without rewriting S004.
