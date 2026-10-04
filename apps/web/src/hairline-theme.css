@@ -103,6 +103,40 @@
 .body-view { font-size: 13px; }
 .preview-build-meta { font-size: 12px; }
 
+/* Shared copy controls keep identifiers and payload actions compact. */
+:root[data-theme] .copy-icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+:root[data-theme] .copy-icon-button:hover:not(:disabled) { background: var(--panel-3); color: var(--text); border-color: var(--muted); }
+:root[data-theme] .copy-icon-button:disabled { opacity: 0.4; cursor: default; }
+.copy-icon-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.url-copy-button { margin: 4px; }
+:root[data-theme] .public-ingress-row { grid-template-columns: minmax(0, 1fr) auto; }
+.inspector-head > div { min-width: 0; flex: 1 1 auto; }
+.interaction-id-row code { flex: 0 1 auto; }
+.interaction-id-row .copy-icon-button { width: 32px; height: 32px; min-width: 32px; }
+.interaction-main { display: grid; grid-template-columns: 4ch 39px minmax(0, 1fr) auto; gap: 8px; font: 11px ui-monospace, Menlo, monospace; }
+.interaction-sequence, .request-sequence { color: var(--muted-2); font: 11px ui-monospace, Menlo, monospace; }
+.interaction-meta { padding-left: calc(4ch + 55px); font: 11px ui-monospace, Menlo, monospace; }
+.waiting-figure { width: 160px; max-width: 100%; flex: 0 0 auto; margin: -12px 0 6px; }
+.empty-list:has(.waiting-figure) { padding-block: 24px 32px; }
+@media (max-width: 650px) {
+  :root[data-theme] .copy-icon-button { width: 44px; height: 44px; min-width: 44px; }
+  .interaction-id-row .copy-icon-button { margin-block: -6px; }
+}
+
 /* The concept homepage and the unmodified skill bench form the theme page. */
 .theme-page { width: min(1160px, 100%); margin-inline: auto; padding: 38px 32px 64px; }
 .theme-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }

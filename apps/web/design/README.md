@@ -11,8 +11,11 @@ data; its Try a Hook button uses the existing creation flow.
 
 ## Figures
 
-`@lucasmarkes/hairline` is pinned to 0.2.0. Riffle, Slow, Terminal and Patch are the
+`@lucasmarkes/hairline` is pinned to 0.2.0. Riffle, Dish, Slow, Terminal and Patch are the
 upstream React components, with accessible descriptions and reduced-motion support.
+The empty request list uses Dish, a receiving antenna that aims toward the pointer
+or touch. It is removed when the first actual request arrives and is absent from
+filtered no-match states. The landing page keeps its Riffle illustration.
 
 `requests.js` is an original figure made using the upstream
 [hairline-create skill](https://github.com/lucasmarkes/hairline/tree/main/skills/hairline-create).
