@@ -2,7 +2,7 @@
 
 Status: proposed research slice  
 Added: 2026-10-04  
-Source snapshots: S002, S003
+Source snapshots: S002, S003; selection universe expanded by S005 (200 products)
 
 ## Idea
 
@@ -28,4 +28,4 @@ S003 is lexical evidence from a broad market census, not verified feature covera
 
 Freeze the result as **S004 - Ontology Verification** and use it to update `02 Feature Taxonomy`, `03 Feature Coverage`, and later Hooktry product decisions.
 
-Do not start S004 until the breadth-first census is considered sufficiently saturated.
+S005 establishes a sufficiently broad 200-product selection universe. Keep S004 as a separate hands-on verification step; do not collapse it into breadth discovery.
