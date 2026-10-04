@@ -1,6 +1,6 @@
 # RESEARCH1 - Competitive Ontology Verification
 
-Status: proposed research slice  
+Status: Wave 1 complete; E4 executed verification remains a separate evidence grade  
 Added: 2026-10-04  
 Source snapshots: S002, S003; selection universe expanded by S005 (200 products)
 
@@ -26,6 +26,8 @@ S003 is lexical evidence from a broad market census, not verified feature covera
 
 ## Output
 
-Freeze the result as **S004 - Ontology Verification** and use it to update `02 Feature Taxonomy`, `03 Feature Coverage`, and later Hooktry product decisions.
+S004 Wave 1 is frozen in `docs/competitive-research/snapshots/2026-10-04-ontology-verification-wave-1.md` and materialized in `19 Ontology Verification`, `03 Feature Coverage`, `05 Workflow Benchmarks`, and `11 Evidence`.
 
-S005 establishes a sufficiently broad 200-product selection universe. Keep S004 as a separate hands-on verification step; do not collapse it into breadth discovery.
+Evidence grades are explicit: E1 live surface, E2 first-party contract/docs, E3 implementation, E4 executed end-to-end. Wave 1 verifies E1-E3. Do not upgrade a claim to E4 until the actual external flow is run.
+
+S005 establishes the broad selection universe and S006 supplies historical corrections. Keep verification separate from breadth discovery.
