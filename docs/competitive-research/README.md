@@ -37,7 +37,9 @@ Research should be evidence-first. A non-obvious feature, limit, price, or produ
 
 ## Research snapshots
 
-Dated files under `snapshots/` preserve hypotheses and category definitions exactly as they were understood at a point in time. Snapshots are intentionally not canonical truth: later research may refine or contradict them. Keep the earlier snapshot unchanged so competing research threads can be compared before conclusions are consolidated.
+Dated files under `snapshots/` preserve hypotheses, discovery states, and category definitions exactly as they were understood at a point in time. Snapshots are intentionally not canonical truth: later research may refine or contradict them. Keep the earlier snapshot unchanged so competing research threads can be compared before conclusions are consolidated.
+
+Snapshots have stable `Sxxx` IDs and are indexed in `snapshots/README.md`. Discovery passes have stable `Pxx` IDs. The workbook's `17 Discovery Passes` tab correlates exact queries and results to snapshots, while each Market Map row records the pass/query/family that discovered it. Historical passes that predate query logging are explicitly marked `not captured (pre-provenance)` rather than reconstructed.
 
 
 ## Workbook structure
@@ -61,6 +63,7 @@ Dated files under `snapshots/` preserve hypotheses and category definitions exac
 | 14 Decision Ledger | Hooktry decisions with rationale and evidence |
 | 15 Change Log | Material competitor changes over time |
 | 16 Research Queue | Open questions and next research actions |
+| 17 Discovery Passes | Reproducible search passes: exact queries, additions, duplicates, exclusions, false positives, counts, and snapshot correlation |
 
 ## Source-of-truth bias
 
@@ -79,7 +82,7 @@ The Market Map separates **company** from **product** and answers a different qu
 
 Current schema:
 
-`Company | Product | Product URL | Parent Company | Status | Category | Directness | Primary Job | Primary Cohort | Secondary Cohort | Delivery Model | Product Motion | Hooktry Overlap | Distinctive Angle | Source URL | Source Type | Observed At | Confidence | Needs Recheck | Research Status | Notes`
+`Company | Product | Product URL | Parent Company | Status | Category | Directness | Primary Job | Primary Cohort | Secondary Cohort | Delivery Model | Product Motion | Hooktry Overlap | Distinctive Angle | Source URL | Source Type | Observed At | Confidence | Needs Recheck | Research Status | Notes | Discovery Pass | Discovery Query | Discovery Family | Maturity Class | Maturity Signal`
 
 ### Directness
 
@@ -132,7 +135,7 @@ Feature parity alone is not enough. Hooktry may win or lose on the complete work
 
 The Market Map is intentionally broader than a shortlist of category leaders. It includes direct competitors, adjacent webhook infrastructure, substitute workflows, small focused request-bin products, and self-hosted/open-source alternatives.
 
-As of 2026-10-04 the map contains **58 products including Hooktry**.
+As of 2026-10-04 the map contains **102 products including Hooktry**.
 
 The initial leader-focused pass covered products such as Webhook.site, Hookdeck, Beeceptor, Webhook Relay, Svix Play, Pipedream/RequestBin, ngrok, smee.io, Postman, Insomnia, Requestly, and Mockoon.
 
@@ -165,6 +168,10 @@ This second pass matters because several of the closest strategic overlaps are n
 
 A third breadth-first discovery pass on 2026-10-04 added 23 more products, including Hook Relay (`hookrelay.dev`), HookRelay (`hookrelay.co`), Splithook, WebhookWhisper, WebhookSpy, Requex.me, WebhookCatch, Slashbin, Conduit, RelayBird, Axel, PomeloHook, Webhook Toolkit, webhook.co, Chis, HookRay (`hookray.com`), Hookray (`hookray.dev`), hookee, Webhooks.io, ViewHook, Testhooks, Webhook Simulator, and Hooksterr. This pass intentionally includes current indie/open-source utilities, production relay/gateway products, and early agent-native entrants rather than filtering only for established companies.
 
+Strict query provenance starts at P04. P04-P12 added another **44 products** through deliberately different query languages: agent-native callbacks/MCP, catcher-inspector-replay workflows, localhost tunnels, reliability gateways, provider-native substitutes, sandboxes/playgrounds/inboxes, and self-hosted inbox implementations. The resulting 102-product census is frozen as snapshot **S002** in `snapshots/2026-10-04-discovery-passes-p04-p12.md`.
+
+The passes also preserve exclusions and false positives. For example, `ai-hook` was found through AI-hook language but classified out because it is an agent security hook dispatcher rather than a public event receiver. This negative evidence is kept so future passes can compare query precision instead of silently discarding misses.
+
 Pipedream / RequestBin remains intentionally marked for status verification. HookRelay, UseWebhook, Request Catcher, and API Alerts Hooks also have explicit follow-up questions in the Research Queue rather than guessed conclusions.
 
 ## Research guardrails
@@ -180,9 +187,10 @@ Pipedream / RequestBin remains intentionally marked for status verification. Hoo
 
 ## Current status
 
-As of 2026-10-03:
+As of 2026-10-04:
 
-- Workbook structure is materialized.
-- `00 Market Map` is seeded with the initial cohort.
-- The Market Map is a native Google Sheets table with controlled dropdowns for classification/freshness fields.
-- Remaining tabs exist as the agreed research skeleton and are intentionally not populated yet.
+- `00 Market Map` contains 102 products including Hooktry.
+- Market Map rows include discovery provenance and provisional maturity signals.
+- `17 Discovery Passes` records P00-P12; strict exact-query provenance begins at P04.
+- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census and its search language.
+- The remaining comparison tabs stay intentionally sparse until the breadth-first census is stable enough for deeper benchmarking.
