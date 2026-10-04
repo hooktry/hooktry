@@ -1,6 +1,6 @@
 # Hooktry market model
 
-Checked: 2026-10-02
+Checked: 2026-10-04
 
 Hooktry applies the portfolio-wide Market Capability Intelligence Framework (MCIF) from `sergii/projects/market-capability-intelligence`.
 
@@ -52,7 +52,7 @@ Vercel Labs `emulate` is different: it is an adjacent specialist rather than a p
 
 The implication is not "become Beeceptor" or "become emulate". The reusable product hypothesis is a **programmable interaction boundary** whose current wedge is webhooks and whose deeper differentiator is deterministic evidence.
 
-See `BOUNDARY_MODEL.md`.
+See `BOUNDARY_MODEL.md` and `PRODUCT_THESIS_V1.md`.
 
 ## Primary products in research pass 1
 
@@ -116,6 +116,7 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 - `scenarios.yaml` - mechanism-independent end-to-end webhook outcomes
 - `DEPTH_REPORT.md` - primary-cohort depth comparison and gap analysis
 - `BOUNDARY_MODEL.md` - Hooktry's capability topology and bridge-product interpretation
+- `PRODUCT_THESIS_V1.md` - active product thesis after S003/S004/S006/S007: core job, invariant, P1/P2, and explicit non-goals
 - `signals.yaml` - direct demand, demand proxies, and market-motion evidence
 - `DEMAND_REPORT.md` - verification-first demand analysis and contradictory evidence
 - `priorities.yaml` - evidence-backed near-term dispositions with confidence
@@ -139,17 +140,25 @@ Public production incidents now validate duplicate, ordering, and idempotency fa
 
 ## Current decision
 
-Public demand evidence now supports the primary capture/inspect/replay/local-development loop and gives moderate support to deterministic CI outcomes. It does not yet directly validate Hooktry's full Contract/Scenario/cardinality/ordering surface.
+S004/S007 sharpen the product decision beyond the earlier desk-research sequence.
 
-The current sequencing rule is therefore:
+The active thesis is now:
 
-1. complete primary webhook inspection and replay ergonomics
-2. add narrow response/failure controls
-3. add provider-aware signatures/templates
-4. expose a thin deterministic CI proof
-5. collect first-party usage before deepening verification DSLs or optional vectors
+> Hooktry is a programmable public interaction boundary that turns external callbacks into canonical, reproducible proof for humans, CI, and software agents.
 
-See `DEMAND_REPORT.md` and `priorities.yaml`.
+Near-term sequencing:
+
+1. preserve the instant anonymous Hook / inspection fast path
+2. complete replay and development forwarding ergonomics
+3. expose a small generic `wait_for_interaction` synchronization primitive over canonical Interaction evidence
+4. add narrow first-class Response Policy semantics
+5. productize Contract/Scenario/Outcome as the richer proof path
+6. add provider-aware verification/signing/re-signing as the next fidelity layer
+7. keep production retry/DLQ/fan-out infrastructure outside core until users explicitly pull Hooktry into that job
+
+Agent support is a first-class actor/interface property, not the category definition.
+
+See `PRODUCT_THESIS_V1.md`, `DEMAND_REPORT.md`, and `priorities.yaml`.
 
 ## Next passes
 
