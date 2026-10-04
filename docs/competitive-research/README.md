@@ -132,7 +132,7 @@ Feature parity alone is not enough. Hooktry may win or lose on the complete work
 
 The Market Map is intentionally broader than a shortlist of category leaders. It includes direct competitors, adjacent webhook infrastructure, substitute workflows, small focused request-bin products, and self-hosted/open-source alternatives.
 
-As of 2026-10-04 the map contains **57 products including Hooktry**.
+As of 2026-10-04 the map contains **58 products including Hooktry**.
 
 The initial leader-focused pass covered products such as Webhook.site, Hookdeck, Beeceptor, Webhook Relay, Svix Play, Pipedream/RequestBin, ngrok, smee.io, Postman, Insomnia, Requestly, and Mockoon.
 
@@ -163,7 +163,7 @@ A second discovery pass expanded the long tail with products including:
 
 This second pass matters because several of the closest strategic overlaps are not the largest brands. Agent-first/API-first products such as HookRelay, webhooks.cc, Hooklistener, and WebhookScout should receive deeper research alongside the established webhook tools.
 
-A third breadth-first discovery pass on 2026-10-04 added 22 more products, including Hook Relay (`hookrelay.dev`), Splithook, WebhookWhisper, WebhookSpy, Requex.me, WebhookCatch, Slashbin, Conduit, RelayBird, Axel, PomeloHook, Webhook Toolkit, webhook.co, Chis, HookRay (`hookray.com`), Hookray (`hookray.dev`), hookee, Webhooks.io, ViewHook, Testhooks, Webhook Simulator, and Hooksterr. This pass intentionally includes current indie/open-source utilities, production relay/gateway products, and early agent-native entrants rather than filtering only for established companies.
+A third breadth-first discovery pass on 2026-10-04 added 23 more products, including Hook Relay (`hookrelay.dev`), HookRelay (`hookrelay.co`), Splithook, WebhookWhisper, WebhookSpy, Requex.me, WebhookCatch, Slashbin, Conduit, RelayBird, Axel, PomeloHook, Webhook Toolkit, webhook.co, Chis, HookRay (`hookray.com`), Hookray (`hookray.dev`), hookee, Webhooks.io, ViewHook, Testhooks, Webhook Simulator, and Hooksterr. This pass intentionally includes current indie/open-source utilities, production relay/gateway products, and early agent-native entrants rather than filtering only for established companies.
 
 Pipedream / RequestBin remains intentionally marked for status verification. HookRelay, UseWebhook, Request Catcher, and API Alerts Hooks also have explicit follow-up questions in the Research Queue rather than guessed conclusions.
 
