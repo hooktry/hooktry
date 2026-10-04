@@ -1,5 +1,5 @@
-checked_at: 2026-10-02
-evidence_scope: "Public market evidence plus Hooktry self-dogfood and Operational cross-project first-party portfolio usage; no external customer cohort yet."
+checked_at: 2026-10-04
+evidence_scope: "Public market evidence plus S004/S007 contract, implementation, and executed E4 verification; Hooktry self-dogfood and Operational cross-project first-party portfolio usage; no external customer cohort yet."
 
 priorities:
   - id: primary-inspector
@@ -19,9 +19,9 @@ priorities:
   - id: configurable-sender-response
     horizon: now
     decision: must
-    confidence: medium
+    confidence: high
     capabilities: [custom-response, failure-simulation]
-    rationale: "Strong market prevalence and testing-job fit; direct public demand is weaker than for replay, so keep the first slice narrow."
+    rationale: "S007 executed response control in Webhook.site and Webhook Toolkit and response passthrough in OpenWebhook. History also shows programmable receiver responses are a long-lived sender-testing job. Keep v1 declarative and narrow rather than building a general scripting engine."
 
   - id: provider-aware-testing
     horizon: next
@@ -31,11 +31,11 @@ priorities:
     rationale: "Signature fidelity causes real integration failures, but provider-native CLIs are substitutes. Build cross-provider adapters rather than a Stripe-specific clone."
 
   - id: deterministic-ci-proof
-    horizon: next
+    horizon: now
     decision: differentiation
-    confidence: medium
+    confidence: high
     capabilities: [wait-for-event, deterministic-ci, contracts]
-    rationale: "CI authentication, bounded waits, reproducible test environments, request assertions, and structured evidence are clearly present across competitors. Current evidence does not establish the same stable behavior-vs-infrastructure outcome semantics, so Hooktry should differentiate only where richer temporal/causal evidence improves the outcome; the exact DSL remains a hypothesis."
+    rationale: "S007 executed Hooktry's MCP and CLI Scenario flows with real HTTP, replay, assertions, persisted Outcome, and cleanup, while Webhook Toolkit executed a compact filtered wait/replay/cleanup loop. Ship a small generic wait primitive alongside the richer Scenario/Outcome proof path; deeper DSL syntax still requires usage pressure."
 
   - id: temporal-duplicate-proof
     horizon: validate
@@ -65,7 +65,7 @@ priorities:
     decision: watch
     confidence: low
     capabilities: [approval-gate]
-    rationale: "Agent operation is accelerating across competitors, but direct demand for approval-controlled actions inside the webhook development product is still missing."
+    rationale: "S004/S007 validate agents as a first-class actor for provisioning, waiting, inspection, replay, and cleanup, but that is distinct from generic approval/execution orchestration. Keep the existing safe control surface as an option and do not redefine Hooktry as an agent platform."
 
   - id: managed-compute
     horizon: substrate
