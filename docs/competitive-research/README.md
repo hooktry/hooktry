@@ -65,6 +65,7 @@ Snapshots have stable `Sxxx` IDs and are indexed in `snapshots/README.md`. Disco
 | 16 Research Queue | Open questions and next research actions |
 | 17 Discovery Passes | Reproducible search passes: exact queries, additions, duplicates, exclusions, false positives, counts, snapshot correlation, and saturation/noise signals |
 | 18 Category Archaeology | Historical milestones: category branches, primitives introduced, failure pressures, successor patterns, and Hooktry implications |
+| 19 Ontology Verification | S004 verification matrix: evidence grade, object model, ten canonical primitives, agent-operability, findings, and executed follow-up |
 
 ## Source-of-truth bias
 
@@ -197,7 +198,8 @@ As of 2026-10-04:
 - `00 Market Map` contains 206 products including Hooktry after six archaeology-only lineage additions; S005 preserves the exact 200-product saturation census.
 - Market Map rows include discovery provenance and provisional maturity signals.
 - `17 Discovery Passes` records P00-P19; strict exact-query provenance begins at P04, P13-P18 add explicit saturation/noise fields, and P19 is the historical lineage pass.
-- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S005 freezes the 200-product saturation probe; S006 reconstructs category history and corrects several novelty assumptions. S004 remains reserved for hands-on ontology verification.
+- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S004 Wave 1 verifies 19 strategic subjects across ten canonical primitives; S005 freezes the 200-product saturation probe; S006 reconstructs category history and corrects several novelty assumptions.
 - `02 Feature Taxonomy` contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.
 - `18 Category Archaeology` contains 24 milestones from 2007 through the 2026 agentic turn.
-- The remaining comparison tabs stay intentionally sparse until hands-on verification begins.
+- `19 Ontology Verification` contains 19 selected subjects; `03 Feature Coverage` now has 190 S004 checks, `05 Workflow Benchmarks` has 19 canonical workflow rows, and `11 Evidence` has 19 S004 evidence records.
+- S004 uses explicit evidence levels: E1 live surface, E2 first-party contract/docs, E3 implementation, E4 executed. Wave 1 contains E1-E3 only and does not mislabel unexecuted flows as hands-on.
