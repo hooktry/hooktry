@@ -135,7 +135,7 @@ Feature parity alone is not enough. Hooktry may win or lose on the complete work
 
 The Market Map is intentionally broader than a shortlist of category leaders. It includes direct competitors, adjacent webhook infrastructure, substitute workflows, small focused request-bin products, and self-hosted/open-source alternatives.
 
-As of 2026-10-04 the map contains **102 products including Hooktry**.
+As of 2026-10-04 the map contains **200 products including Hooktry**.
 
 The initial leader-focused pass covered products such as Webhook.site, Hookdeck, Beeceptor, Webhook Relay, Svix Play, Pipedream/RequestBin, ngrok, smee.io, Postman, Insomnia, Requestly, and Mockoon.
 
@@ -172,6 +172,8 @@ Strict query provenance starts at P04. P04-P12 added another **44 products** thr
 
 The passes also preserve exclusions and false positives. For example, `ai-hook` was found through AI-hook language but classified out because it is an agent security hook dispatcher rather than a public event receiver. This negative evidence is kept so future passes can compare query precision instead of silently discarding misses.
 
+P13-P18 expanded the corpus from 102 to 200 unique Product URLs using deeper web search, direct GitHub repository search, package/extension surfaces, agent callback language, mock/simulation ecosystems, gateway/relay OSS, and a second provider-native pass. Snapshot **S005** freezes this census and the observed transition from useful long-tail signal to clone/provider noise.
+
 Pipedream / RequestBin remains intentionally marked for status verification. HookRelay, UseWebhook, Request Catcher, and API Alerts Hooks also have explicit follow-up questions in the Research Queue rather than guessed conclusions.
 
 ## Research guardrails
@@ -189,8 +191,8 @@ Pipedream / RequestBin remains intentionally marked for status verification. Hoo
 
 As of 2026-10-04:
 
-- `00 Market Map` contains 102 products including Hooktry.
+- `00 Market Map` contains 200 products including Hooktry, with 200 unique Product URLs.
 - Market Map rows include discovery provenance and provisional maturity signals.
-- `17 Discovery Passes` records P00-P12; strict exact-query provenance begins at P04.
-- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census and its search language; S003 extracts the first market ontology from the 102-product corpus.
+- `17 Discovery Passes` records P00-P18; strict exact-query provenance begins at P04, and P13-P18 add explicit saturation/noise fields.
+- Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S005 freezes the 200-product saturation probe. S004 remains reserved for hands-on ontology verification.
 - `02 Feature Taxonomy` now contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.\n- The remaining comparison tabs stay intentionally sparse until the breadth-first census is stable enough for deeper benchmarking.
