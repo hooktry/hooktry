@@ -1,6 +1,8 @@
 import {
   useEffect,
   useMemo,
+  useId,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -901,6 +903,19 @@ function HookHeader({
   nowMs: number;
   connection: ConnectionState;
 }) {
+  const requestUsage: Usage | undefined = summary ? {
+    current: summary.request_count,
+    limit: summary.request_limit,
+    tone: "blue",
+    unit: "requests",
+  } : undefined;
+  const retainedUsage: Usage | undefined = summary ? {
+    current: summary.retained_bytes,
+    limit: summary.max_retained_bytes,
+    tone: "mint",
+    unit: "bytes",
+  } : undefined;
+
   return (
     <div className="hook-header">
       <div className="hook-header-inner">
@@ -1015,10 +1030,12 @@ function HookHeader({
         <div className="metrics">
           <Metric
             label="Requests"
+            usage={requestUsage}
             value={summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}
           />
           <Metric
             label="Retained"
+            usage={retainedUsage}
             value={summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}
           />
           <Metric
@@ -1048,7 +1065,12 @@ function HookHeader({
           />
 
         <details className="mobile-hook-details">
-          <summary>Details</summary>
+          <summary>
+            Details
+            <svg className="details-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
           <div className="mobile-hook-details-content">
             <div className="mobile-detail-section">
               <div className="capability-heading">VIEWER URL</div>
@@ -1071,17 +1093,19 @@ function HookHeader({
             </div>
 
             <div className="mobile-metrics-list">
-              <div className="mobile-metric-row">
-                <span>Requests</span>
-                <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+              <div className="mobile-usage-metric">
+                <div className="mobile-metric-row">
+                  <span>Requests</span>
+                  <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+                </div>
+                {requestUsage ? <UsageMeter label="Requests" usage={requestUsage} /> : null}
               </div>
-              <div className="mobile-metric-row">
-                <span>Retained</span>
-                <strong>
-                  {summary
-                    ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}`
-                    : "—"}
-                </strong>
+              <div className="mobile-usage-metric">
+                <div className="mobile-metric-row">
+                  <span>Retained</span>
+                  <strong>{summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}</strong>
+                </div>
+                {retainedUsage ? <UsageMeter label="Retained" usage={retainedUsage} /> : null}
               </div>
               <div className="mobile-metric-row">
                 <span>Max body</span>
@@ -1120,18 +1144,95 @@ function Metric({
   label,
   value,
   action,
+  usage,
 }: {
   label: string;
   value: string;
   action?: ReactNode;
+  usage?: Usage;
 }) {
   return (
-    <div className="metric">
+    <div className={`metric ${usage ? "metric-with-usage" : ""}`}>
       <span>{label}</span>
       <div className="metric-value">
         <strong>{value}</strong>
         {action}
       </div>
+      {usage ? <UsageMeter label={label} usage={usage} /> : null}
+    </div>
+  );
+}
+
+interface Usage {
+  current: number;
+  limit: number;
+  tone: "blue" | "mint";
+  unit: "requests" | "bytes";
+}
+
+function UsageMeter({ label, usage }: { label: string; usage: Usage }) {
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
+  const { current, limit, tone, unit } = usage;
+  const value = Math.max(0, Math.min(current, limit));
+  const percent = limit > 0 ? (value / limit) * 100 : 0;
+  const format = unit === "bytes" ? formatBytes : (amount: number) => amount.toLocaleString("en-US");
+  const valueText = `${format(current)} / ${format(limit)}`;
+  const remaining = `${format(Math.max(0, limit - current))}${unit === "requests" ? " requests" : ""}`;
+  const percentText = percent > 0 && percent < 1 ? "<1" : String(Math.round(percent));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => { setOpen(false); setPinned(false); };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!wrapper.current?.contains(event.target as Node)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    const details = wrapper.current?.closest("details");
+    const onToggle = () => { if (details && !details.open) close(); };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    details?.addEventListener("toggle", onToggle);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      details?.removeEventListener("toggle", onToggle);
+    };
+  }, [open]);
+
+  if (limit <= 0) return null;
+
+  return (
+    <div
+      className={`usage-meter usage-meter-${tone}`}
+      data-level={percent >= 100 ? "full" : percent >= 80 ? "near" : "normal"}
+      ref={wrapper}
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") setOpen(true); }}
+      onPointerLeave={(event) => { if (event.pointerType === "mouse" && !pinned) setOpen(false); }}
+    >
+      <button
+        className="usage-trigger"
+        type="button"
+        aria-label={`Show ${label} usage`}
+        aria-describedby={open ? tooltipId : undefined}
+        onFocus={() => setOpen(true)}
+        onBlur={() => { setOpen(false); setPinned(false); }}
+        onClick={() => { setPinned(!pinned); setOpen(!pinned); }}
+      >
+        <span className="usage-track" role="meter" aria-label={`${label} usage`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value} aria-valuetext={`${current.toLocaleString("en-US")} of ${limit.toLocaleString("en-US")} ${unit}`}>
+          <span className="usage-fill" style={{ width: `${percent}%` }} />
+          <span className="usage-position" style={{ left: `${percent}%` }} />
+        </span>
+      </button>
+      {open ? (
+        <span className="usage-tooltip" role="tooltip" id={tooltipId}>
+          <strong>{valueText}{unit === "requests" ? " requests" : ""}</strong>
+          <small>{remaining} remaining · {percentText}% used</small>
+          {unit === "bytes" ? <small>{current.toLocaleString("en-US")} of {limit.toLocaleString("en-US")} bytes</small> : null}
+        </span>
+      ) : null}
     </div>
   );
 }
