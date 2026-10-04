@@ -92,7 +92,7 @@
 }
 :root[data-theme] .landing {
   min-height: calc(100dvh - 60px);
-  padding: 56px 28px;
+  padding: 32px 24px;
 }
 :root[data-theme] .landing-card {
   background: var(--card-shell);
@@ -101,11 +101,11 @@
   box-shadow: var(--card-shadow);
 }
 :root[data-theme] .creation-card {
-  width: min(640px, 100%);
+  width: min(560px, 100%);
   padding: 8px;
 }
 .creation-card-head {
-  min-height: 60px;
+  min-height: 50px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -139,7 +139,7 @@
   border-radius: 19px;
 }
 .creation-overview {
-  padding: 28px 26px 22px;
+  padding: 20px 22px 18px;
 }
 :root[data-theme] .eyebrow {
   color: var(--muted);
@@ -148,8 +148,8 @@
   letter-spacing: 0.12em;
 }
 :root[data-theme] .creation-card h1 {
-  margin: 10px 0 0;
-  font-size: clamp(28px, 3.5vw, 40px);
+  margin: 0;
+  font-size: clamp(26px, 3vw, 32px);
   font-weight: 550;
   line-height: 1.12;
   letter-spacing: -0.045em;
@@ -157,40 +157,13 @@
 }
 :root[data-theme] .creation-card p {
   max-width: 470px;
-  margin-top: 14px;
+  margin-top: 10px;
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.7;
-}
-.creation-spectrum {
-  display: flex;
-  gap: 5px;
-  height: 6px;
-  margin: 24px 0 15px;
-}
-.creation-spectrum span {
-  border-radius: 999px;
-}
-.creation-spectrum span:nth-child(1) {
-  flex: 3;
-  background: var(--tone-orange);
-}
-.creation-spectrum span:nth-child(2) {
-  flex: 1;
-  background: var(--tone-blue);
-  opacity: 0.55;
-}
-.creation-spectrum span:nth-child(3) {
-  flex: 4;
-  background: var(--tone-mint);
-  opacity: 0.55;
-}
-.creation-spectrum span:nth-child(4) {
-  flex: 4;
-  background: var(--tone-purple);
-  opacity: 0.5;
+  line-height: 1.55;
 }
 .creation-features {
+  margin-top: 16px;
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -216,7 +189,7 @@
 }
 .creation-limits {
   margin-top: 6px;
-  padding: 20px 20px 8px;
+  padding: 16px 18px 6px;
 }
 .creation-section-head {
   display: flex;
@@ -248,12 +221,12 @@
 }
 :root[data-theme] .policy {
   --policy-tone: var(--tone-orange);
-  min-height: 66px;
+  min-height: 52px;
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr) 68px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  padding: 12px 6px;
+  padding: 9px 6px;
   background: transparent;
   border-bottom: 1px dashed var(--line-soft);
 }
@@ -298,41 +271,12 @@
   font-weight: 550;
   text-align: right;
 }
-.policy-ruler {
-  position: relative;
-  height: 20px;
-  background: repeating-linear-gradient(
-    to right,
-    var(--line-soft) 0 2px,
-    transparent 2px 6px
-  );
-}
-.policy-ruler::before {
-  content: "";
-  position: absolute;
-  inset: 3px 42% 3px 0;
-  background: repeating-linear-gradient(
-    to right,
-    var(--policy-tone) 0 2px,
-    transparent 2px 6px
-  );
-  opacity: 0.8;
-}
-.policy:nth-child(2) .policy-ruler::before {
-  right: 55%;
-}
-.policy:nth-child(3) .policy-ruler::before {
-  right: 30%;
-}
-.policy:nth-child(4) .policy-ruler::before {
-  right: 38%;
-}
 .creation-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 16px 12px;
+  padding: 14px 16px 10px;
 }
 .creation-footer-note {
   font-family: ui-monospace, Menlo, monospace;
@@ -395,6 +339,13 @@
   border: 1px solid var(--line);
   border-radius: 24px;
   box-shadow: var(--card-shadow);
+}
+:root[data-theme] .workspace-empty {
+  min-height: 0;
+}
+:root[data-theme] .workspace-empty .workspace-grid {
+  flex: 0 0 auto;
+  min-height: 260px;
 }
 :root[data-theme] .hook-header {
   padding: 22px;
@@ -567,22 +518,22 @@
     padding-inline: 16px;
   }
   :root[data-theme] .landing {
-    min-height: calc(100dvh - 54px);
-    padding: 32px 14px;
+    min-height: 0;
+    padding: 20px 12px calc(20px + env(safe-area-inset-bottom, 0px));
   }
   :root[data-theme] .creation-card {
     padding: 6px;
     border-radius: 22px;
   }
   .creation-card-head {
-    min-height: 54px;
-    padding: 8px 12px;
+    min-height: 46px;
+    padding: 6px 12px;
   }
   .creation-overview {
-    padding: 24px 18px 20px;
+    padding: 18px 16px 16px;
   }
   :root[data-theme] .creation-card h1 {
-    font-size: 32px;
+    font-size: 26px;
   }
   :root[data-theme] .creation-card p {
     font-size: 12px;
@@ -594,12 +545,12 @@
     font-size: 9px;
   }
   .creation-limits {
-    padding: 16px 12px 6px;
+    padding: 14px 12px 4px;
   }
   :root[data-theme] .policy {
-    grid-template-columns: 130px minmax(0, 1fr) 54px;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
-    min-height: 64px;
+    min-height: 48px;
   }
   :root[data-theme] .policy-description > span:not(.policy-dot) {
     font-size: 11px;
@@ -608,7 +559,7 @@
     font-size: 11px;
   }
   .creation-footer {
-    padding: 16px 10px 10px;
+    padding: 12px 10px 10px;
     gap: 8px;
     flex-wrap: wrap;
   }
@@ -639,13 +590,14 @@
     margin: 12px 8px;
     padding: 6px;
     border-radius: 20px;
-    min-height: calc(100dvh - 78px);
+    min-height: 0;
   }
   :root[data-theme] .hook-header {
     padding: 16px 12px;
     border-radius: 15px;
   }
-  :root[data-theme] .workspace-grid {
+  :root[data-theme] .workspace-grid,
+  :root[data-theme] .workspace-empty .workspace-grid {
     min-height: 0;
   }
   :root[data-theme] .panel {
@@ -658,7 +610,10 @@
     height: auto;
   }
   :root[data-theme] .empty-list {
-    min-height: 180px;
+    min-height: 140px;
+  }
+  :root[data-theme] .interaction-panel-empty {
+    margin-bottom: 0;
   }
   :root[data-theme] .metrics {
     display: block;

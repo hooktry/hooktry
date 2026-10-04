@@ -500,7 +500,6 @@ export function App() {
       <Sidebar viewing={viewing} onNewHook={handleNewHook} theme={theme} />
       <main className="main">
         <Topbar
-          viewing={viewing}
           theme={theme}
           onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         />
@@ -510,7 +509,7 @@ export function App() {
         ) : !viewing ? (
           <Landing creating={creating} error={error} onCreate={handleCreate} />
         ) : (
-          <section className="workspace">
+          <section className={`workspace ${interactions.length === 0 ? "workspace-empty" : ""}`}>
             <HookHeader
               provision={provision}
               summary={activeSummary}
@@ -679,11 +678,9 @@ function Sidebar({
 }
 
 function Topbar({
-  viewing,
   theme,
   onToggleTheme,
 }: {
-  viewing: boolean;
   theme: Theme;
   onToggleTheme: () => void;
 }) {
@@ -707,7 +704,6 @@ function Topbar({
         <strong>Hooks</strong>
       </div>
       <div className="topbar-actions">
-        {!viewing ? <span className="badge">no account required</span> : null}
         {preview ? (
           <div className="preview-build-meta" aria-label="Preview build information">
             {prHref ? (
@@ -796,18 +792,14 @@ function HookCreationContent({
       </div>
 
       <div className="creation-overview">
-        <div className="eyebrow">READY WHEN YOU ARE</div>
         <h1 id={isExistingHook ? "new-hook-title" : undefined}>
           {isExistingHook ? "A fresh endpoint." : "Catch every request."}
         </h1>
         <p>
           {isExistingHook
             ? "Create a new webhook receiver. Your current Hook stays open until it is ready."
-            : "Your own webhook URL, in one click. Inspect headers, query params and bodies as requests arrive."}
+            : "Create a webhook URL. Inspect requests live and share a read-only viewer."}
         </p>
-        <div className="creation-spectrum" aria-hidden="true">
-          <span /><span /><span /><span />
-        </div>
         <div className="creation-features">
           <span><i /> Live capture</span>
           <span><i /> Read-only sharing</span>
@@ -831,7 +823,7 @@ function HookCreationContent({
       {error ? <div className="error-inline" role="alert">{error}</div> : null}
 
       <div className="creation-footer">
-        <span className="creation-footer-note">{isExistingHook ? "A separate receiver" : "Free to start · no sign-up"}</span>
+        <span className="creation-footer-note">{isExistingHook ? "A separate receiver" : "Free · no sign-up"}</span>
         <div className="creation-actions">
           {isExistingHook && onCancel ? (
             <button className="button secondary creation-action-button" type="button" onClick={onCancel} disabled={creating}>
@@ -881,7 +873,6 @@ function Policy({ value, label, detail }: { value: string; label: string; detail
   return (
     <div className="policy">
       <div className="policy-description"><span className="policy-dot" /><span>{label}</span><small>{detail}</small></div>
-      <div className="policy-ruler" aria-hidden="true"><span /></div>
       <strong>{value}</strong>
     </div>
   );
