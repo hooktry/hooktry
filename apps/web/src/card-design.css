@@ -22,7 +22,7 @@
   --muted-2: #807d8b;
   --accent: #ed602d;
   --accent-text: #fff;
-  --selection: #8fc400;
+  --selection: #4b8526;
   --card-shell: #f2f1f7;
   --card-shadow: 0 28px 64px #3c35531a, 0 3px 8px #3c355308;
 }
@@ -401,6 +401,9 @@
   background: color-mix(in srgb, var(--selection) 4%, var(--panel));
   box-shadow: inset 2px 0 var(--selection);
 }
+:root[data-theme="light"] .interaction-row.selected {
+  background: color-mix(in srgb, var(--selection) 8%, var(--panel));
+}
 :root[data-theme] .tabs {
   height: 42px;
   align-items: center;
@@ -632,6 +635,12 @@
     border-radius: 999px;
     background: var(--selection);
     opacity: 0.4;
+  }
+  :root[data-theme="light"] .interaction-row.selected::before {
+    opacity: 0.85;
+  }
+  :root[data-theme="light"] .inspector-panel-selected::before {
+    opacity: 0.65;
   }
   :root[data-theme] .interaction-list {
     height: auto;
