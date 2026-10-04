@@ -1,6 +1,6 @@
 # RESEARCH1 - Competitive Ontology Verification
 
-Status: Wave 1 complete; E4 executed verification remains a separate evidence grade  
+Status: Wave 1 complete; S007 executed verification wave 1 complete  
 Added: 2026-10-04  
 Source snapshots: S002, S003; selection universe expanded by S005 (200 products)
 
@@ -31,3 +31,7 @@ S004 Wave 1 is frozen in `docs/competitive-research/snapshots/2026-10-04-ontolog
 Evidence grades are explicit: E1 live surface, E2 first-party contract/docs, E3 implementation, E4 executed end-to-end. Wave 1 verifies E1-E3. Do not upgrade a claim to E4 until the actual external flow is run.
 
 S005 establishes the broad selection universe and S006 supplies historical corrections. Keep verification separate from breadth discovery.
+
+## E4 execution status
+
+S007 executes seven subjects: Hooktry, Webhook.site, Webhook Toolkit, smee.io, OpenWebhook, HookCapsule, and HookTray. Only primitives actually exercised are upgraded to E4 in `03 Feature Coverage`; other capabilities retain their previous evidence grade.
