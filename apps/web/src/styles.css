@@ -4118,3 +4118,131 @@ body,
     font-size: 38px;
   }
 }
+
+
+/* Editorial cleanup pass: keep strong outer structure, reduce nested boxes. */
+.panel-header,
+.inspector-head {
+  border-bottom-color: var(--line-soft);
+}
+
+.search-row {
+  border-bottom-color: var(--line-soft);
+  padding-inline: 16px;
+}
+
+.search-row input,
+:root[data-theme="light"] .search-row input {
+  border: 0;
+  padding-inline: 0;
+  background: transparent;
+}
+
+.search-row input:focus {
+  border-color: transparent;
+  outline: none;
+}
+
+.interaction-row {
+  border-bottom-color: var(--line-soft);
+}
+
+.interaction-row.selected,
+:root[data-theme="light"] .interaction-row.selected {
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+  box-shadow: inset 4px 0 var(--accent);
+}
+
+.tabs {
+  border-bottom-color: var(--line-soft);
+}
+
+.tab {
+  border-right-color: var(--line-soft);
+}
+
+.inspector-copy-button {
+  min-width: 0;
+}
+
+.body-empty-state {
+  min-height: 170px;
+  justify-content: center;
+}
+
+@media (max-width: 650px) {
+  .hook-header {
+    padding: 18px 14px 16px;
+  }
+
+  .hook-id-row {
+    margin-top: 10px;
+  }
+
+  .public-ingress,
+  .viewer-capability {
+    margin-top: 14px;
+  }
+
+  .public-ingress + .viewer-capability {
+    margin-top: 12px;
+  }
+
+  .metrics {
+    margin-top: 18px;
+  }
+
+  .workspace-grid {
+    margin-top: 10px;
+  }
+
+  .panel-header,
+  .inspector-head {
+    min-height: 52px;
+  }
+
+  .search-row {
+    height: 42px;
+    padding: 6px 18px;
+  }
+
+  .interaction-row {
+    min-height: 64px;
+    padding-block: 11px 10px;
+  }
+
+  .interaction-row.selected,
+  :root[data-theme="light"] .interaction-row.selected {
+    background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+  }
+
+  .inspector-panel-selected::before {
+    display: none;
+  }
+
+  .inspector-head {
+    padding: 9px 14px;
+  }
+
+  .tabs {
+    height: 42px;
+  }
+
+  .tab {
+    min-height: 42px;
+    padding-inline: 13px;
+  }
+
+  .inspector-content {
+    min-height: 0;
+  }
+
+  .body-empty-state,
+  .body-view {
+    min-height: 148px;
+  }
+
+  .body-empty-state {
+    padding: 22px 18px;
+  }
+}
