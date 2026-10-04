@@ -201,5 +201,5 @@ As of 2026-10-04:
 - Snapshot S001 preserves the agent-addressable receiver hypothesis; S002 freezes the first 100+ product census; S003 extracts ontology from the 102-product corpus; S004 Wave 1 verifies 19 strategic subjects across ten canonical primitives; S005 freezes the 200-product saturation probe; S006 reconstructs category history and corrects several novelty assumptions.
 - `02 Feature Taxonomy` contains the S003 ontology with 39 objects/actions/dimensions and product-level lexical evidence counts.
 - `18 Category Archaeology` contains 24 milestones from 2007 through the 2026 agentic turn.
-- `19 Ontology Verification` contains 19 selected subjects; `03 Feature Coverage` now has 190 S004 checks, `05 Workflow Benchmarks` has 19 canonical workflow rows, and `11 Evidence` has 19 S004 evidence records.
-- S004 uses explicit evidence levels: E1 live surface, E2 first-party contract/docs, E3 implementation, E4 executed. Wave 1 contains E1-E3 only and does not mislabel unexecuted flows as hands-on.
+- `19 Ontology Verification` contains 19 selected subjects; S007 upgrades 7 subjects to E4 execution. `03 Feature Coverage` contains the 190 S004 checks with 38 specific primitives upgraded to E4, `05 Workflow Benchmarks` has 7 executed flows, and `11 Evidence` contains 7 additional executed-evidence records.
+- S004 defines explicit evidence levels: E1 live surface, E2 first-party contract/docs, E3 implementation, E4 executed. S007 is the first E4 wave and preserves run-level evidence without promoting unexecuted capabilities.
