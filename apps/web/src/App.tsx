@@ -1,6 +1,8 @@
 import {
   useEffect,
   useMemo,
+  useId,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,7 +48,7 @@ type TimeZoneMode = "local" | `offset:${number}`;
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light";
 }
 
 function initialTimeZoneMode(): TimeZoneMode {
@@ -178,7 +180,7 @@ export function App() {
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem("hooktry-theme", theme);
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
+    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f4f3f7");
   }, [theme]);
 
   useEffect(() => {
@@ -500,7 +502,6 @@ export function App() {
       <Sidebar viewing={viewing} onNewHook={handleNewHook} theme={theme} />
       <main className="main">
         <Topbar
-          viewing={viewing}
           theme={theme}
           onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         />
@@ -510,7 +511,7 @@ export function App() {
         ) : !viewing ? (
           <Landing creating={creating} error={error} onCreate={handleCreate} />
         ) : (
-          <section className="workspace">
+          <section className={`workspace ${interactions.length === 0 ? "workspace-empty" : ""}`}>
             <HookHeader
               provision={provision}
               summary={activeSummary}
@@ -679,11 +680,9 @@ function Sidebar({
 }
 
 function Topbar({
-  viewing,
   theme,
   onToggleTheme,
 }: {
-  viewing: boolean;
   theme: Theme;
   onToggleTheme: () => void;
 }) {
@@ -707,7 +706,6 @@ function Topbar({
         <strong>Hooks</strong>
       </div>
       <div className="topbar-actions">
-        {!viewing ? <span className="badge">no account required</span> : null}
         {preview ? (
           <div className="preview-build-meta" aria-label="Preview build information">
             {prHref ? (
@@ -790,52 +788,60 @@ function HookCreationContent({
 
   return (
     <>
-      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "EPHEMERAL HOOK"}</div>
-      <h1 id={isExistingHook ? "new-hook-title" : undefined}>
-        {isExistingHook
-          ? "Create another webhook endpoint."
-          : "Create an ephemeral webhook endpoint."}
-      </h1>
-      <p>
-        {isExistingHook
-          ? "Your current Hook stays open until the new one has been created successfully."
-          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
-      </p>
-
-      <div className="policy-grid">
-        <Policy value="5 days" label="ephemeral lifetime" />
-        <Policy value="100" label="requests per Hook" />
-        <Policy value="5 MiB" label="per request" />
-        <Policy value="50 MiB" label="retained bodies" />
+      <div className="creation-card-head">
+        <span className="creation-card-title">{isExistingHook ? "New Hook" : "Webhook receiver"}</span>
+        <span className="creation-mode"><span className="dot" /> Ephemeral</span>
       </div>
 
-      <div className={isExistingHook ? "creation-actions creation-actions-modal" : "creation-actions"}>
-        {isExistingHook && onCancel ? (
-          <button
-            className="button secondary creation-action-button"
-            type="button"
-            onClick={onCancel}
-            disabled={creating}
-          >
-            Cancel
+      <div className="creation-overview">
+        <h1 id={isExistingHook ? "new-hook-title" : undefined}>
+          {isExistingHook ? "A fresh endpoint." : "Catch every request."}
+        </h1>
+        <p>
+          {isExistingHook
+            ? "Create a new webhook receiver. Your current Hook stays open until it is ready."
+            : "Create a webhook URL. Inspect requests live and share a read-only viewer."}
+        </p>
+        <div className="creation-features">
+          <span><i /> Live capture</span>
+          <span><i /> Read-only sharing</span>
+          <span><i /> No account needed</span>
+        </div>
+      </div>
+
+      <div className="creation-limits">
+        <div className="creation-section-head">
+          <strong>Included limits</strong>
+          <span className="creation-plan">Free · anonymous</span>
+        </div>
+        <div className="policy-grid">
+          <Policy value="5 days" label="Endpoint lifetime" detail="Claim to keep it" />
+          <Policy value="100" label="Captured requests" detail="Per Hook" />
+          <Policy value="5 MiB" label="Request body" detail="Per request" />
+          <Policy value="50 MiB" label="Body retention" detail="Per Hook" />
+        </div>
+      </div>
+
+      {error ? <div className="error-inline" role="alert">{error}</div> : null}
+
+      <div className="creation-footer">
+        <span className="creation-footer-note">{isExistingHook ? "A separate receiver" : "Free · no sign-up"}</span>
+        <div className="creation-actions">
+          {isExistingHook && onCancel ? (
+            <button className="button secondary creation-action-button" type="button" onClick={onCancel} disabled={creating}>
+              Cancel
+            </button>
+          ) : null}
+          <button className="button primary creation-action-button creation-primary-button" type="button" onClick={onCreate} disabled={creating}>
+            {creating ? "Creating…" : "Create Hook"}
+            {!creating ? <span aria-hidden="true">↗</span> : null}
           </button>
-        ) : null}
-        <button
-          className="button primary creation-action-button creation-primary-button"
-          type="button"
-          onClick={onCreate}
-          disabled={creating}
-        >
-          {creating ? "Creating…" : "Create ephemeral Hook"}
-        </button>
+        </div>
       </div>
-
-      {error ? <div className="error-inline">{error}</div> : null}
 
       {!isExistingHook ? (
         <div className="landing-footnote">
-          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
-          unless claimed into a workspace.
+          Share the viewer URL to give read-only access. Claim your Hook to keep it beyond its anonymous lifetime.
         </div>
       ) : null}
     </>
@@ -865,11 +871,11 @@ function Landing({
   );
 }
 
-function Policy({ value, label }: { value: string; label: string }) {
+function Policy({ value, label, detail }: { value: string; label: string; detail: string }) {
   return (
     <div className="policy">
+      <div className="policy-description"><span className="policy-dot" /><span>{label}</span><small>{detail}</small></div>
       <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }
@@ -897,6 +903,19 @@ function HookHeader({
   nowMs: number;
   connection: ConnectionState;
 }) {
+  const requestUsage: Usage | undefined = summary ? {
+    current: summary.request_count,
+    limit: summary.request_limit,
+    tone: "blue",
+    unit: "requests",
+  } : undefined;
+  const retainedUsage: Usage | undefined = summary ? {
+    current: summary.retained_bytes,
+    limit: summary.max_retained_bytes,
+    tone: "mint",
+    unit: "bytes",
+  } : undefined;
+
   return (
     <div className="hook-header">
       <div className="hook-header-inner">
@@ -1011,10 +1030,12 @@ function HookHeader({
         <div className="metrics">
           <Metric
             label="Requests"
+            usage={requestUsage}
             value={summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}
           />
           <Metric
             label="Retained"
+            usage={retainedUsage}
             value={summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}
           />
           <Metric
@@ -1044,7 +1065,12 @@ function HookHeader({
           />
 
         <details className="mobile-hook-details">
-          <summary>Details</summary>
+          <summary>
+            Details
+            <svg className="details-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
           <div className="mobile-hook-details-content">
             <div className="mobile-detail-section">
               <div className="capability-heading">VIEWER URL</div>
@@ -1067,17 +1093,19 @@ function HookHeader({
             </div>
 
             <div className="mobile-metrics-list">
-              <div className="mobile-metric-row">
-                <span>Requests</span>
-                <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+              <div className="mobile-usage-metric">
+                <div className="mobile-metric-row">
+                  <span>Requests</span>
+                  <strong>{summary ? `${summary.request_count} / ${summary.request_limit}` : "—"}</strong>
+                </div>
+                {requestUsage ? <UsageMeter label="Requests" usage={requestUsage} /> : null}
               </div>
-              <div className="mobile-metric-row">
-                <span>Retained</span>
-                <strong>
-                  {summary
-                    ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}`
-                    : "—"}
-                </strong>
+              <div className="mobile-usage-metric">
+                <div className="mobile-metric-row">
+                  <span>Retained</span>
+                  <strong>{summary ? `${formatBytes(summary.retained_bytes)} / ${formatBytes(summary.max_retained_bytes)}` : "—"}</strong>
+                </div>
+                {retainedUsage ? <UsageMeter label="Retained" usage={retainedUsage} /> : null}
               </div>
               <div className="mobile-metric-row">
                 <span>Max body</span>
@@ -1116,18 +1144,95 @@ function Metric({
   label,
   value,
   action,
+  usage,
 }: {
   label: string;
   value: string;
   action?: ReactNode;
+  usage?: Usage;
 }) {
   return (
-    <div className="metric">
+    <div className={`metric ${usage ? "metric-with-usage" : ""}`}>
       <span>{label}</span>
       <div className="metric-value">
         <strong>{value}</strong>
         {action}
       </div>
+      {usage ? <UsageMeter label={label} usage={usage} /> : null}
+    </div>
+  );
+}
+
+interface Usage {
+  current: number;
+  limit: number;
+  tone: "blue" | "mint";
+  unit: "requests" | "bytes";
+}
+
+function UsageMeter({ label, usage }: { label: string; usage: Usage }) {
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
+  const { current, limit, tone, unit } = usage;
+  const value = Math.max(0, Math.min(current, limit));
+  const percent = limit > 0 ? (value / limit) * 100 : 0;
+  const format = unit === "bytes" ? formatBytes : (amount: number) => amount.toLocaleString("en-US");
+  const valueText = `${format(current)} / ${format(limit)}`;
+  const remaining = `${format(Math.max(0, limit - current))}${unit === "requests" ? " requests" : ""}`;
+  const percentText = percent > 0 && percent < 1 ? "<1" : String(Math.round(percent));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => { setOpen(false); setPinned(false); };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!wrapper.current?.contains(event.target as Node)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    const details = wrapper.current?.closest("details");
+    const onToggle = () => { if (details && !details.open) close(); };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    details?.addEventListener("toggle", onToggle);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      details?.removeEventListener("toggle", onToggle);
+    };
+  }, [open]);
+
+  if (limit <= 0) return null;
+
+  return (
+    <div
+      className={`usage-meter usage-meter-${tone}`}
+      data-level={percent >= 100 ? "full" : percent >= 80 ? "near" : "normal"}
+      ref={wrapper}
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") setOpen(true); }}
+      onPointerLeave={(event) => { if (event.pointerType === "mouse" && !pinned) setOpen(false); }}
+    >
+      <button
+        className="usage-trigger"
+        type="button"
+        aria-label={`Show ${label} usage`}
+        aria-describedby={open ? tooltipId : undefined}
+        onFocus={() => setOpen(true)}
+        onBlur={() => { setOpen(false); setPinned(false); }}
+        onClick={() => { setPinned(!pinned); setOpen(!pinned); }}
+      >
+        <span className="usage-track" role="meter" aria-label={`${label} usage`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value} aria-valuetext={`${current.toLocaleString("en-US")} of ${limit.toLocaleString("en-US")} ${unit}`}>
+          <span className="usage-fill" style={{ width: `${percent}%` }} />
+          <span className="usage-position" style={{ left: `${percent}%` }} />
+        </span>
+      </button>
+      {open ? (
+        <span className="usage-tooltip" role="tooltip" id={tooltipId}>
+          <strong>{valueText}{unit === "requests" ? " requests" : ""}</strong>
+          <small>{remaining} remaining · {percentText}% used</small>
+          {unit === "bytes" ? <small>{current.toLocaleString("en-US")} of {limit.toLocaleString("en-US")} bytes</small> : null}
+        </span>
+      ) : null}
     </div>
   );
 }
