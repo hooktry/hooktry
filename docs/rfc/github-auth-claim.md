@@ -188,6 +188,12 @@ When the user chooses Claim:
 
 A browser that possesses only the `vw_` URL still cannot derive the hook or claim capability.
 
+## After claim
+
+AUTH1 proves the transition into a personal workspace. A claimed Hook must then become a normal durable workspace resource discoverable without the original anonymous browser session.
+
+Workspace list/reopen/history/revoke/delete and independent ingress/view capability rotation are specified in [HOOK2 - Persistent Workspace Hook Inventory](persistent-workspace-hooks.md).
+
 ## Runtime configuration
 
 GitHub identity uses:
