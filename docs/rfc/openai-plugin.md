@@ -1,6 +1,6 @@
 # PLUGIN1 - OpenAI Plugin and Remote MCP Surface
 
-Status: accepted design, implementation in progress  
+Status: PLUGIN1 production accepted; authenticated follow-up in progress  
 Date: 2026-10-02
 
 ## Goal
@@ -318,6 +318,55 @@ PLUGIN1.B is accepted when:
 6. The returned webhook URL accepts an HTTP request through the normal anonymous ingress path.
 7. The portable package declares `https://mcp.hooktry.com/mcp`.
 8. Existing stdio MCP tests remain unchanged and green.
+
+## Production dogfood acceptance - 2026-10-02
+
+PLUGIN1 has been proven through the real ChatGPT product, not only repository tests.
+
+Observed mobile flow on iOS:
+
+```text
+Hooktry plugin page
+    -> attached Hooktry App
+    -> Try in chat
+    -> ChatGPT Work
+    -> explicit Connect Hooktry consent
+    -> @Hooktry create endpoint request
+    -> create_webhook_endpoint
+    -> live Hooktry webhook URL returned
+```
+
+The plugin package still presents a `Desktop only` badge for the standalone imported MCP surface. That badge does not prevent the attached Hooktry App from being invoked on iOS through ChatGPT Work.
+
+The no-auth MCP tool still requires the user's normal ChatGPT connection consent. This is product-level app consent, not Hooktry OAuth and not a Hooktry account login.
+
+The successful mobile invocation returned the expected anonymous policy:
+
+- five-day expiration;
+- 100-request limit;
+- 5 MiB maximum request body;
+- 50 MiB retained body-data limit.
+
+Cloudflare Workers Observability independently recorded the successful invocation at approximately `2026-10-02T10:47:20Z`:
+
+```text
+host: mcp.hooktry.com
+path: /mcp
+method: POST
+mcp protocol: 2026-07-28
+mcp method: tools/call
+mcp tool: create_webhook_endpoint
+client: openai-mcp/1.0.0
+response: 200
+worker outcome: ok
+```
+
+The ChatGPT UI reported one transient service error before retrying the same operation. No failed Hooktry Worker invocation was observed in the corresponding Cloudflare window; the only matching Worker request was the successful `200` call above. Current evidence therefore places that transient failure before the Hooktry Worker boundary, in the ChatGPT/app orchestration path rather than the Hooktry MCP handler.
+
+This proof upgrades PLUGIN1.B from transport acceptance to first-party mobile product dogfood acceptance.
+
+
+The same observability proof showed upstream connection/session, forwarding, and tracing metadata on MCP requests. Treat that metadata as operationally sensitive. Do not surface it as product evidence, and review Cloudflare observability retention/redaction before public release so session identifiers, forwarded network metadata, and tracing headers are retained only when operationally necessary.
 
 ## References
 
