@@ -4,6 +4,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Dish, Riffle } from "@lucasmarkes/hairline/react";
+import { ThemePage } from "./ThemePage";
 
 import {
   authSession,
@@ -46,7 +48,7 @@ type TimeZoneMode = "local" | `offset:${number}`;
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light";
 }
 
 function initialTimeZoneMode(): TimeZoneMode {
@@ -128,7 +130,9 @@ function isPreviewHost(): boolean {
 }
 
 export function App() {
-  const [pathname, setPathname] = useState(() => window.location.pathname);
+  const [pathname, setPathname] = useState(() => window.location.pathname === "/theme" ? "/" : window.location.pathname);
+  const [themePage, setThemePage] = useState(() => window.location.pathname === "/theme");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [provision, setProvision] = useState<HookProvision | null>(() =>
     loadOwnerProvision(window.location.pathname),
   );
@@ -178,7 +182,7 @@ export function App() {
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem("hooktry-theme", theme);
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    themeColor?.setAttribute("content", theme === "dark" ? "#0d0f12" : "#f6f7f9");
+    themeColor?.setAttribute("content", theme === "dark" ? "#08090a" : "#ffffff");
   }, [theme]);
 
   useEffect(() => {
@@ -208,6 +212,9 @@ export function App() {
   useEffect(() => {
     const onPopState = () => {
       const nextPath = window.location.pathname;
+      setThemePage(nextPath === "/theme");
+      setMenuOpen(false);
+      if (nextPath === "/theme" || nextPath === pathname) return;
       setPathname(nextPath);
       const stored = loadOwnerProvision(nextPath);
       setProvision(stored);
@@ -219,7 +226,7 @@ export function App() {
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!handoffCapability) return;
@@ -381,6 +388,8 @@ export function App() {
       const path = new URL(created.view_url, window.location.href).pathname;
       window.history.pushState({}, "", path);
       setPathname(path);
+      setThemePage(false);
+      setMenuOpen(false);
       setProvision(created);
       setSummary(created);
       setInteractions([]);
@@ -495,22 +504,44 @@ export function App() {
     window.addEventListener("pointerup", onUp, { once: true });
   }
 
+  function navigate(page: "hooks" | "theme") {
+    const path = page === "theme" ? "/theme" : pathname;
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    setThemePage(page === "theme");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0 });
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [menuOpen]);
+
   return (
     <div className="app-shell">
-      <Sidebar viewing={viewing} onNewHook={handleNewHook} theme={theme} />
+      {menuOpen ? <button className="nav-backdrop" aria-label="Close navigation" onClick={() => setMenuOpen(false)} /> : null}
+      <Sidebar viewing={viewing} onNewHook={handleNewHook} theme={theme} themePage={themePage} menuOpen={menuOpen} hookPath={pathname} onNavigate={navigate} />
       <main className="main">
         <Topbar
-          viewing={viewing}
           theme={theme}
+          themePage={themePage}
+          menuOpen={menuOpen}
+          onToggleMenu={() => setMenuOpen((open) => !open)}
           onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         />
 
+        {themePage ? <ThemePage theme={theme} creating={creating} error={error} onStart={viewing ? handleNewHook : handleCreate} onWorkspace={() => navigate("hooks")} /> : null}
+        <div hidden={themePage}>
         {handoffCapability ? (
           <HandoffLanding opening={openingHandoff} error={error} />
         ) : !viewing ? (
           <Landing creating={creating} error={error} onCreate={handleCreate} />
         ) : (
-          <section className="workspace">
+          <section className={`workspace ${interactions.length === 0 ? "workspace-empty" : ""}`}>
             <HookHeader
               provision={provision}
               summary={activeSummary}
@@ -560,6 +591,7 @@ export function App() {
             </div>
           </section>
         )}
+        </div>
       </main>
 
       {newHookOpen ? (
@@ -578,10 +610,18 @@ function Sidebar({
   viewing,
   onNewHook,
   theme,
+  themePage,
+  menuOpen,
+  hookPath,
+  onNavigate,
 }: {
   viewing: boolean;
   onNewHook: () => void;
   theme: Theme;
+  themePage: boolean;
+  menuOpen: boolean;
+  hookPath: string;
+  onNavigate: (page: "hooks" | "theme") => void;
 }) {
   const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
   const buildPr = (import.meta.env.VITE_BUILD_PR as string | undefined)?.trim() || null;
@@ -595,7 +635,7 @@ function Sidebar({
     : null;
 
   return (
-    <aside className="sidebar">
+    <aside id="workspace-navigation" className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
       <div className="brand">
         <a className="brand-home" href="/" aria-label="Go to Hooktry home" title="Go to Hooktry home">
           <img
@@ -620,11 +660,14 @@ function Sidebar({
         </a>
       </div>
 
-      <nav className="nav">
-        <button className="nav-item active" type="button" title="Hooks">
+      <nav className="nav" aria-label="Workspace navigation">
+        <a className={`nav-item ${themePage ? "" : "active"}`} href={hookPath} aria-current={themePage ? undefined : "page"} onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("hooks"); } }}>
           <span>Hooks</span>
-          <kbd>H</kbd>
-        </button>
+          <span className="nav-number">01</span>
+        </a>
+        <a className={`nav-item ${themePage ? "active" : ""}`} href="/theme" aria-current={themePage ? "page" : undefined} onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate("theme"); } }}>
+          <span>Theme</span><span className="nav-number">02</span>
+        </a>
 
         <div className="nav-section">Evidence</div>
         <span className="nav-tooltip-wrap" title="Recordings - coming soon">
@@ -679,13 +722,17 @@ function Sidebar({
 }
 
 function Topbar({
-  viewing,
   theme,
   onToggleTheme,
+  themePage,
+  menuOpen,
+  onToggleMenu,
 }: {
-  viewing: boolean;
   theme: Theme;
   onToggleTheme: () => void;
+  themePage: boolean;
+  menuOpen: boolean;
+  onToggleMenu: () => void;
 }) {
   const buildSha = import.meta.env.VITE_BUILD_SHA || "dev";
   const buildPr = (import.meta.env.VITE_BUILD_PR as string | undefined)?.trim() || null;
@@ -702,12 +749,14 @@ function Topbar({
   return (
     <header className="topbar">
       <div className="breadcrumb">
+        <button className="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded={menuOpen} aria-controls="workspace-navigation" onClick={onToggleMenu}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" /></svg>
+        </button>
         <span>Workspace</span>
         <span className="sep">/</span>
-        <strong>Hooks</strong>
+        <strong>{themePage ? "Theme" : "Hooks"}</strong>
       </div>
       <div className="topbar-actions">
-        {!viewing ? <span className="badge">no account required</span> : null}
         {preview ? (
           <div className="preview-build-meta" aria-label="Preview build information">
             {prHref ? (
@@ -794,12 +843,12 @@ function HookCreationContent({
       <h1 id={isExistingHook ? "new-hook-title" : undefined}>
         {isExistingHook
           ? "Create another webhook endpoint."
-          : "Create an ephemeral webhook endpoint."}
+          : "Create a webhook."}
       </h1>
       <p>
         {isExistingHook
           ? "Your current Hook stays open until the new one has been created successfully."
-          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
+          : "One URL. Every request, live. Inspect the body, headers and timing, then share the evidence with your agent."}
       </p>
 
       <div className="policy-grid">
@@ -826,7 +875,7 @@ function HookCreationContent({
           onClick={onCreate}
           disabled={creating}
         >
-          {creating ? "Creating…" : "Create ephemeral Hook"}
+          {creating ? "Creating…" : "Create Hook"}
         </button>
       </div>
 
@@ -834,8 +883,7 @@ function HookCreationContent({
 
       {!isExistingHook ? (
         <div className="landing-footnote">
-          Hook, view, and claim use separate bearer capabilities. Anonymous data expires
-          unless claimed into a workspace.
+          No account required. Anonymous requests expire after five days. Claim your Hook to keep it in a workspace.
         </div>
       ) : null}
     </>
@@ -854,6 +902,7 @@ function Landing({
   return (
     <section className="landing">
       <div className="landing-card creation-card">
+        <Riffle className="creation-figure" intensity={0.35} label="Request cards in a tray. Move the pointer or use the arrow keys to inspect a card." />
         <HookCreationContent
           creating={creating}
           error={error}
@@ -871,6 +920,43 @@ function Policy({ value, label }: { value: string; label: string }) {
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
+  );
+}
+
+function CopyButton({
+  label,
+  copied,
+  onClick,
+  disabled = false,
+  className = "",
+}: {
+  label: string;
+  copied: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      className={`copy-icon-button ${className}`}
+      type="button"
+      aria-label={`Copy ${label}`}
+      title={disabled ? `No ${label} to copy` : copied ? "Copied" : `Copy ${label}`}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+        {copied ? (
+          <path d="m4 10 4 4 8-8" />
+        ) : (
+          <>
+            <rect x="7" y="7" width="9" height="9" rx="1.5" />
+            <path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-7A1.5 1.5 0 0 0 3 5.5v7A1.5 1.5 0 0 0 4.5 14H7" />
+          </>
+        )}
+      </svg>
+      <span className="visually-hidden" role="status">{copied ? "Copied" : ""}</span>
+    </button>
   );
 }
 
@@ -927,22 +1013,12 @@ function HookHeader({
                     {shortId(summary.exposure_id)}
                   </span>
                 </code>
-                <button
-                  className="icon-button hook-id-copy"
-                  type="button"
-                  aria-label="Copy Hook ID"
-                  title="Copy Hook ID"
+                <CopyButton
+                  className="hook-id-copy"
+                  label="Hook ID"
+                  copied={copied === "exposure-id"}
                   onClick={() => onCopy(summary.exposure_id, "exposure-id")}
-                >
-                  {copied === "exposure-id" ? (
-                    <span className="icon-button-text">Copied</span>
-                  ) : (
-                    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
-                      <rect x="7" y="7" width="9" height="9" rx="1.5" />
-                      <path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-7A1.5 1.5 0 0 0 3 5.5v7A1.5 1.5 0 0 0 4.5 14H7" />
-                    </svg>
-                  )}
-                </button>
+                />
                 <button
                   className="button secondary new-hook-button inline-new-hook"
                   type="button"
@@ -964,14 +1040,12 @@ function HookHeader({
             <div className="capability-heading">PUBLIC INGRESS</div>
             <div className="url-box public-ingress-row">
               <code>{provision.hook_url}</code>
-              <button
-                className="copy-button"
-                type="button"
-                title="Copy Webhook URL"
+              <CopyButton
+                className="url-copy-button"
+                label="Webhook URL"
+                copied={copied === "hook"}
                 onClick={() => onCopy(provision.hook_url, "hook")}
-              >
-                {copied === "hook" ? "Copied" : "Copy"}
-              </button>
+              />
             </div>
           </div>
         ) : null}
@@ -991,14 +1065,12 @@ function HookHeader({
 
           <div className="viewer-capability-row">
             <code>{viewUrl}</code>
-            <button
-              className="viewer-copy-button"
-              type="button"
-              title="Copy Viewer URL"
+            <CopyButton
+              className="url-copy-button"
+              label="Viewer URL"
+              copied={copied === "view"}
               onClick={() => onCopy(viewUrl, "view")}
-            >
-              {copied === "view" ? "Copied" : "Copy"}
-            </button>
+            />
           </div>
 
           {!provision ? (
@@ -1050,14 +1122,12 @@ function HookHeader({
               <div className="capability-heading">VIEWER URL</div>
               <div className="viewer-capability-row mobile-viewer-row">
                 <code>{viewUrl}</code>
-                <button
-                  className="viewer-copy-button"
-                  type="button"
-                  title="Copy Viewer URL"
+                <CopyButton
+                  className="url-copy-button"
+                  label="Viewer URL"
+                  copied={copied === "view"}
                   onClick={() => onCopy(viewUrl, "view")}
-                >
-                  {copied === "view" ? "Copied" : "Copy"}
-                </button>
+                />
               </div>
               {!provision ? (
                 <div className="viewer-capability-note">
@@ -1190,6 +1260,13 @@ function InteractionList({
       <div className="interaction-list">
         {interactions.length === 0 ? (
           <div className="empty-list">
+            {total === 0 && !search ? (
+              <Dish
+                className="waiting-figure"
+                intensity={0.65}
+                label="A receiving antenna. Move the pointer or touch to aim it."
+              />
+            ) : null}
             <strong>{search ? "No matches" : "Waiting for a request"}</strong>
             <span>
               {search
@@ -1213,6 +1290,9 @@ function InteractionList({
               }}
             >
               <div className="interaction-main">
+                <span className="interaction-sequence" title={`Interaction #${interaction.sequence}`}>
+                  #{interaction.sequence}
+                </span>
                 <span className={`method method-${interaction.method.toLowerCase()}`}>
                   {interaction.method}
                 </span>
@@ -1227,7 +1307,6 @@ function InteractionList({
                 />
               </div>
               <div className="interaction-meta">
-                <span>#{interaction.sequence}</span>
                 <span>{formatBytes(interaction.body_bytes)}</span>
               </div>
             </div>
@@ -1382,11 +1461,11 @@ function Inspector({
       <div className="inspector-head">
         <div>
           <div className="request-line">
-            <span className={`method method-${interaction.method.toLowerCase()}`}>
-              {interaction.method}
-            </span>
             <span className="request-sequence" title={`Interaction #${interaction.sequence}`}>
               #{interaction.sequence}
+            </span>
+            <span className={`method method-${interaction.method.toLowerCase()}`}>
+              {interaction.method}
             </span>
             <strong>{interaction.path}</strong>
             {interaction.query ? <span className="query">?{interaction.query}</span> : null}
@@ -1394,17 +1473,20 @@ function Inspector({
           <div className="interaction-id-row">
             <span className="interaction-id-label">INTERACTION ID</span>
             <code>{interaction.interaction_id}</code>
+            <CopyButton
+              label="Interaction ID"
+              copied={copied === "interaction-id"}
+              onClick={() => onCopy(interaction.interaction_id, "interaction-id")}
+            />
           </div>
         </div>
-        <button
-          className="button secondary compact inspector-copy-button"
-          type="button"
+        <CopyButton
+          className="inspector-copy-button"
+          label={copyTarget.label}
+          copied={copied === copyTarget.label}
           onClick={() => onCopy(copyTarget.value, copyTarget.label)}
           disabled={!copyTarget.value}
-          title={copyTarget.value ? `Copy ${copyTarget.label}` : `No ${copyTarget.label} to copy`}
-        >
-          {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
-        </button>
+        />
       </div>
 
       <div className="tabs">
