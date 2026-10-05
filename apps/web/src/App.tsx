@@ -46,7 +46,7 @@ type TimeZoneMode = "local" | `offset:${number}`;
 function initialTheme(): Theme {
   const stored = window.localStorage.getItem("hooktry-theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light";
 }
 
 function initialTimeZoneMode(): TimeZoneMode {
@@ -790,16 +790,16 @@ function HookCreationContent({
 
   return (
     <>
-      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "EPHEMERAL HOOK"}</div>
+      <div className="eyebrow">{isExistingHook ? "NEW EPHEMERAL HOOK" : "LIVE WEBHOOK INSPECTOR"}</div>
       <h1 id={isExistingHook ? "new-hook-title" : undefined}>
         {isExistingHook
           ? "Create another webhook endpoint."
-          : "Create an ephemeral webhook endpoint."}
+          : "Your app sends webhooks. Hooktry shows what arrived."}
       </h1>
       <p>
         {isExistingHook
           ? "Your current Hook stays open until the new one has been created successfully."
-          : "Create a public Hook without an account. Requests appear live as structured interactions you can inspect and hand to an agent."}
+          : "Create a public endpoint in one click. Requests stream in live with headers, query, body, timing, and exact IDs ready to inspect or hand to an agent."}
       </p>
 
       <div className="policy-grid">
@@ -1396,15 +1396,16 @@ function Inspector({
             <code>{interaction.interaction_id}</code>
           </div>
         </div>
-        <button
-          className="button secondary compact inspector-copy-button"
-          type="button"
-          onClick={() => onCopy(copyTarget.value, copyTarget.label)}
-          disabled={!copyTarget.value}
-          title={copyTarget.value ? `Copy ${copyTarget.label}` : `No ${copyTarget.label} to copy`}
-        >
-          {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
-        </button>
+        {copyTarget.value ? (
+          <button
+            className="button secondary compact inspector-copy-button"
+            type="button"
+            onClick={() => onCopy(copyTarget.value, copyTarget.label)}
+            title={`Copy ${copyTarget.label}`}
+          >
+            {copied === copyTarget.label ? "Copied" : `Copy ${copyTarget.label}`}
+          </button>
+        ) : null}
       </div>
 
       <div className="tabs">
